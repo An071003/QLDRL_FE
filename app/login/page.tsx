@@ -26,14 +26,14 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
+    <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-5 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-xs">
         <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight">
           Đăng nhập
         </h2>
       </div>
 
-      <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
+      <div className="mt-5 sm:mx-auto sm:w-full sm:max-w-sm">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label htmlFor="username" className="block text-sm/6 font-medium text-gray-900">

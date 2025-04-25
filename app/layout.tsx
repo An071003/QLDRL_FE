@@ -12,7 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen px-5 ">
         <header className="flex items-center justify-between py-4 px-6 border-b bg-[#0b3c65] border-blue-900 text-white">
           <div className="flex items-center space-x-4">
-            <img src="/banner.png" alt="Logo" className="w-auto h-auto text-[50px] object-contain" />
+            <img src="/banner.png" alt="Logo" className="w-[90%] h-auto text-[50px] object-contain" />
           </div>
           <div className="flex items-center space-x-4">
             <div className="text-sm">
