@@ -28,8 +28,8 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-xs">
-        <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight text-red-500">
-          Sign in to your account
+        <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight">
+          Đăng nhập
         </h2>
       </div>
 
@@ -37,7 +37,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label htmlFor="username" className="block text-sm/6 font-medium text-gray-900">
-              Username
+              Tên truy cập
             </label>
             <div className="mt-2">
               <input
@@ -54,7 +54,7 @@ export default function LoginPage() {
 
           <div>
             <label htmlFor="password" className="block text-sm/6 font-medium text-gray-900">
-              Password
+              Mật khẩu
             </label>
             <div className="mt-2">
               <input
@@ -78,7 +78,7 @@ export default function LoginPage() {
               type="submit"
               className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
             >
-              Sign in
+              Đăng nhập
             </button>
           </div>
         </form>
