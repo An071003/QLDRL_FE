@@ -9,30 +9,46 @@ export default function DashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchUserRole = async () => {
       try {
         const res = await api.get("/api/auth/me");
-        setRole(res.data.data.user.role);
-        console.log(res.data);
+        if (isMounted) {
+          setRole(res.data.data.user[0].role);
+          console.log(res.data.data.user);
+        }
       } catch (error) {
-        router.push("/login");
+        if (isMounted) {
+          router.push("/login");
+        }
       }
     };
 
     fetchUserRole();
+
+    return () => {
+      isMounted = false;
+    };
   }, [router]);
 
   useEffect(() => {
+    if (!role) return;
+
     if (role === "admin") {
       router.push("/uit/admin");
     } else if (role === "student") {
       router.push("/uit/student");
     } else if (role === "lecturer") {
       router.push("/uit/lecturer");
+    } else {
+      router.push("/login");
     }
   }, [role, router]);
 
-  if (!role) return <div>Loading...</div>;
-
-  return <div>Redirecting...</div>;
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      {role ? "Redirecting..." : "Loading..."}
+    </div>
+  );
 }
