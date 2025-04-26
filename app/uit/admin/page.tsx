@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import axios from 'axios';
+import { motion } from 'framer-motion';
+import AdminLayout from '@/components/layout/admin';
+
 
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
@@ -16,90 +18,35 @@ export default function AdminDashboard() {
 
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    setTimeout(() => {
-      setStats({
-        totalUsers: 150,
-        totalStudents: 120,
-        activeCampaigns: 5,
-        totalActivities: 25,
-      });
-      setLoading(false);
-    }, 1000);
-
-    // Example API call (commented out):
-    // async function fetchData() {
-    //   try {
-    //     const response = await axios.get('/api/admin/stats');
-    //     setStats(response.data);
-    //   } catch (error) {
-    //     console.error('Error fetching stats:', error);
-    //   } finally {
-    //     setLoading(false);
-    //   }
-    // }
-    // fetchData();
-  }, []);
-
   const classificationChartOptions = {
-    chart: {
-      type: 'pie',
-    },
+    chart: { type: 'pie' },
     labels: ['Xuất sắc', 'Tốt', 'Khá', 'Trung bình', 'Yếu'],
     responsive: [{
       breakpoint: 480,
       options: {
-        chart: {
-          width: 200
-        },
-        legend: {
-          position: 'bottom'
-        }
+        chart: { width: 200 },
+        legend: { position: 'bottom' }
       }
     }]
   };
 
-  const classificationChartSeries = [30, 40, 15, 10, 5]; // Dummy data
+  const classificationChartSeries = [30, 40, 15, 10, 5];
 
-  // Chart options for activity participation
   const activityChartOptions = {
-    chart: {
-      type: 'bar',
-    },
+    chart: { type: 'bar' },
     xaxis: {
       categories: ['Campaign 1', 'Campaign 2', 'Campaign 3', 'Campaign 4', 'Campaign 5'],
     },
     plotOptions: {
-      bar: {
-        horizontal: false,
-        columnWidth: '55%',
-      },
+      bar: { horizontal: false, columnWidth: '55%' },
     },
-    dataLabels: {
-      enabled: false
-    },
-    stroke: {
-      show: true,
-      width: 2,
-      colors: ['transparent']
-    },
-    title: {
-      text: 'Student Activity Participation',
-    },
-    yaxis: {
-      title: {
-        text: 'Number of Students'
-      }
-    },
-    fill: {
-      opacity: 1
-    },
+    dataLabels: { enabled: false },
+    stroke: { show: true, width: 2, colors: ['transparent'] },
+    title: { text: 'Student Activity Participation' },
+    yaxis: { title: { text: 'Number of Students' } },
+    fill: { opacity: 1 },
     tooltip: {
-      y: {
-        formatter: function (val) {
-          return val + " students"
-        }
-      }
+      y: { formatter: (val: number) => `${val} students` }
     }
   };
 
@@ -108,29 +55,17 @@ export default function AdminDashboard() {
     data: [44, 55, 57, 56, 61]
   }];
 
-  // Chart options for monthly scores trend
   const scoresTrendOptions = {
-    chart: {
-      type: 'line',
-      height: 350
-    },
-    stroke: {
-      curve: 'smooth',
-      width: 2,
-    },
-    title: {
-      text: 'Average Student Score Trends',
-      align: 'left'
-    },
+    chart: { type: 'line', height: 350 },
+    stroke: { curve: 'smooth', width: 2 },
+    title: { text: 'Average Student Score Trends', align: 'left' },
     xaxis: {
       categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
     },
     yaxis: {
-      title: {
-        text: 'Average Score'
-      },
+      title: { text: 'Average Score' },
       min: 0,
-      max: 100
+      max: 100,
     }
   };
 
@@ -142,72 +77,73 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-96">
-        <div className="text-xl">Loading dashboard data...</div>
+        <div className="animate-pulse text-2xl text-gray-500">Loading dashboard data...</div>
       </div>
     );
   }
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
-      
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-blue-100 p-6 rounded-lg shadow">
-          <h2 className="text-lg font-medium text-blue-800">Total Users</h2>
-          <p className="text-3xl font-bold">{stats.totalUsers}</p>
-        </div>
-        <div className="bg-green-100 p-6 rounded-lg shadow">
-          <h2 className="text-lg font-medium text-green-800">Total Students</h2>
-          <p className="text-3xl font-bold">{stats.totalStudents}</p>
-        </div>
-        <div className="bg-yellow-100 p-6 rounded-lg shadow">
-          <h2 className="text-lg font-medium text-yellow-800">Active Campaigns</h2>
-          <p className="text-3xl font-bold">{stats.activeCampaigns}</p>
-        </div>
-        <div className="bg-purple-100 p-6 rounded-lg shadow">
-          <h2 className="text-lg font-medium text-purple-800">Total Activities</h2>
-          <p className="text-3xl font-bold">{stats.totalActivities}</p>
-        </div>
+    <AdminLayout>
+      <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        {[
+          { label: 'Total Users', value: stats.totalUsers, color: 'blue' },
+          { label: 'Total Students', value: stats.totalStudents, color: 'green' },
+          { label: 'Active Campaigns', value: stats.activeCampaigns, color: 'yellow' },
+          { label: 'Total Activities', value: stats.totalActivities, color: 'purple' },
+        ].map((item, index) => (
+          <motion.div 
+            key={index} 
+            whileHover={{ scale: 1.05 }}
+            className={`bg-${item.color}-100 p-6 rounded-2xl shadow-lg`}
+          >
+            <h2 className={`text-lg font-medium text-${item.color}-800`}>{item.label}</h2>
+            <p className="text-3xl font-bold">{item.value}</p>
+          </motion.div>
+        ))}
       </div>
-      
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-medium mb-4">Student Classification Distribution</h2>
-          {typeof window !== 'undefined' && (
-            <Chart 
-              options={classificationChartOptions}
-              series={classificationChartSeries}
-              type="pie"
-              height={350}
-            />
-          )}
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-medium mb-4">Activity Participation</h2>
-          {typeof window !== 'undefined' && (
-            <Chart 
-              options={activityChartOptions}
-              series={activityChartSeries}
-              type="bar"
-              height={350}
-            />
-          )}
-        </div>
-      </div>
-      
-      <div className="bg-white p-6 rounded-lg shadow mb-8">
-        <h2 className="text-xl font-medium mb-4">Score Trends</h2>
-        {typeof window !== 'undefined' && (
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+        <motion.div 
+          whileHover={{ scale: 1.02 }}
+          className="bg-white p-6 rounded-2xl shadow-lg"
+        >
+          <h2 className="text-xl font-medium mb-6">Student Classification Distribution</h2>
           <Chart 
-            options={scoresTrendOptions}
-            series={scoresTrendSeries}
-            type="line"
+            options={classificationChartOptions}
+            series={classificationChartSeries}
+            type="pie"
             height={350}
           />
-        )}
+        </motion.div>
+
+        <motion.div 
+          whileHover={{ scale: 1.02 }}
+          className="bg-white p-6 rounded-2xl shadow-lg"
+        >
+          <h2 className="text-xl font-medium mb-6">Activity Participation</h2>
+          <Chart 
+            options={activityChartOptions}
+            series={activityChartSeries}
+            type="bar"
+            height={350}
+          />
+        </motion.div>
       </div>
-    </div>
+
+      <motion.div 
+        whileHover={{ scale: 1.02 }}
+        className="bg-white p-6 rounded-2xl shadow-lg mb-8"
+      >
+        <h2 className="text-xl font-medium mb-6">Score Trends</h2>
+        <Chart 
+          options={scoresTrendOptions}
+          series={scoresTrendSeries}
+          type="line"
+          height={350}
+        />
+      </motion.div>
+    </AdminLayout>
   );
-} 
+}

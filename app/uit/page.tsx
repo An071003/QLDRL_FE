@@ -13,6 +13,7 @@ export default function DashboardPage() {
       try {
         const res = await api.get("/api/auth/me");
         setRole(res.data.data.user.role);
+        console.log(res.data);
       } catch (error) {
         router.push("/login");
       }
@@ -21,15 +22,17 @@ export default function DashboardPage() {
     fetchUserRole();
   }, [router]);
 
-  if (!role) return <div>Loading...</div>;
+  useEffect(() => {
+    if (role === "admin") {
+      router.push("/uit/admin");
+    } else if (role === "student") {
+      router.push("/uit/student");
+    } else if (role === "lecturer") {
+      router.push("/uit/lecturer");
+    }
+  }, [role, router]);
 
-  if (role === "admin") {
-    router.push("/uit/admin");
-  } else if (role === "student") {
-    router.push("/uit/student");
-  } else if (role === "lecturer") {
-    router.push("/uit/lecturer");
-  }
+  if (!role) return <div>Loading...</div>;
 
   return <div>Redirecting...</div>;
 }

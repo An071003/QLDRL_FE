@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '@/lib/api';
+import { u } from 'motion/react-client';
 
 interface User {
   id: number;
@@ -18,33 +19,25 @@ export default function UserManagement() {
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    // Simulate fetching users from API
-    setTimeout(() => {
-      const dummyUsers = [
-        { id: 1, name: 'Admin User', email: 'admin@example.com', role: 'admin', created_at: '2023-01-01' },
-        { id: 2, name: 'Student 1', email: 'student1@example.com', role: 'student', created_at: '2023-01-02' },
-        { id: 3, name: 'Lecturer 1', email: 'lecturer1@example.com', role: 'lecturer', created_at: '2023-01-03' },
-        { id: 4, name: 'Student 2', email: 'student2@example.com', role: 'student', created_at: '2023-01-04' },
-      ] as User[];
-      
-      setUsers(dummyUsers);
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/api/users');
+      setUsers(res.data.data.users);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to load users');
+    } finally {
       setLoading(false);
-    }, 1000);
-    
-    // In a real application, use:
-    // async function fetchUsers() {
-    //   try {
-    //     const response = await axios.get('/api/admin/users');
-    //     setUsers(response.data);
-    //   } catch (error) {
-    //     console.error('Error fetching users:', error);
-    //     setError('Failed to load users');
-    //   } finally {
-    //     setLoading(false);
-    //   }
-    // }
-    // fetchUsers();
+    }
+  };
+
+  useEffect(() => {
+    console.log('Updated users:', users);
+  }, [users]);
+
+  useEffect(() => {
+    fetchUsers();
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -58,38 +51,23 @@ export default function UserManagement() {
     setError('');
 
     try {
-      // In a real application, use:
-      // const response = await axios.post('/api/admin/users', newUser);
-      // setUsers([...users, response.data]);
-      
-      // Simulating API call
-      const createdUser = {
-        ...newUser,
-        id: users.length + 1,
-        created_at: new Date().toISOString().split('T')[0]
-      } as User;
-      
-      setUsers([...users, createdUser]);
+      await api.post('/api/admin/users', newUser);
       setNewUser({ name: '', email: '', password: '', role: 'student' });
-      setIsCreating(false);
+      await fetchUsers();
     } catch (error) {
       console.error('Error creating user:', error);
       setError('Failed to create user');
+    } finally {
       setIsCreating(false);
     }
   };
 
   const handleDeleteUser = async (userId: number) => {
-    if (!confirm('Are you sure you want to delete this user?')) {
-      return;
-    }
+    if (!confirm('Are you sure you want to delete this user?')) return;
 
     try {
-      // In a real application, use:
-      // await axios.delete(`/api/admin/users/${userId}`);
-      
-      // Simulating API call
-      setUsers(users.filter(user => user.id !== userId));
+      await api.delete(`/api/admin/users/${userId}`);
+      await fetchUsers();
     } catch (error) {
       console.error('Error deleting user:', error);
       setError('Failed to delete user');
@@ -107,14 +85,13 @@ export default function UserManagement() {
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">User Management</h1>
-      
+
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           {error}
         </div>
       )}
 
-      {/* Create User Form */}
       <div className="bg-white p-6 rounded-lg shadow mb-6">
         <h2 className="text-xl font-medium mb-4">Create New User</h2>
         <form onSubmit={handleCreateUser} className="space-y-4">
@@ -175,7 +152,7 @@ export default function UserManagement() {
           </button>
         </form>
       </div>
-      
+
       {/* Users Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
@@ -197,15 +174,15 @@ export default function UserManagement() {
                 <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                    ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' : 
-                      user.role === 'lecturer' ? 'bg-green-100 text-green-800' : 
-                      'bg-blue-100 text-blue-800'}`}>
+                    ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
+                      user.role === 'lecturer' ? 'bg-green-100 text-green-800' :
+                        'bg-blue-100 text-blue-800'}`}>
                     {user.role}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">{user.created_at}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button 
+                  <button
                     onClick={() => handleDeleteUser(user.id)}
                     className="text-red-600 hover:text-red-900 ml-2"
                   >
@@ -219,4 +196,4 @@ export default function UserManagement() {
       </div>
     </div>
   );
-} 
+}

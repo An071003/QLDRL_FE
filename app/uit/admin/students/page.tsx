@@ -2,9 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import axios from 'axios';
 
-// Dynamically import ApexCharts components to avoid SSR issues
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
 interface Student {
@@ -132,9 +130,9 @@ export default function StudentManagement() {
     colors: ['#4F46E5']
   };
 
-  // Calculate score distribution from student data
+
   const calculateScoreDistribution = () => {
-    const distribution = [0, 0, 0, 0, 0]; // [0-50, 51-65, 66-80, 81-90, 91-100]
+    const distribution = [0, 0, 0, 0, 0];
     
     students.forEach(student => {
       const score = student.sumscore || 0;
