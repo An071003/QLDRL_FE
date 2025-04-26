@@ -9,26 +9,21 @@ export default function DashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
-    let isMounted = true;
-
     const fetchUserRole = async () => {
       try {
+        console.log("loi");
         const res = await api.get("/api/auth/me");
-        if (isMounted) {
-          setRole(res.data.data.user[0].role);
-          console.log(res.data.data.user);
-        }
+        setRole(res.data.data.user[0].role);
+        console.log(res.data.data.user);
+
       } catch (error) {
-        if (isMounted) {
-          router.push("/login");
-        }
+        router.push("/login");
       }
     };
 
     fetchUserRole();
 
     return () => {
-      isMounted = false;
     };
   }, [router]);
 

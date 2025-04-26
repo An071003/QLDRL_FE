@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { MainLayout } from "@/components/layout/main";
-import { ErrorMessage, ErrorModal } from "@/components/ErrorModal";
+import { ErrorModal } from "@/components/ErrorModal";
 
 export default function LoginPage() {
   const router = useRouter();

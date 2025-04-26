@@ -1,10 +1,8 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import jwt from "jsonwebtoken";
+import { NextRequest, NextResponse } from "next/server";
+import { jwtVerify } from 'jose';
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const token = request.cookies.get("token")?.value;
-
   if (!token) {
     if (request.nextUrl.pathname !== "/login") {
       return NextResponse.redirect(new URL("/login", request.url));
@@ -13,8 +11,10 @@ export function middleware(request: NextRequest) {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!);
-    const { role } = decoded as { role: string };
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+    const { payload } = await jwtVerify(token, secret); 
+
+    const { role } = payload as { role: string };
 
     const pathname = request.nextUrl.pathname;
 
@@ -32,6 +32,7 @@ export function middleware(request: NextRequest) {
 
     return NextResponse.next();
   } catch (error) {
+    console.error('Error verifying JWT:', error);
     return NextResponse.redirect(new URL("/login", request.url));
   }
 }
