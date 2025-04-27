@@ -220,7 +220,6 @@ export default function StudentManagement() {
         </form>
       </div>
 
-      {/* Score Distribution Chart */}
       <div className="bg-white p-6 rounded-lg shadow mb-6">
         <h2 className="text-xl font-medium mb-4">Score Distribution</h2>
         {typeof window !== 'undefined' && (
@@ -233,7 +232,6 @@ export default function StudentManagement() {
         )}
       </div>
       
-      {/* Students Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">

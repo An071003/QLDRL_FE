@@ -11,7 +11,7 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET as string);
     const { payload } = await jwtVerify(token, secret); 
 
     const { role } = payload as { role: string };
