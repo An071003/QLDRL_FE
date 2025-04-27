@@ -6,6 +6,7 @@ import { User } from "@/types/user";
 import UserForm from '@/components/UserForm';
 import UserTable from '@/components/UserTable';
 import { ErrorModal } from '@/components/ErrorModal';
+import UserImport from '@/components/UserImport';
 
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
@@ -30,7 +31,7 @@ export default function UserManagement() {
     fetchUsers();
   }, []);
 
-  const handleCreateUser = async (newUser: { name: string; email: string; password: string; role: string }) => {
+  const handleCreateUser = async (newUser: { name: string; email: string; role: string }) => {
     try {
       await api.post('/api/users', newUser);
       await fetchUsers();
@@ -38,7 +39,7 @@ export default function UserManagement() {
       setError('');
       return true;
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Lỗi tạo người dùng." );
+      setError(err?.response?.data?.message || "Lỗi tạo người dùng.");
     }
   };
 
@@ -49,7 +50,7 @@ export default function UserManagement() {
       await api.delete(`/api/users/${userId}`);
       await fetchUsers();
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Lỗi xóa người dùng" );
+      setError(err?.response?.data?.message || "Lỗi xóa người dùng");
     }
   };
 
@@ -60,6 +61,27 @@ export default function UserManagement() {
       </div>
     );
   }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const data = await file.arrayBuffer();
+    const workbook = XLSX.read(data);
+    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+    console.log(jsonData);
+
+    try {
+      await api.post('/api/users/import', { users: jsonData });
+      await fetchUsers();
+      setError('');
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.response?.data?.message || "Lỗi import users");
+    }
+  };
 
   return (
     <div>
@@ -83,6 +105,13 @@ export default function UserManagement() {
               handleCreateUser(newUser);
             }}
           />
+          <UserImport
+            onUsersImported={async (users) => {
+              for (const user of users) {
+                await handleCreateUser(user);
+              }
+            }}
+          />
         </>
       ) : (
         <div className="flex justify-end mb-4">
@@ -93,6 +122,7 @@ export default function UserManagement() {
             + New User
           </button>
         </div>
+
       )}
       <UserTable users={users} onDeleteUser={handleDeleteUser} />
     </div>
