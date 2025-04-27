@@ -23,9 +23,11 @@ export default function UserForm({ onUserCreated }: UserFormProps) {
         console.log('Creating')
         try {
             const result = await onUserCreated(newUser);
-            if (result) {
+            if (result.success) {
                 setNewUser({ name: '', email: '', role: 'student' });
-            }
+              } else {
+                setError('Failed to create user');
+              }
         } catch (error) {
             console.error('Error creating user:', error);
             setError('Failed to create user');
@@ -75,13 +77,15 @@ export default function UserForm({ onUserCreated }: UserFormProps) {
                         </select>
                     </div>
                 </div>
-                <button
-                    type="submit"
-                    disabled={isCreating}
-                    className="px-4 py-2 text-white rounded bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300"
-                >
-                    {isCreating ? 'Creating...' : 'Create User'}
-                </button>
+                <div className="flex justify-end mt-4">
+                    <button
+                        type="submit"
+                        disabled={isCreating}
+                        className="px-4 py-2 text-white rounded bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300"
+                    >
+                        {isCreating ? 'Creating...' : 'Create User'}
+                    </button>
+                </div>
             </form>
         </div>
     );

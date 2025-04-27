@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { UploadCloud } from "lucide-react";
 import ExcelJS from 'exceljs';
+import { Result } from 'postcss';
 
 export default function UserImport({ onUsersImported }: { onUsersImported: (users: any[]) => void }) {
   const [loading, setLoading] = useState(false);
   const [previewUsers, setPreviewUsers] = useState<any[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -38,10 +40,15 @@ export default function UserImport({ onUsersImported }: { onUsersImported: (user
     }
   };
 
-  const handleImport = () => {
+  const handleImport = async () => {
     if (previewUsers.length > 0) {
-      onUsersImported(previewUsers);
-      setPreviewUsers([]);
+      const result = await onUsersImported(previewUsers);
+      if (result.success) {
+        setPreviewUsers([]);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      }
     }
   };
 
@@ -55,6 +62,7 @@ export default function UserImport({ onUsersImported }: { onUsersImported: (user
         <label className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 cursor-pointer">
           {loading ? "Loading..." : "Choose File"}
           <input
+            ref={fileInputRef}
             type="file"
             accept=".xlsx"
             onChange={handleFileChange}
@@ -72,7 +80,6 @@ export default function UserImport({ onUsersImported }: { onUsersImported: (user
               <tr>
                 <th className="border p-2">Name</th>
                 <th className="border p-2">Email</th>
-                <th className="border p-2">Password</th>
                 <th className="border p-2">Role</th>
               </tr>
             </thead>
@@ -81,7 +88,6 @@ export default function UserImport({ onUsersImported }: { onUsersImported: (user
                 <tr key={idx}>
                   <td className="border p-2">{user.name}</td>
                   <td className="border p-2">{user.email}</td>
-                  <td className="border p-2">{user.password}</td>
                   <td className="border p-2">{user.role}</td>
                 </tr>
               ))}

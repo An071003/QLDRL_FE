@@ -11,7 +11,7 @@ import UserImport from '@/components/UserImport';
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
+  const [activeComponent, setActiveComponent] = useState<'form' | 'import' | 'table'>('table');
   const [error, setError] = useState('');
 
   const fetchUsers = async () => {
@@ -35,11 +35,12 @@ export default function UserManagement() {
     try {
       await api.post('/api/users', newUser);
       await fetchUsers();
-      setShowForm(false);
+      setActiveComponent('table');
       setError('');
-      return true;
+      return { success: true };
     } catch (err: any) {
       setError(err?.response?.data?.message || "Lỗi tạo người dùng.");
+      return { success: false };
     }
   };
 
@@ -54,6 +55,30 @@ export default function UserManagement() {
     }
   };
 
+  const handleUsersImported = async (importedUsers: User[]) => {
+    try {
+      console.log('Imported users:', importedUsers);
+      await api.post('/api/users/import', importedUsers);
+      await fetchUsers();
+      setActiveComponent('table');
+      return { success: true };
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Lỗi nhập người dùng.");
+      return { success: false };
+    }
+  };
+
+  const renderComponent = () => {
+    switch (activeComponent) {
+      case 'form':
+        return <UserForm onUserCreated={handleCreateUser} />;
+      case 'import':
+        return <UserImport onUsersImported={handleUsersImported} />;
+      default:
+        return <UserTable users={users} onDeleteUser={handleDeleteUser} />;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-96">
@@ -62,69 +87,42 @@ export default function UserManagement() {
     );
   }
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const data = await file.arrayBuffer();
-    const workbook = XLSX.read(data);
-    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-    const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-    console.log(jsonData);
-
-    try {
-      await api.post('/api/users/import', { users: jsonData });
-      await fetchUsers();
-      setError('');
-    } catch (err: any) {
-      console.error(err);
-      setError(err?.response?.data?.message || "Lỗi import users");
-    }
-  };
-
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">User Management</h1>
 
       {error && <ErrorModal message={error} onClose={() => setError('')} />}
 
-      {showForm ? (
-        <>
-          <div className="flex justify-end mb-4">
+      <div className="flex justify-end gap-4 mb-6">
+        {activeComponent === 'table' ? (
+          <>
             <button
-              onClick={() => setShowForm(false)}
-              className="px-4 py-2 bg-rose-400 text-white rounded hover:bg-rose-700"
+              onClick={() => setActiveComponent('form')}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
             >
-              Close Form
+              + New User
             </button>
-          </div>
 
-          <UserForm
-            onUserCreated={(newUser) => {
-              handleCreateUser(newUser);
-            }}
-          />
-          <UserImport
-            onUsersImported={async (users) => {
-              for (const user of users) {
-                await handleCreateUser(user);
-              }
-            }}
-          />
-        </>
-      ) : (
-        <div className="flex justify-end mb-4">
+            <button
+              onClick={() => setActiveComponent('import')}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              + Import Users
+            </button>
+          </>
+        ) : (
           <button
-            onClick={() => setShowForm(true)}
-            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            onClick={() => setActiveComponent('table')}
+            className="px-4 py-2 bg-rose-400 text-white rounded hover:bg-rose-700"
           >
-            + New User
+            Back to Users List
           </button>
-        </div>
+        )}
+      </div>
 
-      )}
-      <UserTable users={users} onDeleteUser={handleDeleteUser} />
+      <div className="mb-6">
+        {renderComponent()}
+      </div>
     </div>
   );
 }
