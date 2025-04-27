@@ -20,15 +20,17 @@ export default function UserForm({ onUserCreated }: UserFormProps) {
         e.preventDefault();
         setIsCreating(true);
         setError('');
+        console.log('Creating')
         try {
-            await onUserCreated(newUser);  
-            setNewUser({ name: '', email: '', password: '', role: 'student' });
+            const result = await onUserCreated(newUser);
+            if (result) {
+                setNewUser({ name: '', email: '', password: '', role: 'student' });
+            }
         } catch (error) {
             console.error('Error creating user:', error);
             setError('Failed to create user');
         } finally {
             setIsCreating(false);
-            
         }
     };
 

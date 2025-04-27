@@ -35,8 +35,10 @@ export default function UserManagement() {
       await api.post('/api/users', newUser);
       await fetchUsers();
       setShowForm(false);
-    } catch (error) {
-      setError('Failed to create user');
+      setError('');
+      return true;
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Lỗi tạo người dùng." );
     }
   };
 
@@ -44,11 +46,10 @@ export default function UserManagement() {
     if (!confirm('Are you sure you want to delete this user?')) return;
 
     try {
-      await api.delete(`/api/admin/users/${userId}`);
+      await api.delete(`/api/users/${userId}`);
       await fetchUsers();
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      setError('Failed to delete user');
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Lỗi xóa người dùng" );
     }
   };
 
@@ -64,7 +65,7 @@ export default function UserManagement() {
     <div>
       <h1 className="text-3xl font-bold mb-6">User Management</h1>
 
-      {error && <ErrorModal message={error} onClose={() => setError("")} />}
+      {error && <ErrorModal message={error} onClose={() => setError('')} />}
 
       {showForm ? (
         <>
