@@ -66,8 +66,6 @@ export default function UserManagement() {
 
       {error && <ErrorModal message={error} onClose={() => setError("")} />}
 
-
-
       {showForm ? (
         <>
           <div className="flex justify-end mb-4">
