@@ -31,7 +31,7 @@ export default function DashboardPage() {
     if (!role) return;
 
     if (role === "admin") {
-      router.push("/uit/admin");
+      router.push("/uit/admin/users");
     } else if (role === "student") {
       router.push("/uit/student");
     } else if (role === "lecturer") {
