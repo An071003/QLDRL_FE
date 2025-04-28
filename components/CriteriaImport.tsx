@@ -27,7 +27,7 @@ export default function CriteriaImport({ onCriteriasImported }: CriteriaImportPr
       const worksheet = workbook.worksheets[0];
 
       worksheet.eachRow((row, rowNumber) => {
-        if (rowNumber === 1) return; // bỏ qua header
+        if (rowNumber === 1) return;
 
         const name = row.getCell(1).value?.toString() || "";
         const max_score = Number(row.getCell(2).value) || 0;

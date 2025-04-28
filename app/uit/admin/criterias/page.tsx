@@ -93,7 +93,7 @@ export default function CriteriaManagement() {
     }
   };
 
-  const handleCriteriasImported = async (importedCriterias: Criteria[]) => {
+  const handleCriteriasImported = async (importedCriterias: { name: string; max_score: number }[]) => {
     try {
       await api.post("/api/criteria/import", importedCriterias);
       await fetchCriterias();

@@ -62,16 +62,12 @@ export default function SemesterManagement() {
     } catch (error) {
       console.error(error);
       setError("Lỗi khi xóa học kỳ.");
-    } finally {
-      setModalOpen(false);
-      setSelectedId(null);
     }
   };
 
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Quản lý học kỳ</h1>
-
       {error && (
         <ErrorModal message={error} onClose={() => setError("")} />
       )}
