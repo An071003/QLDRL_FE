@@ -3,8 +3,8 @@
 import React from "react";
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
 import api from '@/lib/api';
+import { MainLayout } from '@/components/layout';
 
 export default function RegisterPage() {
     const [form, setForm] = useState({
@@ -33,19 +33,21 @@ export default function RegisterPage() {
     };
 
     return (
-        <div className="max-w-md mx-auto mt-10">
-            <h1 className="text-2xl font-bold mb-4">Đăng ký tài khoản</h1>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <input name="name" placeholder="Họ tên" onChange={handleChange} className="w-full border p-2 rounded" required />
-                <input name="email" placeholder="Email" onChange={handleChange} className="w-full border p-2 rounded" required />
-                <input name="password" type="password" placeholder="Mật khẩu" onChange={handleChange} className="w-full border p-2 rounded" required />
-                <select name="role" value={form.role} onChange={handleChange} className="w-full border p-2 rounded">
-                    <option value="student">Sinh viên</option>
-                    <option value="lecturer">Giảng viên</option>
-                    <option value="admin">Admin</option>
-                </select>
-                <button type="submit" className="bg-blue-500 text-white py-2 px-4 rounded">Đăng ký</button>
-            </form>
-        </div>
+        <MainLayout>
+            <div className="max-w-md mx-auto mt-10">
+                <h1 className="text-2xl font-bold mb-4">Đăng ký tài khoản</h1>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <input name="name" placeholder="Họ tên" onChange={handleChange} className="w-full border p-2 rounded" required />
+                    <input name="email" placeholder="Email" onChange={handleChange} className="w-full border p-2 rounded" required />
+                    <input name="password" type="password" placeholder="Mật khẩu" onChange={handleChange} className="w-full border p-2 rounded" required />
+                    <select name="role" value={form.role} onChange={handleChange} className="w-full border p-2 rounded">
+                        <option value="student">Sinh viên</option>
+                        <option value="lecturer">Giảng viên</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <button type="submit" className="bg-blue-500 text-white py-2 px-4 rounded">Đăng ký</button>
+                </form>
+            </div>
+        </MainLayout>
     );
 }

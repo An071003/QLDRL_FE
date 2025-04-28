@@ -15,10 +15,10 @@ const Sidebar = () => {
           Criteria Management
         </Link>
         <Link href="/uit/admin/activities" className="block py-2 px-4 rounded hover:bg-gray-700">
-          Activities
+          Activities Management
         </Link>
         <Link href="/uit/admin/campaigns" className="block py-2 px-4 rounded hover:bg-gray-700">
-          Campaigns
+          Campaigns Management
         </Link>
       </nav>
     </div>

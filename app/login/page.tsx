@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { MainLayout } from "@/components/layout/main";
 import { ErrorModal } from "@/components/ErrorModal";
+import Link from "next/link";
 
 
 export default function LoginPage() {
@@ -29,7 +30,7 @@ export default function LoginPage() {
 
   return (
     <MainLayout>
-      {error && <ErrorModal message={error} onClose={() => setError("")} />} 
+      {error && <ErrorModal message={error} onClose={() => setError("")} />}
 
       <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-5 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-xs">
@@ -81,6 +82,12 @@ export default function LoginPage() {
                 Đăng nhập
               </button>
             </div>
+            <Link
+              href="/reset-password"
+              className="flex items-center justify-center text-sm/6 font-semibold text-indigo-600 hover:text-indigo-500"
+            >
+              Quên mật khẩu?
+            </Link>
           </form>
         </div>
       </div>
