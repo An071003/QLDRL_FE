@@ -1,0 +1,51 @@
+'use client';
+
+import { Semester } from '@/types/semester';
+
+interface SemesterTableProps {
+  semesters: Semester[];
+  loading: boolean;
+  onDeleteSemester: (id: number) => void;
+}
+
+export default function SemesterTable({ semesters, loading, onDeleteSemester }: SemesterTableProps) {
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-40">
+        <div className="text-lg">Đang tải học kỳ...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow overflow-hidden">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên học kỳ</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Năm học</th>
+            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {semesters.map((semester, index) => (
+            <tr key={semester.id}>
+              <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
+              <td className="px-6 py-4 whitespace-nowrap">{semester.name}</td>
+              <td className="px-6 py-4 whitespace-nowrap">{`${semester.start_year} - ${semester.end_year}`}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <button
+                  onClick={() => onDeleteSemester(semester.id)}
+                  className="text-red-600 hover:text-red-900 ml-2"
+                >
+                  Xóa
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
