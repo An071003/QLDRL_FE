@@ -5,6 +5,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { MainLayout } from '@/components/layout';
+import { ErrorModal } from '@/components/ErrorModal';
+import { NotificationModal } from '@/components/NotificationModal';
+
 
 export default function RegisterPage() {
     const [form, setForm] = useState({
@@ -14,6 +17,8 @@ export default function RegisterPage() {
         role: 'student',
     });
     const router = useRouter();
+    const [error, setError] = useState('');
+    const [Notification, setNotification] = useState('');
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setForm({ ...form, [e.target.name]: e.target.value });
@@ -24,16 +29,18 @@ export default function RegisterPage() {
         try {
             console.log(form);
             await api.post("/api/auth/register", form);
-            alert('Đăng ký thành công!');
+            setNotification('Đăng ký thành công!');
             router.push('/login');
         } catch (err) {
             console.error(err);
-            alert('Đăng ký thất bại.');
+            setError('Đăng ký thất bại.');
         }
     };
 
     return (
         <MainLayout>
+            {error && <ErrorModal message={error} onClose={() => setError("")}/>}
+            {Notification && <NotificationModal message={Notification} onClose={() => setNotification("")}/>}
             <div className="max-w-md mx-auto mt-10">
                 <h1 className="text-2xl font-bold mb-4">Đăng ký tài khoản</h1>
                 <form onSubmit={handleSubmit} className="space-y-4">

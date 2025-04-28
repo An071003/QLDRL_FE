@@ -5,7 +5,7 @@ import { AlertTriangle } from "lucide-react";
 
 interface ErrorModalProps {
   message: string;
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 export const ErrorModal: React.FC<ErrorModalProps> = ({ message, onClose}) => {
