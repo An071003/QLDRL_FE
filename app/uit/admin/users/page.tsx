@@ -6,6 +6,7 @@ import { User } from "@/types/user";
 import UserForm from '@/components/UserForm';
 import UserTable from '@/components/UserTable';
 import { ErrorModal } from '@/components/ErrorModal';
+import { ConfirmationModal } from '@/components/ConfirmModal';
 import UserImport from '@/components/UserImport';
 
 export default function UserManagement() {
@@ -13,6 +14,8 @@ export default function UserManagement() {
   const [loading, setLoading] = useState(true);
   const [activeComponent, setActiveComponent] = useState<'form' | 'import' | 'table'>('table');
   const [error, setError] = useState('');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [userIdToDelete, setUserIdToDelete] = useState<number | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -44,14 +47,22 @@ export default function UserManagement() {
     }
   };
 
-  const handleDeleteUser = async (userId: number) => {
-    if (!confirm('Are you sure you want to delete this user?')) return;
+  const handleDeleteClick = (userId: number) => {
+    setUserIdToDelete(userId);
+    setShowConfirmModal(true);
+  };
 
+  const handleConfirmDelete = async () => {
+    if (userIdToDelete === null) return;
     try {
-      await api.delete(`/api/users/${userId}`);
+      await api.delete(`/api/users/${userIdToDelete}`);
       await fetchUsers();
+      setError('');
     } catch (err: any) {
       setError(err?.response?.data?.message || "Lỗi xóa người dùng");
+    } finally {
+      setShowConfirmModal(false);
+      setUserIdToDelete(null);
     }
   };
 
@@ -75,7 +86,7 @@ export default function UserManagement() {
       case 'import':
         return <UserImport onUsersImported={handleUsersImported} />;
       default:
-        return <UserTable users={users} onDeleteUser={handleDeleteUser} />;
+        return <UserTable users={users} onDeleteUser={handleDeleteClick} />;
     }
   };
 
@@ -92,6 +103,14 @@ export default function UserManagement() {
       <h1 className="text-3xl font-bold mb-6">User Management</h1>
 
       {error && <ErrorModal message={error} onClose={() => setError('')} />}
+
+      {showConfirmModal && (
+        <ConfirmationModal
+          message="Bạn có chắc chắn muốn xóa người dùng này?"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setShowConfirmModal(false)}
+        />
+      )}
 
       <div className="flex justify-end gap-4 mb-6">
         {activeComponent === 'table' ? (
