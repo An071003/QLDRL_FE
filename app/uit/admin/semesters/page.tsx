@@ -6,7 +6,7 @@ import { Semester } from "@/types/semester";
 import SemesterTable from "@/components/SemesterTable";
 import { toast } from "sonner";
 import { ErrorModal } from "@/components/ErrorModal";
-import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
+import { ConfirmationModal } from "@/components/ConfirmModal";
 import { NotificationModal } from "@/components/NotificationModal";
 
 export default function SemesterManagement() {
@@ -72,7 +72,7 @@ export default function SemesterManagement() {
         <ErrorModal message={error} onClose={() => setError("")} />
       )}
 
-      <ConfirmDeleteModal
+      <ConfirmationModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         onConfirm={confirmDeleteSemester}

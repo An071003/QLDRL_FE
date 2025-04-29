@@ -1,33 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import react from "react";
 import { toast } from "sonner";
-import api from "@/lib/api";
+import { Campaign } from "@/types/campaign";
 
-interface Criteria {
-  id: number;
-  name: string;
-  max_score: number;
-}
-
-interface CriteriaTableProps {
-  criterias: Criteria[];
-  onDeleteCriteria: (id: number) => void;
-  onUpdateCriteria: (id: number, updatedCriteria: { name: string; max_score: number }) => void;
+interface CampaignTableProps {
+  campaigns: Campaign[];
+  onDeleteCampaign: (id: number) => void;
+  onUpdateCampaign: (id: number, updatedCampaign: { name: string; max_score: number; criteria_id: number; is_negative: boolean; negativescore: number }) => void;
   onSortMaxScore: () => void;
   sortOrder: "asc" | "desc";
 }
 
-export default function CriteriaTable({ criterias, onDeleteCriteria, onUpdateCriteria, onSortMaxScore, sortOrder }: CriteriaTableProps) {
+export default function CampaignTable({ campaigns, onDeleteCampaign, onUpdateCampaign, onSortMaxScore, sortOrder }: CampaignTableProps) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [editMaxScore, setEditMaxScore] = useState(0);
 
-  const handleEdit = (criteria: Criteria) => {
-    setEditingId(criteria.id);
-    setEditName(criteria.name);
-    setEditMaxScore(criteria.max_score);
+  const handleEdit = (campaign: Campaign) => {
+    setEditingId(campaign.id);
+    setEditName(campaign.name);
+    setEditMaxScore(campaign.max_score);
   };
 
   const handleCancel = () => {
@@ -38,7 +31,7 @@ export default function CriteriaTable({ criterias, onDeleteCriteria, onUpdateCri
 
   const handleSave = async (id: number) => {
     if (!editName.trim()) {
-      toast.error("Tên tiêu chí không được để trống.");
+      toast.error("Tên chiến dịch không được để trống.");
       return;
     }
     if (editMaxScore < 0) {
@@ -46,11 +39,17 @@ export default function CriteriaTable({ criterias, onDeleteCriteria, onUpdateCri
       return;
     }
     try {
-      await onUpdateCriteria(id, { name: editName, max_score: editMaxScore });
+      await onUpdateCampaign(id, {
+        name: editName,
+        max_score: editMaxScore,
+        criteria_id: 0, // Không cho sửa criteria_id tại đây
+        is_negative: false, // Không cho sửa is_negative tại đây
+        negativescore: 0,   // Không cho sửa negativescore tại đây
+      });
       handleCancel();
     } catch (error) {
       console.error(error);
-      toast.error("Lỗi khi cập nhật tiêu chí.");
+      toast.error("Lỗi khi cập nhật chiến dịch.");
     }
   };
 
@@ -60,22 +59,24 @@ export default function CriteriaTable({ criterias, onDeleteCriteria, onUpdateCri
         <thead className="bg-gray-50">
           <tr>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STT</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên Tiêu Chí</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên phong trào</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Học kỳ</th>
             <th
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
               onClick={onSortMaxScore}
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
             >
-              Điểm Tối Đa {sortOrder === "asc" ? "▲" : "▼"}
+              Điểm tối đa {sortOrder === "asc" ? "▲" : "▼"}
             </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Hành Động</th>
+            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
           </tr>
         </thead>
+
         <tbody className="bg-white divide-y divide-gray-200">
-          {criterias.map((criteria, index) => (
-            <tr key={criteria.id}>
+          {campaigns.map((campaign, index) => (
+            <tr key={campaign.id}>
               <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
               <td className="px-6 py-4 whitespace-nowrap">
-                {editingId === criteria.id ? (
+                {editingId === campaign.id ? (
                   <input
                     className="border px-2 py-1 rounded w-full"
                     value={editName}
@@ -83,11 +84,14 @@ export default function CriteriaTable({ criterias, onDeleteCriteria, onUpdateCri
                     autoFocus
                   />
                 ) : (
-                  criteria.name
+                  campaign.name
                 )}
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
-                {editingId === criteria.id ? (
+                {`${campaign.semester_name} (${campaign.start_year}-${campaign.end_year})`}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                {editingId === campaign.id ? (
                   <input
                     type="number"
                     className="border px-2 py-1 rounded w-full"
@@ -96,14 +100,14 @@ export default function CriteriaTable({ criterias, onDeleteCriteria, onUpdateCri
                     onChange={(e) => setEditMaxScore(Number(e.target.value))}
                   />
                 ) : (
-                  criteria.max_score
+                  campaign.max_score
                 )}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                {editingId === criteria.id ? (
+                {editingId === campaign.id ? (
                   <div className="flex justify-end gap-2">
                     <button
-                      onClick={() => handleSave(criteria.id)}
+                      onClick={() => handleSave(campaign.id)}
                       className="text-green-600 hover:text-green-900"
                     >
                       Lưu
@@ -118,13 +122,13 @@ export default function CriteriaTable({ criterias, onDeleteCriteria, onUpdateCri
                 ) : (
                   <div className="flex justify-end gap-2">
                     <button
-                      onClick={() => handleEdit(criteria)}
+                      onClick={() => handleEdit(campaign)}
                       className="text-blue-600 hover:text-blue-900"
                     >
                       Sửa
                     </button>
                     <button
-                      onClick={() => onDeleteCriteria(criteria.id)}
+                      onClick={() => onDeleteCampaign(campaign.id)}
                       className="text-red-600 hover:text-red-900"
                     >
                       Xóa
