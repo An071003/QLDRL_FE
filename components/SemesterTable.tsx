@@ -1,6 +1,7 @@
 'use client';
 
 import { Semester } from '@/types/semester';
+import Loading from './Loading';
 
 interface SemesterTableProps {
   semesters: Semester[];
@@ -11,9 +12,7 @@ interface SemesterTableProps {
 export default function SemesterTable({ semesters, loading, onDeleteSemester }: SemesterTableProps) {
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-40">
-        <div className="text-lg">Đang tải học kỳ...</div>
-      </div>
+      <Loading/>
     );
   }
 

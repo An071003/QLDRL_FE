@@ -5,8 +5,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { MainLayout } from '@/components/layout';
-import { ErrorModal } from '@/components/ErrorModal';
 import { NotificationModal } from '@/components/NotificationModal';
+import { toast } from "sonner";
 
 
 export default function RegisterPage() {
@@ -17,7 +17,6 @@ export default function RegisterPage() {
         role: 'student',
     });
     const router = useRouter();
-    const [error, setError] = useState('');
     const [Notification, setNotification] = useState('');
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -33,13 +32,12 @@ export default function RegisterPage() {
             router.push('/login');
         } catch (err) {
             console.error(err);
-            setError('Đăng ký thất bại.');
+            toast.error("Đăng ký thất bại, vui lòng thử lại sau.");
         }
     };
 
     return (
         <MainLayout>
-            {error && <ErrorModal message={error} onClose={() => setError("")}/>}
             {Notification && <NotificationModal message={Notification} onClose={() => setNotification("")}/>}
             <div className="max-w-md mx-auto mt-10">
                 <h1 className="text-2xl font-bold mb-4">Đăng ký tài khoản</h1>

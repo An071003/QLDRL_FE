@@ -4,14 +4,13 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { MainLayout } from "@/components/layout";
-import { ErrorModal } from "@/components/ErrorModal";
 import { NotificationModal } from "@/components/NotificationModal";
+import { toast } from "sonner";
 
 const ResetPasswordPage = () => {
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [error, setError] = useState("");
   const [notification, setNotification] = useState("");
   const [successNotification, setSuccessNotification] = useState(false);
 
@@ -44,7 +43,7 @@ const ResetPasswordPage = () => {
       setIsCounting(true);
       setCountdown(120);
     } catch (error: any) {
-      setError(error.response?.data?.message || "Lỗi gửi mã xác thực.");
+      toast.error(error.response?.data?.message || "Lỗi khi gửi mã xác thực");
     }
   };
 
@@ -55,13 +54,12 @@ const ResetPasswordPage = () => {
       setSuccessNotification(true);
       router.push("/login");
     } catch (error: any) {
-      setError(error.response?.data?.message || "Error resetting password");
+      toast.error(error.response?.data?.message || "Lỗi khi cập nhật mật khẩu");
     }
   };
 
   return (
     <MainLayout>
-      {error && <ErrorModal message={error} onClose={() => setError("")} />}
       {notification && <NotificationModal message={notification} onClose={() => setNotification("")} />}
       <div className="min-h-px flex justify-center bg-gray-50 py-12 px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">

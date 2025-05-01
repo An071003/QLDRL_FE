@@ -4,17 +4,16 @@ import { useState, useEffect, useRef } from "react";
 import { Criteria } from "@/types/criteria";
 import { toast } from "sonner";
 import api from "@/lib/api";
-import { ErrorModal } from "@/components/ErrorModal";
 import CriteriaForm from "@/components/CriteriaForm";
 import CriteriaImport from "@/components/CriteriaImport";
 import CriteriaTable from "@/components/CriteriaTable";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
+import Loading from "@/components/Loading";
 
 export default function CriteriaManagement() {
   const [criterias, setCriterias] = useState<Criteria[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeComponent, setActiveComponent] = useState<'form' | 'import' | 'table'>("table");
-  const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [modalOpen, setModalOpen] = useState(false);
@@ -31,7 +30,6 @@ export default function CriteriaManagement() {
       setCriterias(res.data.data.criterias);
     } catch (err) {
       console.error(err);
-      setError("Lỗi tải danh sách tiêu chí.");
       toast.error("Không thể tải danh sách tiêu chí ❌");
     } finally {
       setLoading(false);
@@ -48,10 +46,9 @@ export default function CriteriaManagement() {
       await fetchCriterias();
       setActiveComponent("table");
       toast.success("Thêm tiêu chí thành công 🎉");
-      setError("");
+
       return { success: true };
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Lỗi tạo tiêu chí.");
       toast.error("Thêm tiêu chí thất bại ❌");
       return { success: false };
     }
@@ -69,7 +66,6 @@ export default function CriteriaManagement() {
       await fetchCriterias();
       toast.success("Xóa tiêu chí thành công ✅");
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Lỗi xóa tiêu chí.");
       toast.error("Xóa tiêu chí thất bại ❌");
     } finally {
       setModalOpen(false);
@@ -83,7 +79,6 @@ export default function CriteriaManagement() {
       await fetchCriterias();
       toast.success("Cập nhật tiêu chí thành công ✨");
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Lỗi cập nhật tiêu chí.");
       toast.error("Cập nhật tiêu chí thất bại ❌");
     }
   };
@@ -96,7 +91,6 @@ export default function CriteriaManagement() {
       toast.success("Import tiêu chí thành công 🚀");
       return { success: true };
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Lỗi import tiêu chí.");
       toast.error("Import tiêu chí thất bại ❌");
       return { success: false };
     }
@@ -194,17 +188,13 @@ export default function CriteriaManagement() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <div className="text-xl">Đang tải tiêu chí...</div>
-      </div>
+      <Loading />
     );
   }
 
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Quản lý Tiêu chí</h1>
-
-      {error && <ErrorModal message={error} onClose={() => setError("")} />}
 
       <div className="flex justify-end gap-4 mb-6">
         {activeComponent === "table" ? (
@@ -215,12 +205,12 @@ export default function CriteriaManagement() {
             >
               + Thêm tiêu chí
             </button>
-            <button
+            {/* <button
               onClick={() => setActiveComponent("import")}
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             >
               + Import tiêu chí
-            </button>
+            </button> */}
           </>
         ) : (
           <button

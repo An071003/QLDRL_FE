@@ -5,18 +5,17 @@ import { toast } from "sonner";
 import api from "@/lib/api";
 import { Campaign } from "@/types/campaign";
 import { Criteria } from "@/types/criteria";
-import { ErrorModal } from "@/components/ErrorModal";
 import CampaignForm from "@/components/CampaignForm";
 import CampaignImport from "@/components/CampaignImport";
 import CampaignTable from "@/components/CampaignTable";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
+import Loading from "@/components/Loading";
 
 export default function CampaignManagement() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [criterias, setCriterias] = useState<Criteria[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeComponent, setActiveComponent] = useState<'form' | 'import' | 'table'>("table");
-  const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSemester, setSelectedSemester] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -34,7 +33,6 @@ export default function CampaignManagement() {
       setCampaigns(res.data.data.campaigns);
     } catch (err) {
       console.error(err);
-      setError("Lỗi tải danh sách phong trào.");
       toast.error("Không thể tải danh sách phong trào ❌");
     } finally {
       setLoading(false);
@@ -48,7 +46,6 @@ export default function CampaignManagement() {
       console.log(res.data.data.criterias);
     } catch (err) {
       console.error(err);
-      setError("Lỗi tải danh sách tiêu chí.");
       toast.error("Không thể tải danh sách tiêu chí ❌");
     }
   };
@@ -65,10 +62,8 @@ export default function CampaignManagement() {
       await fetchCampaigns();
       setActiveComponent("table");
       toast.success("Thêm phong trào thành công 🎉");
-      setError("");
       return { success: true };
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Lỗi tạo phong trào.");
       toast.error("Thêm phong trào thất bại ❌");
       return { success: false };
     }
@@ -86,7 +81,6 @@ export default function CampaignManagement() {
       await fetchCampaigns();
       toast.success("Xóa phong trào thành công ✅");
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Lỗi xóa phong trào.");
       toast.error("Xóa phong trào thất bại ❌");
     } finally {
       setModalOpen(false);
@@ -100,7 +94,6 @@ export default function CampaignManagement() {
       await fetchCampaigns();
       toast.success("Cập nhật phong trào thành công ✨");
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Lỗi cập nhật phong trào.");
       toast.error("Cập nhật phong trào thất bại ❌");
     }
   };
@@ -113,7 +106,6 @@ export default function CampaignManagement() {
       toast.success("Import phong trào thành công 🚀");
       return { success: true };
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Lỗi import phong trào.");
       toast.error("Import phong trào thất bại ❌");
       return { success: false };
     }
@@ -235,18 +227,13 @@ export default function CampaignManagement() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <div className="text-xl">Đang tải phong trào...</div>
-      </div>
+      <Loading />
     );
   }
 
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Quản lý Phong trào</h1>
-
-      {error && <ErrorModal message={error} onClose={() => setError("")} />}
-
       <div className="flex justify-end gap-4 mb-6">
         {activeComponent === "table" ? (
           <>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import api from '@/lib/api';
 import { User } from '@/types/user';
 import UserForm from '@/components/UserForm';
@@ -9,6 +9,7 @@ import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
 import UserImport from '@/components/UserImport';
 import { toast } from 'sonner';
 import debounce from 'lodash.debounce';
+import Loading from '@components/Loading'
 
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
@@ -121,9 +122,7 @@ export default function UserManagement() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <div className="text-xl">Loading users...</div>
-      </div>
+      <Loading />
     );
   }
 

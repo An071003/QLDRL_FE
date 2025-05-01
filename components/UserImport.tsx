@@ -3,14 +3,14 @@
 import { useState, useRef } from 'react';
 import { UploadCloud } from "lucide-react";
 import ExcelJS from 'exceljs';
+import { toast } from 'sonner';
 
 export default function UserImport({
   onUsersImported,
 }: {
   onUsersImported: (users: any[]) => Promise<{ success: boolean }>;
 }) {
-  const [loading, setLoading] = useState(false); 
-  const [importing, setImporting] = useState(false); 
+  const [loading, setLoading] = useState(false);
   const [previewUsers, setPreviewUsers] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -56,11 +56,21 @@ export default function UserImport({
     setPreviewUsers(prev => prev.filter((_, i) => i !== index));
   };
 
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleImport = async () => {
+    setLoading(true);
+    const invalidUsers = previewUsers.filter(user => !isValidEmail(user.email));
+    if (invalidUsers.length > 0) {
+      toast.error("Một số email không hợp lệ");
+      setLoading(false);
+      return;
+    }
     if (previewUsers.length > 0) {
-      setImporting(true);
       const result = await onUsersImported(previewUsers);
-      setImporting(false);
 
       if (result.success) {
         setPreviewUsers([]);
@@ -69,6 +79,7 @@ export default function UserImport({
         }
       }
     }
+    setLoading(false);
   };
 
   return (
@@ -79,7 +90,7 @@ export default function UserImport({
           Import users from Excel
         </p>
         <label className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 cursor-pointer">
-          {loading ? "Loading..." : "Choose File"}
+          Choose File
           <input
             ref={fileInputRef}
             type="file"
@@ -149,12 +160,9 @@ export default function UserImport({
           <div className="flex justify-end mt-4">
             <button
               onClick={handleImport}
-              disabled={importing}
-              className={`px-6 py-2 rounded text-white ${
-                importing ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
-              }`}
+              className={'px-6 py-2 rounded text-white bg-green-500 hover:bg-green-700'}
             >
-              {importing ? 'Creating...' : 'Create Users'}
+              Tạo Users
             </button>
           </div>
         </div>

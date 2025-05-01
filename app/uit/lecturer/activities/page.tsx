@@ -3,8 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import api from "@/lib/api";
-import { ErrorModal } from "@/components/ErrorModal";
 import LecturerActivityTable from "@/components/LecturerActivityTable";
+import Loading from "@/components/Loading";
 
 interface Activity {
   id: number;
@@ -17,7 +17,6 @@ interface Activity {
 export default function LecturerActivityManagement() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
   const tableRef = useRef<HTMLDivElement>(null);
@@ -29,7 +28,6 @@ export default function LecturerActivityManagement() {
       setActivities(res.data.data.activities);
     } catch (err) {
       console.error(err);
-      setError("Lỗi tải danh sách hoạt động.");
       toast.error("Không thể tải danh sách hoạt động ❌");
     } finally {
       setLoading(false);
@@ -46,18 +44,13 @@ export default function LecturerActivityManagement() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <div className="text-xl text-gray-500">Đang tải hoạt động...</div>
-      </div>
+      <Loading />
     );
   }
 
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Danh sách Hoạt động</h1>
-
-      {error && <ErrorModal message={error} onClose={() => setError("")} />}
-
       <div ref={tableRef} className="mb-6">
         <input
           type="text"

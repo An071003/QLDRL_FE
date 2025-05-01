@@ -3,8 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import api from "@/lib/api";
-import { ErrorModal } from "@/components/ErrorModal";
 import LecturerCriteriaTable from "@/components/LecturerCriteriaTable";
+import Loading from "@/components/Loading";
 
 interface Criteria {
   id: number;
@@ -15,7 +15,6 @@ interface Criteria {
 export default function LecturerCriteriaManagement() {
   const [criterias, setCriterias] = useState<Criteria[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
@@ -30,7 +29,6 @@ export default function LecturerCriteriaManagement() {
       setCriterias(res.data.data.criterias);
     } catch (err) {
       console.error(err);
-      setError("Lỗi tải danh sách tiêu chí.");
       toast.error("Không thể tải danh sách tiêu chí ❌");
     } finally {
       setLoading(false);
@@ -69,19 +67,13 @@ export default function LecturerCriteriaManagement() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <div className="text-xl">Đang tải tiêu chí...</div>
-      </div>
+      <Loading />
     );
   }
 
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Danh sách Tiêu chí</h1>
-
-      {error && <ErrorModal message={error} onClose={() => setError("")} />}
-
-      {/* Ô tìm kiếm */}
       <div ref={tableRef} className="mb-6">
         <input
           type="text"
