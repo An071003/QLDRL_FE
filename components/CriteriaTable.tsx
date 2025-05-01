@@ -1,15 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import react from "react";
 import { toast } from "sonner";
-import api from "@/lib/api";
-
-interface Criteria {
-  id: number;
-  name: string;
-  max_score: number;
-}
+import { Criteria } from "@/types/criteria";
 
 interface CriteriaTableProps {
   criterias: Criteria[];

@@ -6,8 +6,7 @@ import { Semester } from "@/types/semester";
 import SemesterTable from "@/components/SemesterTable";
 import { toast } from "sonner";
 import { ErrorModal } from "@/components/ErrorModal";
-import { ConfirmationModal } from "@/components/ConfirmModal";
-import { NotificationModal } from "@/components/NotificationModal";
+import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 
 export default function SemesterManagement() {
   const [semesters, setSemesters] = useState<Semester[]>([]);
@@ -15,8 +14,6 @@ export default function SemesterManagement() {
   const [error, setError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [notifOpen, setNotifOpen] = useState(false);
-  const [notifMessage, setNotifMessage] = useState("");
 
   const fetchSemesters = async () => {
     setLoading(true);
@@ -39,8 +36,7 @@ export default function SemesterManagement() {
     try {
       await api.post("/api/semesters");
       await fetchSemesters();
-      setNotifMessage("Thêm học kỳ mới thành công!");
-      setNotifOpen(true);
+      toast.success("Thêm học kỳ thành công!");
     } catch (error) {
       console.error(error);
       setError("Lỗi khi thêm học kỳ mới.");
@@ -57,10 +53,10 @@ export default function SemesterManagement() {
     try {
       await api.delete(`/api/semesters/${selectedId}`);
       await fetchSemesters();
-      setNotifMessage("Xóa học kỳ thành công!");
-      setNotifOpen(true);
+      toast.success("Xóa học kỳ thành công!");
+      setModalOpen(false);
     } catch (error) {
-      console.error(error);
+      toast.error("Xóa học kỳ thất bại!");
       setError("Lỗi khi xóa học kỳ.");
     }
   };
@@ -72,18 +68,10 @@ export default function SemesterManagement() {
         <ErrorModal message={error} onClose={() => setError("")} />
       )}
 
-      <ConfirmationModal
+      <ConfirmDeleteModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         onConfirm={confirmDeleteSemester}
-        title="Xác nhận xóa"
-        description="Bạn có chắc chắn muốn xóa học kỳ này không?"
-      />
-
-      <NotificationModal
-        isOpen={notifOpen}
-        onClose={() => setNotifOpen(false)}
-        message={notifMessage}
       />
 
       <div className="flex justify-end mb-6">

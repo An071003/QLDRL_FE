@@ -29,7 +29,6 @@ export default function LecturerStudentManagement() {
       const res = await api.get("/api/students");
       setStudents(res.data.data.students);
     } catch (err) {
-      console.error(err);
       setError("Lỗi tải danh sách sinh viên.");
       toast.error("Không thể tải danh sách sinh viên ❌");
     } finally {

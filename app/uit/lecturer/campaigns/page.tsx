@@ -13,7 +13,7 @@ interface Campaign {
   semester_name: string;
   start_year: number;
   end_year: number;
-  semester: number; // cần thêm semester id để lọc
+  semester: number;
 }
 
 export default function LecturerCampaignManagement() {
