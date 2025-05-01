@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { Activity } from "@/types/activity";
 import { Campaign } from "@/types/campaign";
 import api from "@/lib/api";
-import { se } from "date-fns/locale";
 
 interface ActivityTableProps {
   activities: Activity[];
@@ -32,7 +31,6 @@ export default function ActivityTable({
   const [editPoint, setEditPoint] = useState(0);
   const [editCampaignId, setEditCampaignId] = useState<number | null>(null);
   const [editNegativeScore, setEditNegativeScore] = useState<number>(0); 
-
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
 
   useEffect(() => {

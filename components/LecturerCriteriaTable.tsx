@@ -31,9 +31,9 @@ export default function LecturerCriteriaTable({ criterias, sortOrder, onSortMaxS
         <tbody className="bg-white divide-y divide-gray-200">
           {criterias.map((criteria, index) => (
             <tr key={criteria.id}>
-              <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
-              <td className="px-6 py-4 whitespace-nowrap">{criteria.name}</td>
-              <td className="px-6 py-4 whitespace-nowrap">{criteria.max_score}</td>
+              <td className="px-6 py-4 w-10 whitespace-nowrap">{index + 1}</td>
+              <td className="px-6 py-4 w-3xl truncate">{criteria.name}</td>
+              <td className="px-6 py-4 w-auto whitespace-nowrap">{criteria.max_score}</td>
             </tr>
           ))}
         </tbody>
