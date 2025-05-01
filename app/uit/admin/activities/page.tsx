@@ -18,9 +18,9 @@ export default function ActivityManagement() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-
+  const [campaigns, setCampaigns] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const itemsPerPage = 3;
   const tableRef = useRef<HTMLDivElement>(null);
 
   const fetchActivities = async () => {
@@ -36,8 +36,18 @@ export default function ActivityManagement() {
     }
   };
 
+  const fetchCampaigns = async () => {
+    try {
+      const res = await api.get("/api/campaigns");
+      setCampaigns(res.data.data.campaigns);
+    } catch (err) {
+      toast.error("Không thể tải danh sách phong trào.");
+    }
+  };
+
   useEffect(() => {
     fetchActivities();
+    fetchCampaigns();
   }, []);
 
   const handleCreateActivity = async (newActivity: {
@@ -47,6 +57,11 @@ export default function ActivityManagement() {
     is_negative: boolean;
     negativescore: number;
   }) => {
+    const campaign = campaigns.find(c => c.id === newActivity.campaign_id);
+    if (campaign && newActivity.point > campaign.max_score) {
+      toast.error(`Điểm hoạt động không được lớn hơn điểm tối đa (${campaign.max_score}) của phong trào.`);
+      return { success: false };
+    }
     try {
       await api.post("/api/activities", newActivity);
       await fetchActivities();
@@ -87,6 +102,11 @@ export default function ActivityManagement() {
       negativescore?: number;
     }
   ) => {
+    const campaign = campaigns.find(c => c.id === updatedActivity.campaign_id);
+    if (campaign && updatedActivity.point > campaign.max_score) {
+      toast.error(`Điểm hoạt động không được lớn hơn điểm tối đa (${campaign.max_score}) của phong trào.`);
+      return;
+    }
     try {
       await api.put(`/api/activities/${id}`, updatedActivity);
       await fetchActivities();
@@ -142,7 +162,7 @@ export default function ActivityManagement() {
   const renderComponent = () => {
     switch (activeComponent) {
       case "form":
-        return <ActivityForm onActivityCreated={handleCreateActivity} />;
+        return <ActivityForm currentcampaigns={campaigns} onActivityCreated={handleCreateActivity} />;
       case "import":
         return <ActivityImport onActivitiesImported={handleActivitiesImported} />;
       default:
@@ -182,9 +202,8 @@ export default function ActivityManagement() {
                   <button
                     key={index}
                     onClick={() => changePage(index + 1)}
-                    className={`px-3 py-1 rounded-md ${
-                      currentPage === index + 1 ? "bg-blue-500 text-white" : "bg-gray-200 hover:bg-gray-300"
-                    }`}
+                    className={`px-3 py-1 rounded-md ${currentPage === index + 1 ? "bg-blue-500 text-white" : "bg-gray-200 hover:bg-gray-300"
+                      }`}
                   >
                     {index + 1}
                   </button>

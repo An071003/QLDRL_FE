@@ -3,17 +3,14 @@
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { toast } from "sonner";
-
-interface Campaign {
-  id: number;
-  name: string;
-}
+import { Campaign } from "@/types/campaign";
 
 interface ActivityFormProps {
+  currentcampaigns: Campaign[];
   onActivityCreated: (activity: { name: string; point: number; campaign_id: number; is_negative: boolean; negativescore: number }) => Promise<{ success: boolean }>;
 }
 
-export default function ActivityForm({ onActivityCreated }: ActivityFormProps) {
+export default function ActivityForm({ currentcampaigns, onActivityCreated }: ActivityFormProps) {
   const [name, setName] = useState("");
   const [point, setPoint] = useState(0);
   const [campaignId, setCampaignId] = useState<number | null>(null);
@@ -22,15 +19,7 @@ export default function ActivityForm({ onActivityCreated }: ActivityFormProps) {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
 
   useEffect(() => {
-    const fetchCampaigns = async () => {
-      try {
-        const res = await api.get("/api/campaigns");
-        setCampaigns(res.data.data.campaigns);
-      } catch (err) {
-        toast.error("Không thể tải danh sách phong trào.");
-      }
-    };
-    fetchCampaigns();
+    setCampaigns(currentcampaigns);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,6 +28,22 @@ export default function ActivityForm({ onActivityCreated }: ActivityFormProps) {
       toast.error("Vui lòng nhập đầy đủ thông tin.");
       return;
     }
+
+    const campaign = campaigns.find((c) => c.id === campaignId);
+    if (!campaign) {
+      toast.error("Phong trào không tồn tại.");
+      return;
+    }
+
+    if (isNegative && negativeScore <= 0) {
+      toast.error("Điểm trừ phải lớn hơn 0.");
+      return;
+    }
+    if (point > campaign.campaign_max_score) {
+      toast.error(`Điểm hoạt động không được lớn hơn điểm tối đa (${campaign.campaign_max_score}) của phong trào.`);
+      return;
+    }
+
     const result = await onActivityCreated({
       name,
       point,
@@ -94,6 +99,11 @@ export default function ActivityForm({ onActivityCreated }: ActivityFormProps) {
             </option>
           ))}
         </select>
+        {campaignId && (
+          <p className="text-sm text-gray-500 mt-1">
+            Điểm tối đa: {campaigns.find(c => c.id === campaignId)?.campaign_max_score}
+          </p>
+        )}
       </div>
 
       <div>
