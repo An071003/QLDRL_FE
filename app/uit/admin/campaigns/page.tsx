@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { Campaign } from "@/types/campaign";
+import { Criteria } from "@/types/criteria";
 import { ErrorModal } from "@/components/ErrorModal";
 import CampaignForm from "@/components/CampaignForm";
 import CampaignImport from "@/components/CampaignImport";
@@ -12,6 +13,7 @@ import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 
 export default function CampaignManagement() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [criterias, setCriterias] = useState<Criteria[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeComponent, setActiveComponent] = useState<'form' | 'import' | 'table'>("table");
   const [error, setError] = useState("");
@@ -39,8 +41,22 @@ export default function CampaignManagement() {
     }
   };
 
+  const fetchCriterias = async () => {
+    try {
+      const res = await api.get("/api/criteria");
+      setCriterias(res.data.data.criterias);
+      console.log(res.data.data.criterias);
+    } catch (err) {
+      console.error(err);
+      setError("Lỗi tải danh sách tiêu chí.");
+      toast.error("Không thể tải danh sách tiêu chí ❌");
+    }
+  };
+
+
   useEffect(() => {
     fetchCampaigns();
+    fetchCriterias();
   }, []);
 
   const handleCreateCampaign = async (newCampaign: { name: string; max_score: number; criteria_id: number; is_negative: boolean; negativescore: number }) => {
@@ -78,7 +94,7 @@ export default function CampaignManagement() {
     }
   };
 
-  const handleUpdateCampaign = async (id: number, updatedCampaign: { name: string; max_score: number; criteria_id: number; is_negative: boolean; negativescore: number }) => {
+  const handleUpdateCampaign = async (id: number, updatedCampaign: { name: string; max_score: number; criteria_id: number; negativescore: number }) => {
     try {
       await api.put(`/api/campaigns/${id}`, updatedCampaign);
       await fetchCampaigns();
@@ -118,9 +134,9 @@ export default function CampaignManagement() {
     )
     .sort((a, b) => {
       if (sortOrder === "asc") {
-        return a.max_score - b.max_score;
+        return a.campaign_max_score - b.campaign_max_score;
       } else {
-        return b.max_score - a.max_score;
+        return b.campaign_max_score - a.campaign_max_score;
       }
     });
 
@@ -137,7 +153,7 @@ export default function CampaignManagement() {
   const renderComponent = () => {
     switch (activeComponent) {
       case "form":
-        return <CampaignForm onCampaignCreated={handleCreateCampaign} />;
+        return <CampaignForm criteria={criterias} onCampaignCreated={handleCreateCampaign} />;
       case "import":
         return <CampaignImport onCampaignsImported={handleCampaignsImported} />;
       default:
@@ -176,6 +192,7 @@ export default function CampaignManagement() {
 
             <CampaignTable
               campaigns={currentCampaigns}
+              criterias={criterias}
               onDeleteCampaign={openDeleteModal}
               onUpdateCampaign={handleUpdateCampaign}
               onSortMaxScore={handleSortMaxScore}
@@ -239,12 +256,12 @@ export default function CampaignManagement() {
             >
               + Thêm phong trào
             </button>
-            <button
+            {/* <button
               onClick={() => setActiveComponent("import")}
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             >
               + Import phong trào
-            </button>
+            </button> */}
           </>
         ) : (
           <button

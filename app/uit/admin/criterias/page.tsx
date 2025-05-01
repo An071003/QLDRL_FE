@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { Criteria } from "@/types/criteria";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { ErrorModal } from "@/components/ErrorModal";
@@ -8,12 +9,6 @@ import CriteriaForm from "@/components/CriteriaForm";
 import CriteriaImport from "@/components/CriteriaImport";
 import CriteriaTable from "@/components/CriteriaTable";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
-
-interface Criteria {
-  id: number;
-  name: string;
-  max_score: number;
-}
 
 export default function CriteriaManagement() {
   const [criterias, setCriterias] = useState<Criteria[]>([]);
@@ -138,7 +133,7 @@ export default function CriteriaManagement() {
       case "form":
         return <CriteriaForm onCriteriaCreated={handleCreateCriteria} />;
       case "import":
-        return <CriteriaImport onCriteriasImported={handleCriteriasImported} />;
+        return <CriteriaImport onImported={handleCriteriasImported} />;
       default:
         return (
           <>

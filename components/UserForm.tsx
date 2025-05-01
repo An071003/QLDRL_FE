@@ -1,15 +1,11 @@
 "use client";
-import { User } from "@/types/user";
+import { NewUser } from "@/types/user";
 import { useState } from "react";
+import { toast } from "sonner";
 
-interface UserFormProps {
-    onUserCreated: (newUser: User) => void;
-}
-
-export default function UserForm({ onUserCreated }: UserFormProps) {
-    const [newUser, setNewUser] = useState<User>({ name: '', email: '', role: 'student' });
+export default function UserForm({ onUserCreated }: {onUserCreated : (newUser: NewUser) => Promise<{ success: boolean }> }) {
+    const [newUser, setNewUser] = useState<NewUser>({ name: '', email: '', role: 'student' });
     const [isCreating, setIsCreating] = useState(false);
-    const [error, setError] = useState('');
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -19,18 +15,17 @@ export default function UserForm({ onUserCreated }: UserFormProps) {
     const handleCreateUser = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsCreating(true);
-        setError('');
-        console.log('Creating')
         try {
             const result = await onUserCreated(newUser);
             if (result.success) {
                 setNewUser({ name: '', email: '', role: 'student' });
+                toast.success('Tạo người dùng thành công');
               } else {
-                setError('Failed to create user');
+                toast.error('Lỗi tạo người dùng');
               }
         } catch (error) {
             console.error('Error creating user:', error);
-            setError('Failed to create user');
+            toast.error('Lỗi tạo người dùng');
         } finally {
             setIsCreating(false);
         }

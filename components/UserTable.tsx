@@ -1,7 +1,7 @@
 "use client";
 
-import User from '@/types/User';
-
+import {User} from "@/types/user";
+import { format } from "date-fns";
 
 interface UserTableProps {
   users: User[];
@@ -50,7 +50,7 @@ export default function UserTable({ users, onDeleteUser }: UserTableProps) {
                   {user.role}
                 </span>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap">{user.created_at}</td>
+              <td className="px-6 py-4 whitespace-nowrap">{format(new Date(user.created_at), 'dd/MM/yyyy')}</td>
               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <button
                   onClick={() => onDeleteUser(user.id)}

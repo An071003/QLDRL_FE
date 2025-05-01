@@ -83,7 +83,15 @@ export default function ActivityManagement() {
     }
   };
 
-  const handleUpdateActivity = async (id: number, updatedActivity: { name: string; point: number }) => {
+  const handleUpdateActivity = async (
+    id: number,
+    updatedActivity: {
+      name: string;
+      point: number;
+      campaign_id: number;
+      negativescore?: number;
+    }
+  ) => {
     try {
       await api.put(`/api/activities/${id}`, updatedActivity);
       await fetchActivities();
@@ -225,12 +233,12 @@ export default function ActivityManagement() {
             >
               + Thêm hoạt động
             </button>
-            <button
+            {/* <button
               onClick={() => setActiveComponent("import")}
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             >
               + Import hoạt động
-            </button>
+            </button> */}
           </>
         ) : (
           <button

@@ -5,3 +5,5 @@ export interface User {
   role: 'admin' | 'student' | 'lecturer';
   created_at: string;
 }
+
+export type NewUser = Omit<User, 'id' | 'created_at'>;

@@ -7,6 +7,6 @@ export interface Activity {
     status: "ongoing" | "expired";
     number_students: number;
     campaign_id: number;
-    campaign_name: string; // lấy từ JOIN campaigns
+    campaign_name: string;
   }
   
