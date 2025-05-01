@@ -4,17 +4,16 @@ import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { Activity } from "@/types/activity";
-import { ErrorModal } from "@/components/ErrorModal";
 import ActivityForm from "@/components/ActivityForm";
 import ActivityImport from "@/components/ActivityImport";
 import ActivityTable from "@/components/ActivityTable";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
+import Loading from "@/components/Loading";
 
 export default function ActivityManagement() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeComponent, setActiveComponent] = useState<"form" | "import" | "table">("table");
-  const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [modalOpen, setModalOpen] = useState(false);
@@ -31,7 +30,6 @@ export default function ActivityManagement() {
       setActivities(res.data.data.activities);
     } catch (err) {
       console.error(err);
-      setError("Lỗi tải danh sách hoạt động.");
       toast.error("Không thể tải danh sách hoạt động ❌");
     } finally {
       setLoading(false);
@@ -54,10 +52,8 @@ export default function ActivityManagement() {
       await fetchActivities();
       setActiveComponent("table");
       toast.success("Thêm hoạt động thành công 🎉");
-      setError("");
       return { success: true };
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Lỗi tạo hoạt động.");
       toast.error("Thêm hoạt động thất bại ❌");
       return { success: false };
     }
@@ -75,7 +71,6 @@ export default function ActivityManagement() {
       await fetchActivities();
       toast.success("Xóa hoạt động thành công ✅");
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Lỗi xóa hoạt động.");
       toast.error("Xóa hoạt động thất bại ❌");
     } finally {
       setModalOpen(false);
@@ -97,7 +92,6 @@ export default function ActivityManagement() {
       await fetchActivities();
       toast.success("Cập nhật hoạt động thành công ✨");
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Lỗi cập nhật hoạt động.");
       toast.error("Cập nhật hoạt động thất bại ❌");
     }
   };
@@ -116,7 +110,6 @@ export default function ActivityManagement() {
       toast.success("Import hoạt động thành công 🚀");
       return { success: true };
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Lỗi import hoạt động.");
       toast.error("Import hoạt động thất bại ❌");
       return { success: false };
     }
@@ -212,18 +205,13 @@ export default function ActivityManagement() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <div className="text-xl">Đang tải hoạt động...</div>
-      </div>
+      <Loading />
     );
   }
 
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Quản lý Hoạt động</h1>
-
-      {error && <ErrorModal message={error} onClose={() => setError("")} />}
-
       <div className="flex justify-end gap-4 mb-6">
         {activeComponent === "table" ? (
           <>

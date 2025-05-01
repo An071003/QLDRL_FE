@@ -5,13 +5,11 @@ import api from "@/lib/api";
 import { Semester } from "@/types/semester";
 import SemesterTable from "@/components/SemesterTable";
 import { toast } from "sonner";
-import { ErrorModal } from "@/components/ErrorModal";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 
 export default function SemesterManagement() {
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
@@ -22,7 +20,6 @@ export default function SemesterManagement() {
       setSemesters(res.data.data.semesters);
     } catch (error) {
       console.error(error);
-      setError("Lỗi tải danh sách học kỳ.");
     } finally {
       setLoading(false);
     }
@@ -39,7 +36,6 @@ export default function SemesterManagement() {
       toast.success("Thêm học kỳ thành công!");
     } catch (error) {
       console.error(error);
-      setError("Lỗi khi thêm học kỳ mới.");
     }
   };
 
@@ -57,17 +53,12 @@ export default function SemesterManagement() {
       setModalOpen(false);
     } catch (error) {
       toast.error("Xóa học kỳ thất bại!");
-      setError("Lỗi khi xóa học kỳ.");
     }
   };
 
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Quản lý học kỳ</h1>
-      {error && (
-        <ErrorModal message={error} onClose={() => setError("")} />
-      )}
-
       <ConfirmDeleteModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}

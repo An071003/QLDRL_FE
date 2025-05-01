@@ -3,8 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import api from "@/lib/api";
-import { ErrorModal } from "@/components/ErrorModal";
 import LecturerStudentTable from "@/components/LecturerStudentTable";
+import Loading from "@/components/Loading";
 
 interface Student {
   id: string;
@@ -18,7 +18,6 @@ interface Student {
 export default function LecturerStudentManagement() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
   const tableRef = useRef<HTMLDivElement>(null);
@@ -29,7 +28,6 @@ export default function LecturerStudentManagement() {
       const res = await api.get("/api/students");
       setStudents(res.data.data.students);
     } catch (err) {
-      setError("Lỗi tải danh sách sinh viên.");
       toast.error("Không thể tải danh sách sinh viên ❌");
     } finally {
       setLoading(false);
@@ -48,18 +46,13 @@ export default function LecturerStudentManagement() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <div className="text-xl text-gray-500">Đang tải sinh viên...</div>
-      </div>
+      <Loading />
     );
   }
 
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Danh sách Sinh viên</h1>
-
-      {error && <ErrorModal message={error} onClose={() => setError("")} />}
-
       <div ref={tableRef} className="mb-6">
         <input
           type="text"

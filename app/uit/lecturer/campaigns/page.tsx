@@ -3,8 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import api from "@/lib/api";
-import { ErrorModal } from "@/components/ErrorModal";
 import LecturerCampaignTable from "@/components/LecturerCampaignTable";
+import Loading from "@/components/Loading";
 
 interface Campaign {
   id: number;
@@ -19,7 +19,6 @@ interface Campaign {
 export default function LecturerCampaignManagement() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSemester, setSelectedSemester] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -35,7 +34,6 @@ export default function LecturerCampaignManagement() {
       setCampaigns(res.data.data.campaigns);
     } catch (err) {
       console.error(err);
-      setError("Lỗi tải danh sách phong trào.");
       toast.error("Không thể tải danh sách phong trào ❌");
     } finally {
       setLoading(false);
@@ -81,18 +79,13 @@ export default function LecturerCampaignManagement() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <div className="text-xl text-gray-500">Đang tải phong trào...</div>
-      </div>
+      <Loading />
     );
   }
 
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Danh sách Phong trào</h1>
-
-      {error && <ErrorModal message={error} onClose={() => setError("")} />}
-
       <div ref={tableRef} className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <input
           type="text"
