@@ -109,15 +109,13 @@ export default function ActivityStudentManagement() {
       />
 
       <div className="flex justify-end gap-4 mb-6">
-        <div>
-          <button
-            className="px-4 py-2 cursor-pointer bg-gray-300 text-gray-700 rounded hover:bg-gray-400" 
-            onClick={() => window.history.back()}>
-            Quay lại hoạt động
-          </button>
-        </div>
         {activeComponent === "table" ? (
           <>
+            <button
+              className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
+              onClick={() => window.history.back()}>
+              Quay lại hoạt động
+            </button>
             <button
               onClick={() => setActiveComponent("form")}
               className="px-4 py-2 cursor-pointer bg-green-600 text-white rounded hover:bg-green-700"
@@ -134,7 +132,7 @@ export default function ActivityStudentManagement() {
         ) : (
           <button
             onClick={() => setActiveComponent("table")}
-            className="px-4 py-2 bg-rose-400 text-white rounded hover:bg-rose-700"
+            className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
           >
             Quay về danh sách
           </button>
