@@ -92,7 +92,7 @@ const ResetPasswordPage = () => {
                 <button
                   onClick={handleSendOtp}
                   disabled={isCounting}
-                  className={`px-4 py-2 rounded-md text-white focus:outline-none focus:ring-2
+                  className={`px-4 py-2 cursor-pointer rounded-md text-white focus:outline-none focus:ring-2
                     ${isCounting ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500"}
                   `}
                 >
@@ -115,7 +115,7 @@ const ResetPasswordPage = () => {
             <div>
               <button
                 onClick={handleResetPassword}
-                className="w-full mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full mt-4 px-4 py-2 cursor-pointer bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 Cập nhật mật khẩu
               </button>

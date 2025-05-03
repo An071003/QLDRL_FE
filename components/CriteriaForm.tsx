@@ -72,7 +72,7 @@ export default function CriteriaForm({ onCriteriaCreated }: CriteriaFormProps) {
           <button
             type="submit"
             disabled={isCreating}
-            className="px-4 py-2 text-white rounded bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300"
+            className="px-4 py-2 cursor-pointer text-white rounded bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300"
           >
             {isCreating ? "Đang thêm..." : "Thêm tiêu chí"}
           </button>

@@ -1,12 +1,13 @@
 "use client";
-
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Activity } from "@/types/activity";
 import { Campaign } from "@/types/campaign";
-import api from "@/lib/api";
+import { ReceiptText, SquarePen, Trash } from "lucide-react";
 
 interface ActivityTableProps {
+  currentcampaigns: Campaign[];
   activities: Activity[];
   onDeleteActivity: (id: number) => void;
   onUpdateActivity: (id: number, updatedActivity: {
@@ -14,12 +15,14 @@ interface ActivityTableProps {
     point: number;
     campaign_id: number;
     negativescore?: number;
+    status: "ongoing" | "expired";
   }) => void;
   onSortPoint: () => void;
   sortOrder: "asc" | "desc";
 }
 
 export default function ActivityTable({
+  currentcampaigns,
   activities,
   onDeleteActivity,
   onUpdateActivity,
@@ -30,20 +33,14 @@ export default function ActivityTable({
   const [editName, setEditName] = useState("");
   const [editPoint, setEditPoint] = useState(0);
   const [editCampaignId, setEditCampaignId] = useState<number | null>(null);
-  const [editNegativeScore, setEditNegativeScore] = useState<number>(0); 
+  const [editNegativeScore, setEditNegativeScore] = useState<number>(0);
+  const [editStatus, setEditStatus] = useState<"ongoing" | "expired">("ongoing");
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const router = useRouter();
 
   useEffect(() => {
-    const fetchCampaigns = async () => {
-      try {
-        const res = await api.get("/api/campaigns");
-        setCampaigns(res.data.data.campaigns);
-      } catch (err) {
-        console.error("Error fetching campaigns:", err);
-      }
-    };
-    fetchCampaigns();
-  }, []);
+    setCampaigns(currentcampaigns);
+  }, [currentcampaigns]);
 
   const handleEdit = (activity: Activity) => {
     setEditingId(activity.id);
@@ -51,6 +48,7 @@ export default function ActivityTable({
     setEditPoint(activity.point);
     setEditCampaignId(activity.campaign_id);
     setEditNegativeScore(activity.is_negative ? activity.negativescore : 0);
+    setEditStatus(activity.status);
   };
 
   const handleCancel = () => {
@@ -58,36 +56,33 @@ export default function ActivityTable({
     setEditName("");
     setEditPoint(0);
     setEditCampaignId(null);
-    setEditNegativeScore(0); 
+    setEditNegativeScore(0);
   };
 
   const handleSave = async (id: number) => {
-    console.log("Updated activity:", {
-      name: editName,
-      point: editPoint,
-      campaign_id: editCampaignId,
-      negativescore: editNegativeScore,
-    }
-    );
-    if (!editName.trim()) {
-      toast.error("Tên hoạt động không được để trống.");
+    if (!editName.trim() || editPoint < 0 || editCampaignId === null) {
+      toast.error("Vui lòng điền đầy đủ thông tin hợp lệ.");
       return;
     }
-    if (editPoint < 0) {
-      toast.error("Điểm phải lớn hơn hoặc bằng 0.");
-      return;
-    }
-    if (!editCampaignId) {
-      toast.error("Vui lòng chọn phong trào.");
-      return;
-    }
-    if (editNegativeScore < 0) { 
+    if (editNegativeScore < 0) {
       toast.error("Điểm trừ phải lớn hơn hoặc bằng 0.");
       return;
     }
-    
+
     if (editNegativeScore == null) {
       setEditNegativeScore(0);
+    }
+
+    const campaign = campaigns.find((c) => c.id === editCampaignId);
+
+    if (!campaign) {
+      toast.error("Không tìm thấy thông tin phong trào.");
+      return;
+    }
+
+    if (editPoint > campaign.campaign_max_score) {
+      toast.error(`Điểm trừ không được lớn hơn điểm tối đa (${campaign.campaign_max_score}) của phong trào.`);
+      return;
     }
 
     try {
@@ -95,19 +90,20 @@ export default function ActivityTable({
         name: editName,
         point: editPoint,
         campaign_id: editCampaignId,
+        negativescore: editNegativeScore,
+        status: editStatus,
       } as any;
-
-      const current = activities.find((a) => a.id === id);
-      if (current?.is_negative) {
-        updated.negativescore = editNegativeScore;
-      }
-      
       await onUpdateActivity(id, updated);
+
       handleCancel();
     } catch (error) {
       console.error(error);
       toast.error("Lỗi khi cập nhật hoạt động.");
     }
+  };
+
+  const handleReceiptClick = (id: number) => {
+    router.push(`/uit/admin/activities/${id}`);
   };
 
   return (
@@ -122,6 +118,8 @@ export default function ActivityTable({
               Điểm {sortOrder === "asc" ? "▲" : "▼"}
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Điểm trừ</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
+            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Số lượng</th>
             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
           </tr>
         </thead>
@@ -130,7 +128,6 @@ export default function ActivityTable({
           {activities.map((activity, index) => (
             <tr key={activity.id}>
               <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
-
               <td className="px-6 py-4 whitespace-nowrap">
                 {editingId === activity.id ? (
                   <input
@@ -167,7 +164,7 @@ export default function ActivityTable({
                 {editingId === activity.id ? (
                   <input
                     type="number"
-                    className="border px-2 py-1 rounded w-full"
+                    className="border px-2 py-1 rounded w-30"
                     value={editPoint}
                     min={0}
                     onChange={(e) => setEditPoint(Number(e.target.value))}
@@ -176,39 +173,59 @@ export default function ActivityTable({
                   activity.point
                 )}
               </td>
-
               <td className="px-6 py-4 whitespace-nowrap">
                 {editingId === activity.id ? (
                   <input
                     type="number"
-                    className="border px-2 py-1 rounded w-full"
+                    className="border px-2 py-1 rounded w-30"
                     value={editNegativeScore}
                     onChange={(e) => setEditNegativeScore(Number(e.target.value))}
-                    min={0}
                   />
                 ) : activity.is_negative ? (
                   activity.negativescore
                 ) : (
                   "Không"
-                )}  
+                )}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+              <td className="px-6 py-4 whitespace-nowrap">
+                {editingId === activity.id ? (
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as "ongoing" | "expired")}
+                    className="border px-2 py-1 rounded w-full"
+                  >
+                    <option value="ongoing">Đang diễn ra</option>
+                    <option value="expired">Đã kết thúc</option>
+                  </select>
+                ) : activity.status === "ongoing" ? (
+                  "Đang diễn ra"
+                ) : (
+                  "Đã kết thúc"
+                )}
+              </td>
+              <td className="px-6 py-4 text-center whitespace-nowrap">
+                {activity.number_students}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-right text-md font-medium">
                 {editingId === activity.id ? (
                   <div className="flex justify-end gap-2">
-                    <button onClick={() => handleSave(activity.id)} className="text-green-600 hover:text-green-900">
+                    <button onClick={() => handleSave(activity.id)} className="cursor-pointer text-green-600 hover:text-green-900">
                       Lưu
                     </button>
-                    <button onClick={handleCancel} className="text-gray-600 hover:text-gray-900">
+                    <button onClick={handleCancel} className="cursor-pointer text-gray-600 hover:text-gray-900">
                       Hủy
                     </button>
                   </div>
                 ) : (
                   <div className="flex justify-end gap-2">
-                    <button onClick={() => handleEdit(activity)} className="text-blue-600 hover:text-blue-900">
-                      Sửa
+                    <button onClick={() => handleReceiptClick(activity.id)} className="cursor-pointer text-green-600 hover:text-green-900">
+                      <ReceiptText size={20} />
                     </button>
-                    <button onClick={() => onDeleteActivity(activity.id)} className="text-red-600 hover:text-red-900">
-                      Xóa
+                    <button onClick={() => handleEdit(activity)} className="cursor-pointer text-blue-600 hover:text-blue-900">
+                      <SquarePen size={20} />
+                    </button>
+                    <button onClick={() => onDeleteActivity(activity.id)} className="cursor-pointer text-red-600 hover:text-red-900">
+                      <Trash size={20} />
                     </button>
                   </div>
                 )}

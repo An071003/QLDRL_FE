@@ -20,7 +20,7 @@ export default function ActivityManagement() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 3;
+  const itemsPerPage = 20;
   const tableRef = useRef<HTMLDivElement>(null);
 
   const fetchActivities = async () => {
@@ -100,6 +100,7 @@ export default function ActivityManagement() {
       point: number;
       campaign_id: number;
       negativescore?: number;
+      status: "ongoing" | "expired";
     }
   ) => {
     const campaign = campaigns.find(c => c.id === updatedActivity.campaign_id);
@@ -110,6 +111,7 @@ export default function ActivityManagement() {
     try {
       await api.put(`/api/activities/${id}`, updatedActivity);
       await fetchActivities();
+      console.log("updatedActivity", updatedActivity);
       toast.success("Cập nhật hoạt động thành công ✨");
     } catch (err: any) {
       toast.error("Cập nhật hoạt động thất bại ❌");
@@ -182,6 +184,7 @@ export default function ActivityManagement() {
             </div>
 
             <ActivityTable
+              currentcampaigns={campaigns}
               activities={currentActivities}
               onDeleteActivity={openDeleteModal}
               onUpdateActivity={handleUpdateActivity}
@@ -194,7 +197,7 @@ export default function ActivityManagement() {
                 <button
                   onClick={() => changePage(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+                  className="px-3 py-1 cursor-pointer rounded-md bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
                 >
                   Prev
                 </button>
@@ -202,7 +205,7 @@ export default function ActivityManagement() {
                   <button
                     key={index}
                     onClick={() => changePage(index + 1)}
-                    className={`px-3 py-1 rounded-md ${currentPage === index + 1 ? "bg-blue-500 text-white" : "bg-gray-200 hover:bg-gray-300"
+                    className={`px-3 py-1 cursor-pointer rounded-md ${currentPage === index + 1 ? "bg-blue-500 text-white" : "bg-gray-200 hover:bg-gray-300"
                       }`}
                   >
                     {index + 1}
@@ -211,7 +214,7 @@ export default function ActivityManagement() {
                 <button
                   onClick={() => changePage(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+                  className="px-3 py-1 cursor-pointer rounded-md bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
                 >
                   Next
                 </button>
@@ -236,7 +239,7 @@ export default function ActivityManagement() {
           <>
             <button
               onClick={() => setActiveComponent("form")}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              className="px-4 py-2 cursor-pointer bg-green-600 text-white rounded hover:bg-green-700"
             >
               + Thêm hoạt động
             </button>
@@ -250,7 +253,7 @@ export default function ActivityManagement() {
         ) : (
           <button
             onClick={() => setActiveComponent("table")}
-            className="px-4 py-2 bg-rose-400 text-white rounded hover:bg-rose-700"
+            className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
           >
             Quay về danh sách
           </button>

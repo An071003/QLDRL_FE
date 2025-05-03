@@ -157,7 +157,7 @@ export default function CriteriaManagement() {
                 <button
                   onClick={() => changePage(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+                  className="px-3 py-1 cursor-pointer rounded-md bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
                 >
                   Prev
                 </button>
@@ -165,7 +165,7 @@ export default function CriteriaManagement() {
                   <button
                     key={index}
                     onClick={() => changePage(index + 1)}
-                    className={`px-3 py-1 rounded-md ${
+                    className={`px-3 py-1 cursor-pointer rounded-md ${
                       currentPage === index + 1 ? "bg-blue-500 text-white" : "bg-gray-200 hover:bg-gray-300"
                     }`}
                   >
@@ -175,7 +175,7 @@ export default function CriteriaManagement() {
                 <button
                   onClick={() => changePage(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+                  className="px-3 py-1 cursor-pointer rounded-md bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
                 >
                   Next
                 </button>
@@ -201,13 +201,13 @@ export default function CriteriaManagement() {
           <>
             <button
               onClick={() => setActiveComponent("form")}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              className="px-4 py-2 cursor-pointer bg-green-600 text-white rounded hover:bg-green-700"
             >
               + Thêm tiêu chí
             </button>
             {/* <button
               onClick={() => setActiveComponent("import")}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="px-4 py-2 cursor-pointer bg-blue-600 text-white rounded hover:bg-blue-700"
             >
               + Import tiêu chí
             </button> */}
@@ -215,7 +215,7 @@ export default function CriteriaManagement() {
         ) : (
           <button
             onClick={() => setActiveComponent("table")}
-            className="px-4 py-2 bg-rose-400 text-white rounded hover:bg-rose-700"
+            className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
           >
             Quay về danh sách
           </button>

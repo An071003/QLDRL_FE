@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { UploadCloud } from "lucide-react";
 import ExcelJS from 'exceljs';
 import { toast } from 'sonner';
+import Loading from './Loading';
 
 export default function UserImport({
   onUsersImported,
@@ -82,6 +83,12 @@ export default function UserImport({
     setLoading(false);
   };
 
+  if (loading) {
+    return (
+      <Loading />
+    );
+  }
+
   return (
     <div className="mb-8">
       <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 transition">
@@ -103,20 +110,20 @@ export default function UserImport({
       </div>
 
       {previewUsers.length > 0 && (
-        <div className="mt-6">
-          <h3 className="text-xl font-bold mb-4">Preview & Edit Users</h3>
-          <table className="w-full border border-gray-300">
-            <thead className="bg-gray-100">
+        <div className="bg-white rounded-lg shadow overflow-x-auto">
+          <h3 className="text-xl font-bold mb-4">Preview</h3>
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
               <tr>
-                <th className="border p-2">Name</th>
-                <th className="border p-2">Email</th>
-                <th className="border p-2">Role</th>
-                <th className="border p-2">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
               </tr>
             </thead>
             <tbody>
               {previewUsers.map((user, idx) => (
-                <tr key={idx}>
+                <tr key={idx} className='text-center border-b'>
                   <td className="border p-2">
                     <input
                       className="w-full border rounded p-1"

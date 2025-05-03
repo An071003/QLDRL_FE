@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Campaign } from "@/types/campaign";
 import { Criteria } from "@/types/criteria";
+import { SquarePen, Trash } from "lucide-react";
 
 interface CampaignTableProps {
   campaigns: Campaign[];
@@ -101,7 +102,7 @@ export default function CampaignTable({ campaigns, criterias, onDeleteCampaign, 
               Điểm tối đa {sortOrder === "asc" ? "▲" : "▼"}
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Điểm trừ</th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
+            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
           </tr>
         </thead>
 
@@ -109,7 +110,7 @@ export default function CampaignTable({ campaigns, criterias, onDeleteCampaign, 
           {campaigns.map((campaign, index) => (
             <tr key={campaign.id}>
               <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
-              <td className="px-6 py-4 whitespace-nowrap">
+              <td className="px-6 py-4 max-w-[12rem] truncate whitespace-nowrap overflow-hidden">
                 {editingId === campaign.id ? (
                   <input
                     className="border px-2 py-1 rounded w-full"
@@ -121,7 +122,7 @@ export default function CampaignTable({ campaigns, criterias, onDeleteCampaign, 
                   campaign.name
                 )}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap">
+              <td className="px-6 py-4 max-w-[14rem] truncate whitespace-nowrap overflow-hidden">
                 {editingId === campaign.id ? (
                   <select
                     value={editedCriteriaId ?? ""}
@@ -139,14 +140,14 @@ export default function CampaignTable({ campaigns, criterias, onDeleteCampaign, 
                   campaign.criteria_name
                 )}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap">
+              <td className="px-6 py-4 max-w-[10rem] truncate whitespace-nowrap overflow-hidden">
                 {`${campaign.semester_name} (${campaign.start_year}-${campaign.end_year})`}
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 {editingId === campaign.id ? (
                   <input
                     type="number"
-                    className="border px-2 py-1 rounded w-full"
+                    className="border px-2 py-1 rounded w-30"
                     value={editMaxScore}
                     min={0}
                     onChange={(e) => setEditMaxScore(Number(e.target.value))}
@@ -160,7 +161,7 @@ export default function CampaignTable({ campaigns, criterias, onDeleteCampaign, 
               {editingId === campaign.id ? (
                   <input
                     type="number"
-                    className="border px-2 py-1 rounded w-full"
+                    className="border px-2 py-1 rounded w-30"
                     value={editNegativeScore}
                     onChange={(e) => setEditNegativeScore(Number(e.target.value))}
                     min={0}
@@ -173,33 +174,33 @@ export default function CampaignTable({ campaigns, criterias, onDeleteCampaign, 
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 {editingId === campaign.id ? (
-                  <div className="flex justify-end gap-2">
+                  <div className="flex justify-center gap-2">
                     <button
                       onClick={() => handleSave(campaign.id)}
-                      className="text-green-600 hover:text-green-900"
+                      className="cursor-pointer text-green-600 hover:text-green-900"
                     >
                       Lưu
                     </button>
                     <button
                       onClick={handleCancel}
-                      className="text-gray-600 hover:text-gray-900"
+                      className="cursor-pointer text-gray-600 hover:text-gray-900"
                     >
                       Hủy
                     </button>
                   </div>
                 ) : (
-                  <div className="flex justify-end gap-2">
+                  <div className="flex justify-center gap-2">
                     <button
                       onClick={() => handleEdit(campaign)}
-                      className="text-blue-600 hover:text-blue-900"
+                      className="cursor-pointer text-blue-600 hover:text-blue-900"
                     >
-                      Sửa
+                      <SquarePen size={20} />
                     </button>
                     <button
                       onClick={() => onDeleteCampaign(campaign.id)}
-                      className="text-red-600 hover:text-red-900"
+                      className="cursor-pointer text-red-600 hover:text-red-900"
                     >
-                      Xóa
+                      <Trash size={20} />
                     </button>
                   </div>
                 )}

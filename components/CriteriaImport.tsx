@@ -118,7 +118,7 @@ export default function CriteriaImport({
                   <td className="border p-2 text-center">
                     <button
                       onClick={() => handleDeleteRow(idx)}
-                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+                      className="cursor-pointer bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
                     >
                       Xóa
                     </button>
@@ -133,7 +133,7 @@ export default function CriteriaImport({
               onClick={handleImport}
               disabled={importing}
               className={`px-6 py-2 rounded text-white ${
-                importing ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+                importing ? 'bg-green-400 cursor-not-allowed' : 'cursor-pointer bg-green-600 hover:bg-green-700'
               }`}
             >
               {importing ? 'Importing...' : 'Import'}

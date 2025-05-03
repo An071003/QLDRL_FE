@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Criteria } from "@/types/criteria";
+import { SquarePen, Trash } from "lucide-react";
 
 interface CriteriaTableProps {
   criterias: Criteria[];
@@ -60,7 +61,7 @@ export default function CriteriaTable({ criterias, onDeleteCriteria, onUpdateCri
             >
               Điểm Tối Đa {sortOrder === "asc" ? "▲" : "▼"}
             </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Hành Động</th>
+            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Hành Động</th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
@@ -92,35 +93,35 @@ export default function CriteriaTable({ criterias, onDeleteCriteria, onUpdateCri
                   criteria.max_score
                 )}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+              <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                 {editingId === criteria.id ? (
-                  <div className="flex justify-end gap-2">
+                  <div className="flex justify-center gap-2">
                     <button
                       onClick={() => handleSave(criteria.id)}
-                      className="text-green-600 hover:text-green-900"
+                      className="cursor-pointer text-green-600 hover:text-green-900"
                     >
                       Lưu
                     </button>
                     <button
                       onClick={handleCancel}
-                      className="text-gray-600 hover:text-gray-900"
+                      className="cursor-pointer text-gray-600 hover:text-gray-900"
                     >
                       Hủy
                     </button>
                   </div>
                 ) : (
-                  <div className="flex justify-end gap-2">
+                  <div className="flex justify-center gap-2">
                     <button
                       onClick={() => handleEdit(criteria)}
-                      className="text-blue-600 hover:text-blue-900"
+                      className="cursor-pointer text-blue-600 hover:text-blue-900"
                     >
-                      Sửa
+                      <SquarePen size={20} />
                     </button>
                     <button
                       onClick={() => onDeleteCriteria(criteria.id)}
-                      className="text-red-600 hover:text-red-900"
+                      className="cursor-pointer text-red-600 hover:text-red-900"
                     >
-                      Xóa
+                      <Trash size={20} />
                     </button>
                   </div>
                 )}

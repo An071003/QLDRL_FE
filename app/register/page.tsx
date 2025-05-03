@@ -50,7 +50,7 @@ export default function RegisterPage() {
                         <option value="lecturer">Giảng viên</option>
                         <option value="admin">Admin</option>
                     </select>
-                    <button type="submit" className="bg-blue-500 text-white py-2 px-4 rounded">Đăng ký</button>
+                    <button type="submit" className="cursor-pointer bg-blue-500 text-white py-2 px-4 rounded">Đăng ký</button>
                 </form>
             </div>
         </MainLayout>
