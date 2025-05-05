@@ -1,19 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Criteria } from "@/types/criteria";
 import api from "@/lib/api";
 import { toast } from "sonner";
 
-interface Criteria {
-  id: number;
-  name: string;
-}
-
 interface CampaignFormProps {
+  criteria: Criteria[];
   onCampaignCreated: (campaign: { name: string; max_score: number; criteria_id: number; is_negative: boolean; negativescore: number }) => Promise<{ success: boolean }>;
 }
 
-export default function CampaignForm({ onCampaignCreated }: CampaignFormProps) {
+export default function CampaignForm({ criteria, onCampaignCreated }: CampaignFormProps) {
   const [name, setName] = useState("");
   const [maxScore, setMaxScore] = useState(0);
   const [criteriaId, setCriteriaId] = useState<number | null>(null);
@@ -39,6 +36,17 @@ export default function CampaignForm({ onCampaignCreated }: CampaignFormProps) {
       toast.error("Vui lòng điền đầy đủ thông tin.");
       return;
     }
+    const selectedCriteria = criterias.find(c => c.id === criteriaId);
+    if (!selectedCriteria) {
+      toast.error("Tiêu chí không hợp lệ.");
+      return;
+    }
+
+    if (maxScore > selectedCriteria.max_score) {
+      toast.error(`Điểm phong trào không được lớn hơn điểm tiêu chí (${selectedCriteria.max_score}).`);
+      return;
+    }
+
     const result = await onCampaignCreated({
       name,
       max_score: maxScore,
@@ -58,7 +66,7 @@ export default function CampaignForm({ onCampaignCreated }: CampaignFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block mb-1">Tên chiến dịch:</label>
+        <label className="block mb-1">Tên phong trào:</label>
         <input
           type="text"
           value={name}
@@ -121,13 +129,14 @@ export default function CampaignForm({ onCampaignCreated }: CampaignFormProps) {
           />
         </div>
       )}
-
-      <button
-        type="submit"
-        className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-      >
-        Tạo chiến dịch
-      </button>
+      <div className="flex justify-end mt-4">
+        <button
+          type="submit"
+          className="px-6 py-2 cursor-pointer bg-green-600 text-white rounded hover:bg-green-700"
+        >
+          Tạo phong trào
+        </button>
+      </div>
     </form>
   );
 }

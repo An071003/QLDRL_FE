@@ -3,9 +3,14 @@
 import { useState, useRef } from 'react';
 import { UploadCloud } from "lucide-react";
 import ExcelJS from 'exceljs';
-import { Result } from 'postcss';
+import { toast } from 'sonner';
+import Loading from './Loading';
 
-export default function UserImport({ onUsersImported }: { onUsersImported: (users: any[]) => void }) {
+export default function UserImport({
+  onUsersImported,
+}: {
+  onUsersImported: (users: any[]) => Promise<{ success: boolean }>;
+}) {
   const [loading, setLoading] = useState(false);
   const [previewUsers, setPreviewUsers] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -40,9 +45,34 @@ export default function UserImport({ onUsersImported }: { onUsersImported: (user
     }
   };
 
+  const handleUserChange = (index: number, key: string, value: string) => {
+    setPreviewUsers(prev => {
+      const updated = [...prev];
+      updated[index][key] = value;
+      return updated;
+    });
+  };
+
+  const handleDeleteRow = (index: number) => {
+    setPreviewUsers(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleImport = async () => {
+    setLoading(true);
+    const invalidUsers = previewUsers.filter(user => !isValidEmail(user.email));
+    if (invalidUsers.length > 0) {
+      toast.error("Một số email không hợp lệ");
+      setLoading(false);
+      return;
+    }
     if (previewUsers.length > 0) {
       const result = await onUsersImported(previewUsers);
+
       if (result.success) {
         setPreviewUsers([]);
         if (fileInputRef.current) {
@@ -50,7 +80,14 @@ export default function UserImport({ onUsersImported }: { onUsersImported: (user
         }
       }
     }
+    setLoading(false);
   };
+
+  if (loading) {
+    return (
+      <Loading />
+    );
+  }
 
   return (
     <div className="mb-8">
@@ -60,7 +97,7 @@ export default function UserImport({ onUsersImported }: { onUsersImported: (user
           Import users from Excel
         </p>
         <label className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 cursor-pointer">
-          {loading ? "Loading..." : "Choose File"}
+          Choose File
           <input
             ref={fileInputRef}
             type="file"
@@ -73,22 +110,55 @@ export default function UserImport({ onUsersImported }: { onUsersImported: (user
       </div>
 
       {previewUsers.length > 0 && (
-        <div className="mt-6">
-          <h3 className="text-xl font-bold mb-4">Preview Users</h3>
-          <table className="w-full border border-gray-300">
-            <thead className="bg-gray-100">
+        <div className="bg-white rounded-lg shadow overflow-x-auto">
+          <h3 className="text-xl font-bold mb-4">Preview</h3>
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
               <tr>
-                <th className="border p-2">Name</th>
-                <th className="border p-2">Email</th>
-                <th className="border p-2">Role</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
               </tr>
             </thead>
             <tbody>
               {previewUsers.map((user, idx) => (
-                <tr key={idx}>
-                  <td className="border p-2">{user.name}</td>
-                  <td className="border p-2">{user.email}</td>
-                  <td className="border p-2">{user.role}</td>
+                <tr key={idx} className='text-center border-b'>
+                  <td className="border p-2">
+                    <input
+                      className="w-full border rounded p-1"
+                      type="text"
+                      value={user.name}
+                      onChange={(e) => handleUserChange(idx, "name", e.target.value)}
+                    />
+                  </td>
+                  <td className="border p-2">
+                    <input
+                      className="w-full border rounded p-1"
+                      type="email"
+                      value={user.email}
+                      onChange={(e) => handleUserChange(idx, "email", e.target.value)}
+                    />
+                  </td>
+                  <td className="border p-2">
+                    <select
+                      className="w-full border rounded p-1"
+                      value={user.role}
+                      onChange={(e) => handleUserChange(idx, "role", e.target.value)}
+                    >
+                      <option value="student">student</option>
+                      <option value="lecturer">lecturer</option>
+                      <option value="admin">admin</option>
+                    </select>
+                  </td>
+                  <td className="border p-2 text-center">
+                    <button
+                      onClick={() => handleDeleteRow(idx)}
+                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+                    >
+                      Xóa
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -97,9 +167,9 @@ export default function UserImport({ onUsersImported }: { onUsersImported: (user
           <div className="flex justify-end mt-4">
             <button
               onClick={handleImport}
-              className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              className={'px-6 py-2 rounded text-white bg-green-500 hover:bg-green-700'}
             >
-              Create Users
+              Tạo Users
             </button>
           </div>
         </div>

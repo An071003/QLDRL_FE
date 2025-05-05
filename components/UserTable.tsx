@@ -1,7 +1,9 @@
 "use client";
 
-import User from '@/types/User';
-
+import { User } from "@/types/user";
+import { Tooltip } from "antd";
+import { format } from "date-fns";
+import { Trash } from "lucide-react";
 
 interface UserTableProps {
   users: User[];
@@ -29,7 +31,7 @@ export default function UserTable({ users, onDeleteUser }: UserTableProps) {
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Ngày tạo
             </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
               Hành động
             </th>
           </tr>
@@ -50,14 +52,16 @@ export default function UserTable({ users, onDeleteUser }: UserTableProps) {
                   {user.role}
                 </span>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap">{user.created_at}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <button
-                  onClick={() => onDeleteUser(user.id)}
-                  className="text-red-600 hover:text-red-900 ml-2"
-                >
-                  Xóa
-                </button>
+              <td className="px-6 py-4 whitespace-nowrap">{format(new Date(user.created_at), 'dd/MM/yyyy')}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                <Tooltip title="Xóa người dùng" placement="top">
+                  <button
+                    onClick={() => onDeleteUser(user.id)}
+                    className="text-red-600 hover:text-red-900 ml-2"
+                  >
+                    <Trash size={20} />
+                  </button>
+                </Tooltip>
               </td>
             </tr>
           ))}

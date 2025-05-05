@@ -1,8 +1,10 @@
 export interface Campaign {
     id: number;
     name: string;
-    max_score: number;
+    campaign_max_score: number;
     criteria_id: number;
+    criteria_name: string;
+    criteria_max_score: number;
     semester: number;
     semester_name: string;
     start_year: number;

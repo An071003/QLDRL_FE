@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import Loading from '@/components/Loading';
 
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
@@ -155,9 +156,7 @@ export default function StudentManagement() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <div className="text-xl">Loading students...</div>
-      </div>
+      <Loading />
     );
   }
 

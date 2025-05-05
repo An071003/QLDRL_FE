@@ -11,11 +11,8 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchUserRole = async () => {
       try {
-        console.log("loi");
         const res = await api.get("/api/auth/me");
         setRole(res.data.data.user[0].role);
-        console.log(res.data.data.user);
-
       } catch (error) {
         router.push("/login");
       }
@@ -35,7 +32,7 @@ export default function DashboardPage() {
     } else if (role === "student") {
       router.push("/uit/student");
     } else if (role === "lecturer") {
-      router.push("/uit/lecturer");
+      router.push("/uit/lecturer/students");
     } else {
       router.push("/login");
     }

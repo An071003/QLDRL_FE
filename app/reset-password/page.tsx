@@ -4,18 +4,17 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { MainLayout } from "@/components/layout";
-import { ErrorModal } from "@/components/ErrorModal";
 import { NotificationModal } from "@/components/NotificationModal";
+import { toast } from "sonner";
 
 const ResetPasswordPage = () => {
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [error, setError] = useState("");
   const [notification, setNotification] = useState("");
   const [successNotification, setSuccessNotification] = useState(false);
 
-  const [countdown, setCountdown] = useState(0); // 0 là chưa đếm
+  const [countdown, setCountdown] = useState(0);
   const [isCounting, setIsCounting] = useState(false);
 
   const router = useRouter();
@@ -42,9 +41,9 @@ const ResetPasswordPage = () => {
     try {
       await api.post("/api/auth/send-otp", { email });
       setIsCounting(true);
-      setCountdown(600);
+      setCountdown(120);
     } catch (error: any) {
-      setError(error.response?.data?.message || "Lỗi gửi mã xác thực.");
+      toast.error(error.response?.data?.message || "Lỗi khi gửi mã xác thực");
     }
   };
 
@@ -55,13 +54,12 @@ const ResetPasswordPage = () => {
       setSuccessNotification(true);
       router.push("/login");
     } catch (error: any) {
-      setError(error.response?.data?.message || "Error resetting password");
+      toast.error(error.response?.data?.message || "Lỗi khi cập nhật mật khẩu");
     }
   };
 
   return (
     <MainLayout>
-      {error && <ErrorModal message={error} onClose={() => setError("")} />}
       {notification && <NotificationModal message={notification} onClose={() => setNotification("")} />}
       <div className="min-h-px flex justify-center bg-gray-50 py-12 px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
@@ -94,11 +92,11 @@ const ResetPasswordPage = () => {
                 <button
                   onClick={handleSendOtp}
                   disabled={isCounting}
-                  className={`mt-2 px-4 py-2 rounded-md text-white focus:outline-none focus:ring-2
+                  className={`px-4 py-2 cursor-pointer rounded-md text-white focus:outline-none focus:ring-2
                     ${isCounting ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500"}
                   `}
                 >
-                  {isCounting ? `Gửi lại mã sau ${formatTime(countdown)}` : "Lấy mã"}
+                  {isCounting ? `Gửi lại ${formatTime(countdown)}` : "Lấy mã"}
                 </button>
               </div>
             </div>
@@ -117,7 +115,7 @@ const ResetPasswordPage = () => {
             <div>
               <button
                 onClick={handleResetPassword}
-                className="w-full mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full mt-4 px-4 py-2 cursor-pointer bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 Cập nhật mật khẩu
               </button>

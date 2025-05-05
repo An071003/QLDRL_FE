@@ -4,14 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { MainLayout } from "@/components/layout/main";
-import { ErrorModal } from "@/components/ErrorModal";
 import Link from "next/link";
+import { toast } from "sonner";
 
 
 export default function LoginPage() {
   const router = useRouter();
   const [form, setForm] = useState({ username: "", password: "" });
-  const [error, setError] = useState("");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -24,13 +23,12 @@ export default function LoginPage() {
       await api.post("/api/auth/login", form);
       router.push("/uit");
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Lỗi đăng nhập.");
+      toast.error("Đăng nhập không thành công.");
     }
   };
 
   return (
     <MainLayout>
-      {error && <ErrorModal message={error} onClose={() => setError("")} />}
       <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-5 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-xs">
           <h2 className="mt-10 text-center text-2xl/9 font-bold tracking-tight">
@@ -76,7 +74,7 @@ export default function LoginPage() {
             <div>
               <button
                 type="submit"
-                className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                className="flex w-full justify-center cursor-pointer rounded-md bg-indigo-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
               >
                 Đăng nhập
               </button>

@@ -3,53 +3,87 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Campaign } from "@/types/campaign";
+import { Criteria } from "@/types/criteria";
+import { SquarePen, Trash } from "lucide-react";
+import { Tooltip } from "antd";
 
 interface CampaignTableProps {
   campaigns: Campaign[];
+  criterias: Criteria[];
   onDeleteCampaign: (id: number) => void;
-  onUpdateCampaign: (id: number, updatedCampaign: { name: string; max_score: number; criteria_id: number; is_negative: boolean; negativescore: number }) => void;
+  onUpdateCampaign: (id: number, updatedCampaign: { name: string; max_score: number; criteria_id: number; negativescore: number }) => void;
   onSortMaxScore: () => void;
   sortOrder: "asc" | "desc";
 }
 
-export default function CampaignTable({ campaigns, onDeleteCampaign, onUpdateCampaign, onSortMaxScore, sortOrder }: CampaignTableProps) {
+export default function CampaignTable({ campaigns, criterias, onDeleteCampaign, onUpdateCampaign, onSortMaxScore, sortOrder }: CampaignTableProps) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [editMaxScore, setEditMaxScore] = useState(0);
+  const [editNegativeScore, setEditNegativeScore] = useState(0);
+  const [editedCriteriaId, setEditedCriteriaId] = useState<number | null>(null);
 
   const handleEdit = (campaign: Campaign) => {
     setEditingId(campaign.id);
     setEditName(campaign.name);
-    setEditMaxScore(campaign.max_score);
+    setEditMaxScore(campaign.campaign_max_score);
+    setEditNegativeScore(campaign.is_negative ? campaign.negativescore : 0);
+    setEditedCriteriaId(campaign.criteria_id);
   };
 
   const handleCancel = () => {
     setEditingId(null);
     setEditName("");
     setEditMaxScore(0);
+    setEditNegativeScore(0);
   };
 
   const handleSave = async (id: number) => {
     if (!editName.trim()) {
-      toast.error("Tên chiến dịch không được để trống.");
+      toast.error("Tên phong trào không được để trống.");
       return;
     }
     if (editMaxScore < 0) {
       toast.error("Điểm tối đa phải lớn hơn hoặc bằng 0.");
       return;
     }
+
+    if (editedCriteriaId === null) {
+      toast.error("Vui lòng chọn tiêu chí.");
+      return;
+    }
+
+    if (editNegativeScore == null) {
+      setEditNegativeScore(0);
+    }
+
+    if (editNegativeScore < 0) {
+      toast.error("Điểm trừ phải lớn hơn hoặc bằng 0.");
+      return;
+    }
+
+    const selectedCriteria = criterias.find(c => c.id === editedCriteriaId);
+    if (!selectedCriteria) {
+      toast.error("Tiêu chí không hợp lệ.");
+      return;
+    }
+
+    if (editMaxScore > selectedCriteria.max_score) {
+      toast.error(`Điểm phong trào không được lớn hơn điểm tiêu chí (${selectedCriteria.max_score}).`);
+      return;
+    }
+
     try {
       await onUpdateCampaign(id, {
         name: editName,
         max_score: editMaxScore,
-        criteria_id: 0, // Không cho sửa criteria_id tại đây
-        is_negative: false, // Không cho sửa is_negative tại đây
-        negativescore: 0,   // Không cho sửa negativescore tại đây
+        criteria_id: editedCriteriaId,
+        negativescore: editNegativeScore,
       });
       handleCancel();
     } catch (error) {
       console.error(error);
-      toast.error("Lỗi khi cập nhật chiến dịch.");
+      toast.error("Lỗi khi cập nhật phong trào.");
     }
   };
 
@@ -60,6 +94,7 @@ export default function CampaignTable({ campaigns, onDeleteCampaign, onUpdateCam
           <tr>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STT</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên phong trào</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tiêu chí</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Học kỳ</th>
             <th
               onClick={onSortMaxScore}
@@ -67,7 +102,8 @@ export default function CampaignTable({ campaigns, onDeleteCampaign, onUpdateCam
             >
               Điểm tối đa {sortOrder === "asc" ? "▲" : "▼"}
             </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Điểm trừ</th>
+            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
           </tr>
         </thead>
 
@@ -75,7 +111,7 @@ export default function CampaignTable({ campaigns, onDeleteCampaign, onUpdateCam
           {campaigns.map((campaign, index) => (
             <tr key={campaign.id}>
               <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
-              <td className="px-6 py-4 whitespace-nowrap">
+              <td className="px-6 py-4 max-w-[12rem] truncate whitespace-nowrap overflow-hidden">
                 {editingId === campaign.id ? (
                   <input
                     className="border px-2 py-1 rounded w-full"
@@ -87,52 +123,90 @@ export default function CampaignTable({ campaigns, onDeleteCampaign, onUpdateCam
                   campaign.name
                 )}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap">
+              <td className="px-6 py-4 max-w-[14rem] truncate whitespace-nowrap overflow-hidden">
+                {editingId === campaign.id ? (
+                  <select
+                    value={editedCriteriaId ?? ""}
+                    onChange={(e) => setEditedCriteriaId(Number(e.target.value))}
+                    className="border px-2 py-1 rounded w-full"
+                  >
+                    <option value="">-- Chọn tiêu chí --</option>
+                    {criterias.map((criteria) => (
+                      <option key={criteria.id} value={criteria.id}>
+                        {criteria.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  campaign.criteria_name
+                )}
+              </td>
+              <td className="px-6 py-4 max-w-[10rem] truncate whitespace-nowrap overflow-hidden">
                 {`${campaign.semester_name} (${campaign.start_year}-${campaign.end_year})`}
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 {editingId === campaign.id ? (
                   <input
                     type="number"
-                    className="border px-2 py-1 rounded w-full"
+                    className="border px-2 py-1 rounded w-30"
                     value={editMaxScore}
                     min={0}
                     onChange={(e) => setEditMaxScore(Number(e.target.value))}
                   />
                 ) : (
-                  campaign.max_score
+                  campaign.campaign_max_score
+
+                )}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                {editingId === campaign.id ? (
+                  <input
+                    type="number"
+                    className="border px-2 py-1 rounded w-30"
+                    value={editNegativeScore}
+                    onChange={(e) => setEditNegativeScore(Number(e.target.value))}
+                    min={0}
+                  />
+                ) : campaign.is_negative ? (
+                  campaign.negativescore
+                ) : (
+                  "Không"
                 )}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 {editingId === campaign.id ? (
-                  <div className="flex justify-end gap-2">
+                  <div className="flex justify-center gap-2">
                     <button
                       onClick={() => handleSave(campaign.id)}
-                      className="text-green-600 hover:text-green-900"
+                      className="cursor-pointer text-green-600 hover:text-green-900"
                     >
                       Lưu
                     </button>
                     <button
                       onClick={handleCancel}
-                      className="text-gray-600 hover:text-gray-900"
+                      className="cursor-pointer text-gray-600 hover:text-gray-900"
                     >
                       Hủy
                     </button>
                   </div>
                 ) : (
-                  <div className="flex justify-end gap-2">
-                    <button
-                      onClick={() => handleEdit(campaign)}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      Sửa
-                    </button>
-                    <button
-                      onClick={() => onDeleteCampaign(campaign.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Xóa
-                    </button>
+                  <div className="flex justify-center gap-2">
+                    <Tooltip title="Chỉnh sửa phong trào">
+                      <button
+                        onClick={() => handleEdit(campaign)}
+                        className="cursor-pointer text-blue-600 hover:text-blue-900"
+                      >
+                        <SquarePen size={20} />
+                      </button>
+                    </Tooltip>
+                    <Tooltip title="Xóa phong trào">
+                      <button
+                        onClick={() => onDeleteCampaign(campaign.id)}
+                        className="cursor-pointer text-red-600 hover:text-red-900"
+                      >
+                        <Trash size={20} />
+                      </button>
+                    </Tooltip>
                   </div>
                 )}
               </td>

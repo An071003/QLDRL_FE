@@ -30,7 +30,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({ message, o
         <p className="text-sm text-gray-600 mb-6">{message}</p>
         <button
           onClick={() => handleClose()}
-          className="rounded-md bg-green-500 px-4 py-2 text-white hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400"
+          className="rounded-md cursor-pointer bg-green-500 px-4 py-2 text-white hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400"
         >
           OK
         </button>
