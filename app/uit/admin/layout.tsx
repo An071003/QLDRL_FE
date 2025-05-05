@@ -2,9 +2,9 @@ import Link from "next/link";
 
 const Sidebar = () => {
   return (
-    <div className="bg-gray-800 text-white w-64 h-screen fixed left-0 top-0 p-4">
+    <div className="bg-gray-800 text-white w-64 h-screen fixed left-0 top-0 p-4 flex flex-col">
       <div className="text-xl font-bold mb-8">Admin Dashboard</div>
-      <nav className="space-y-2">
+      <nav className="space-y-2 flex-grow">
         <Link href="/uit/admin/users" className="block py-2 px-4 rounded hover:bg-gray-700">
           User Management
         </Link>
@@ -28,9 +28,8 @@ const Sidebar = () => {
         <Link href="/uit/admin/semesters" className="block py-2 px-4 rounded hover:bg-gray-700">
           Semesters Management
         </Link>
-
       </nav>
-      <div className=" mt-8 border-t border-gray-700 pt-4">
+      <div className="mt-auto">
         <Link href="/uit/logout" className="block py-2 px-4 rounded hover:bg-gray-700">
           Logout
         </Link>
