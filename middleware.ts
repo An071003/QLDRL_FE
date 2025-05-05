@@ -10,6 +10,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  if (request.nextUrl.pathname === "/logout") {
+    const response = NextResponse.redirect(new URL("/login", request.url));
+
+    response.cookies.delete("token");
+    return response;
+  }
+
   try {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET as string);
     const { payload } = await jwtVerify(token, secret); 
@@ -38,5 +45,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/uit/:path*"],
+  matcher: ["/uit/:path*", "/logout"],
 };

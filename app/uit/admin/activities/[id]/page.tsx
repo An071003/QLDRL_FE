@@ -7,14 +7,16 @@ import Loading from "@/components/Loading";
 import StudentActivitiesTable from "@/components/StudentActivitiesTable";
 import StudentActivitiesForm from "@/components/StudentActivitiesForm";
 import StudentsActivitesImport from "@/components/StudentsActivitesImport";
-import { Student } from "@/types/student";
+import { StudentActivity } from "@/types/studentActivity";
 import { useParams } from "next/navigation";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 
 export default function ActivityStudentManagement() {
   const params = useParams();
   const activityId = params?.id as string;
-  const [students, setStudents] = useState<Student[]>([]);
+  const [students, setStudents] = useState<StudentActivity[]>([]);
+  const [currentSemesterId, setCurrentSemesterId] = useState<number | null>(null);
+  const [activitySemesterId, setActivitySemesterId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeComponent, setActiveComponent] = useState<"table" | "form" | "import">("table");
   const tableRef = useRef<HTMLDivElement>(null);
@@ -25,7 +27,11 @@ export default function ActivityStudentManagement() {
     setLoading(true);
     try {
       const res = await api.get(`/api/student-activities/${activityId}`);
-      setStudents(res.data.data.students);
+      const fetchedStudents = res.data.data.students;
+      setStudents(fetchedStudents);
+      if (fetchedStudents.length > 0) {
+        setActivitySemesterId(fetchedStudents[0].semester);
+      }
     } catch (err) {
       toast.error("Không thể tải danh sách sinh viên tham gia ❌");
     } finally {
@@ -33,10 +39,17 @@ export default function ActivityStudentManagement() {
     }
   };
 
-  useEffect(() => {
-    if (activityId) fetchStudents();
-  }, [activityId]);
+  const fetchCurrentSemester = async () => {
+    const res = await api.get("/api/semesters/current");
+    setCurrentSemesterId(res.data.data.currentSemester);
 
+  };
+  
+  useEffect(() => {
+    fetchStudents();
+    fetchCurrentSemester();
+  }, [activityId]);
+  
   const handleAddStudents = async (studentIds: number[]) => {
     try {
       await api.post(`/api/student-activities/${activityId}/students`, { studentIds });
@@ -48,14 +61,29 @@ export default function ActivityStudentManagement() {
     }
   };
 
-  const handleImportStudents = async (studentsToImport: { mssv: string }[]) => {
+  const handleImportStudents = async (studentsToImport: { mssv: string }[]): Promise<{ success: boolean }> => {
     try {
-      await api.post(`/api/student-activities/${activityId}/students/import`, { students: studentsToImport });
+      await api.post(`/api/student-activities/${activityId}/import`, { students: studentsToImport });
       await fetchStudents();
       setActiveComponent("table");
       toast.success("Import sinh viên thành công 🚀");
+      return { success: true };
     } catch (err) {
       toast.error("Import sinh viên thất bại ❌");
+      return { success: false };
+    }
+  };
+
+  const handleToggleParticipated = async (studentId: number, participated: boolean) => {
+    try {
+      await api.patch(`/api/student-activities/${activityId}`, {
+        studentId: studentId,
+        participated: participated,
+      });
+      await fetchStudents();
+      toast.success("Cập nhật trạng thái tham gia thành công ✅");
+    } catch (err) {
+      toast.error("Cập nhật trạng thái thất bại ❌");
     }
   };
 
@@ -90,7 +118,7 @@ export default function ActivityStudentManagement() {
       default:
         return (
           <div ref={tableRef}>
-            <StudentActivitiesTable students={students} onRemoveStudent={handleRemoveStudent} />
+            <StudentActivitiesTable students={students} onRemoveStudent={handleRemoveStudent} onToggleParticipated={handleToggleParticipated}/>
           </div>
         );
     }
@@ -116,18 +144,22 @@ export default function ActivityStudentManagement() {
               onClick={() => window.history.back()}>
               Quay lại hoạt động
             </button>
-            <button
-              onClick={() => setActiveComponent("form")}
-              className="px-4 py-2 cursor-pointer bg-green-600 text-white rounded hover:bg-green-700"
-            >
-              + Thêm sinh viên
-            </button>
-            <button
-              onClick={() => setActiveComponent("import")}
-              className="px-4 py-2 cursor-pointer bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              + Import từ Excel
-            </button>
+            {activitySemesterId === currentSemesterId || !activitySemesterId ? (
+              <>
+                <button
+                  onClick={() => setActiveComponent("form")}
+                  className="px-4 py-2 cursor-pointer bg-green-600 text-white rounded hover:bg-green-700"
+                >
+                  + Thêm sinh viên
+                </button>
+                <button
+                  onClick={() => setActiveComponent("import")}
+                  className="px-4 py-2 cursor-pointer bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  + Import từ Excel
+                </button>
+              </>
+            ) : null}
           </>
         ) : (
           <button
@@ -139,6 +171,6 @@ export default function ActivityStudentManagement() {
         )}
       </div>
       {renderComponent()}
-    </div>
+    </div >
   );
 }

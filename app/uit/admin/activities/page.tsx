@@ -20,6 +20,8 @@ export default function ActivityManagement() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedSemester, setSelectedSemester] = useState<string>("all");
+  const semesterOptions = [...new Set(activities.map(a => `${a.semester_name} (${a.start_year}-${a.end_year})|${a.semester}`))];
   const itemsPerPage = 20;
   const tableRef = useRef<HTMLDivElement>(null);
 
@@ -38,7 +40,7 @@ export default function ActivityManagement() {
 
   const fetchCampaigns = async () => {
     try {
-      const res = await api.get("/api/campaigns");
+      const res = await api.get("/api/campaigns/semester");
       setCampaigns(res.data.data.campaigns);
     } catch (err) {
       toast.error("Không thể tải danh sách phong trào.");
@@ -143,6 +145,9 @@ export default function ActivityManagement() {
 
   const filteredActivities = activities
     .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    .filter((activity) =>
+      selectedSemester === "all" ? true : activity.semester.toString() === selectedSemester
+    )
     .sort((a, b) => {
       if (sortOrder === "asc") {
         return a.point - b.point;
@@ -170,7 +175,7 @@ export default function ActivityManagement() {
       default:
         return (
           <>
-            <div ref={tableRef} className="mb-6">
+            <div ref={tableRef} className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
               <input
                 type="text"
                 value={searchTerm}
@@ -181,6 +186,38 @@ export default function ActivityManagement() {
                 placeholder="Tìm kiếm theo tên hoạt động..."
                 className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/3"
               />
+              <select
+                value={selectedSemester}
+                onChange={(e) => {
+                  setSelectedSemester(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/4"
+              >
+                <option value="all">Tất cả học kỳ</option>
+                {semesterOptions.map((option) => {
+                  const [label, id] = option.split("|");
+                  return (
+                    <option key={id} value={id}>
+                      {label}
+                    </option>
+                  );
+                })}
+              </select>
+              <div className="flex justify-end gap-4">
+                <button
+                  onClick={() => setActiveComponent("form")}
+                  className="px-4 py-2 cursor-pointer bg-green-600 text-white rounded hover:bg-green-700"
+                >
+                  + Thêm hoạt động
+                </button>
+                {/* <button
+                  onClick={() => setActiveComponent("import")}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  + Import hoạt động
+                </button> */}
+              </div>
             </div>
 
             <ActivityTable
@@ -234,23 +271,8 @@ export default function ActivityManagement() {
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Quản lý Hoạt động</h1>
-      <div className="flex justify-end gap-4 mb-6">
-        {activeComponent === "table" ? (
-          <>
-            <button
-              onClick={() => setActiveComponent("form")}
-              className="px-4 py-2 cursor-pointer bg-green-600 text-white rounded hover:bg-green-700"
-            >
-              + Thêm hoạt động
-            </button>
-            {/* <button
-              onClick={() => setActiveComponent("import")}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              + Import hoạt động
-            </button> */}
-          </>
-        ) : (
+      <div className="flex justify-end gap-4">
+        {activeComponent !== "table" && (
           <button
             onClick={() => setActiveComponent("table")}
             className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
@@ -259,7 +281,6 @@ export default function ActivityManagement() {
           </button>
         )}
       </div>
-
       <div>{renderComponent()}</div>
 
       <ConfirmDeleteModal

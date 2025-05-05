@@ -1,6 +1,7 @@
 "use client";
 
-import {User} from "@/types/user";
+import { User } from "@/types/user";
+import { Tooltip } from "antd";
 import { format } from "date-fns";
 import { Trash } from "lucide-react";
 
@@ -53,12 +54,14 @@ export default function UserTable({ users, onDeleteUser }: UserTableProps) {
               </td>
               <td className="px-6 py-4 whitespace-nowrap">{format(new Date(user.created_at), 'dd/MM/yyyy')}</td>
               <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                <button
-                  onClick={() => onDeleteUser(user.id)}
-                  className="text-red-600 hover:text-red-900 ml-2"
-                >
-                  <Trash size={20} />
-                </button>
+                <Tooltip title="Xóa người dùng" placement="top">
+                  <button
+                    onClick={() => onDeleteUser(user.id)}
+                    className="text-red-600 hover:text-red-900 ml-2"
+                  >
+                    <Trash size={20} />
+                  </button>
+                </Tooltip>
               </td>
             </tr>
           ))}

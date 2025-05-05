@@ -3,6 +3,7 @@
 import { Semester } from '@/types/semester';
 import Loading from './Loading';
 import { Trash } from 'lucide-react';
+import { Tooltip } from 'antd';
 
 interface SemesterTableProps {
   semesters: Semester[];
@@ -35,12 +36,14 @@ export default function SemesterTable({ semesters, loading, onDeleteSemester }: 
               <td className="px-6 py-4 whitespace-nowrap">{semester.name}</td>
               <td className="px-6 py-4 whitespace-nowrap">{`${semester.start_year} - ${semester.end_year}`}</td>
               <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                <Tooltip title="Xóa học kỳ" placement="top">
                 <button
                   onClick={() => onDeleteSemester(semester.id)}
                   className="cursor-pointer text-red-600 hover:text-red-900 ml-2"
                 >
                   <Trash size={20} />
                 </button>
+                </Tooltip>
               </td>
             </tr>
           ))}

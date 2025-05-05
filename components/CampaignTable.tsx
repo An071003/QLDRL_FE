@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Campaign } from "@/types/campaign";
 import { Criteria } from "@/types/criteria";
 import { SquarePen, Trash } from "lucide-react";
+import { Tooltip } from "antd";
 
 interface CampaignTableProps {
   campaigns: Campaign[];
@@ -51,7 +52,7 @@ export default function CampaignTable({ campaigns, criterias, onDeleteCampaign, 
       toast.error("Vui lòng chọn tiêu chí.");
       return;
     }
-    
+
     if (editNegativeScore == null) {
       setEditNegativeScore(0);
     }
@@ -71,7 +72,7 @@ export default function CampaignTable({ campaigns, criterias, onDeleteCampaign, 
       toast.error(`Điểm phong trào không được lớn hơn điểm tiêu chí (${selectedCriteria.max_score}).`);
       return;
     }
-    
+
     try {
       await onUpdateCampaign(id, {
         name: editName,
@@ -158,7 +159,7 @@ export default function CampaignTable({ campaigns, criterias, onDeleteCampaign, 
                 )}
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
-              {editingId === campaign.id ? (
+                {editingId === campaign.id ? (
                   <input
                     type="number"
                     className="border px-2 py-1 rounded w-30"
@@ -190,18 +191,22 @@ export default function CampaignTable({ campaigns, criterias, onDeleteCampaign, 
                   </div>
                 ) : (
                   <div className="flex justify-center gap-2">
-                    <button
-                      onClick={() => handleEdit(campaign)}
-                      className="cursor-pointer text-blue-600 hover:text-blue-900"
-                    >
-                      <SquarePen size={20} />
-                    </button>
-                    <button
-                      onClick={() => onDeleteCampaign(campaign.id)}
-                      className="cursor-pointer text-red-600 hover:text-red-900"
-                    >
-                      <Trash size={20} />
-                    </button>
+                    <Tooltip title="Chỉnh sửa phong trào">
+                      <button
+                        onClick={() => handleEdit(campaign)}
+                        className="cursor-pointer text-blue-600 hover:text-blue-900"
+                      >
+                        <SquarePen size={20} />
+                      </button>
+                    </Tooltip>
+                    <Tooltip title="Xóa phong trào">
+                      <button
+                        onClick={() => onDeleteCampaign(campaign.id)}
+                        className="cursor-pointer text-red-600 hover:text-red-900"
+                      >
+                        <Trash size={20} />
+                      </button>
+                    </Tooltip>
                   </div>
                 )}
               </td>

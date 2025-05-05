@@ -28,8 +28,13 @@ const Sidebar = () => {
         <Link href="/uit/admin/semesters" className="block py-2 px-4 rounded hover:bg-gray-700">
           Semesters Management
         </Link>
-        
+
       </nav>
+      <div className=" mt-8 border-t border-gray-700 pt-4">
+        <Link href="/uit/logout" className="block py-2 px-4 rounded hover:bg-gray-700">
+          Logout
+        </Link>
+      </div>
     </div>
   );
 };

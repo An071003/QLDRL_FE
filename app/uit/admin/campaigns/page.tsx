@@ -150,7 +150,7 @@ export default function CampaignManagement() {
       default:
         return (
           <>
-            <div ref={tableRef} className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div ref={tableRef} className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
               <input
                 type="text"
                 value={searchTerm}
@@ -179,6 +179,22 @@ export default function CampaignManagement() {
                   );
                 })}
               </select>
+              <div className="flex justify-end gap-4 ">
+
+                <button
+                  onClick={() => setActiveComponent("form")}
+                  className="px-4 py-2 cursor-pointer bg-green-600 text-white rounded hover:bg-green-700"
+                >
+                  + Thêm phong trào
+                </button>
+                {/* <button
+                  onClick={() => setActiveComponent("import")}
+                  className="px-4 py-2 cursor-pointer bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  + Import phong trào
+                </button> */}
+
+              </div>
             </div>
 
             <CampaignTable
@@ -203,9 +219,8 @@ export default function CampaignManagement() {
                   <button
                     key={index}
                     onClick={() => changePage(index + 1)}
-                    className={`px-3 py-1 cursor-pointer rounded-md ${
-                      currentPage === index + 1 ? "bg-blue-500 text-white" : "bg-gray-200 hover:bg-gray-300"
-                    }`}
+                    className={`px-3 py-1 cursor-pointer rounded-md ${currentPage === index + 1 ? "bg-blue-500 text-white" : "bg-gray-200 hover:bg-gray-300"
+                      }`}
                   >
                     {index + 1}
                   </button>
@@ -233,23 +248,8 @@ export default function CampaignManagement() {
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Quản lý Phong trào</h1>
-      <div className="flex justify-end gap-4 mb-6">
-        {activeComponent === "table" ? (
-          <>
-            <button
-              onClick={() => setActiveComponent("form")}
-              className="px-4 py-2 cursor-pointer bg-green-600 text-white rounded hover:bg-green-700"
-            >
-              + Thêm phong trào
-            </button>
-            {/* <button
-              onClick={() => setActiveComponent("import")}
-              className="px-4 py-2 cursor-pointer bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              + Import phong trào
-            </button> */}
-          </>
-        ) : (
+      <div className="flex justify-end gap-4 ">
+        {activeComponent !== "table" && (
           <button
             onClick={() => setActiveComponent("table")}
             className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"

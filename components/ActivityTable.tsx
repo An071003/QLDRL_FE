@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Activity } from "@/types/activity";
 import { Campaign } from "@/types/campaign";
 import { ReceiptText, SquarePen, Trash } from "lucide-react";
+import { Tooltip } from "antd";
 
 interface ActivityTableProps {
   currentcampaigns: Campaign[];
@@ -81,7 +82,7 @@ export default function ActivityTable({
     }
 
     if (editPoint > campaign.campaign_max_score) {
-      toast.error(`Điểm trừ không được lớn hơn điểm tối đa (${campaign.campaign_max_score}) của phong trào.`);
+      toast.error(`Điểm không được lớn hơn điểm tối đa (${campaign.campaign_max_score}) của phong trào.`);
       return;
     }
 
@@ -218,15 +219,21 @@ export default function ActivityTable({
                   </div>
                 ) : (
                   <div className="flex justify-end gap-2">
-                    <button onClick={() => handleReceiptClick(activity.id)} className="cursor-pointer text-green-600 hover:text-green-900">
-                      <ReceiptText size={20} />
-                    </button>
-                    <button onClick={() => handleEdit(activity)} className="cursor-pointer text-blue-600 hover:text-blue-900">
-                      <SquarePen size={20} />
-                    </button>
-                    <button onClick={() => onDeleteActivity(activity.id)} className="cursor-pointer text-red-600 hover:text-red-900">
-                      <Trash size={20} />
-                    </button>
+                    <Tooltip title="Danh sách sinh viên tham gia" placement="top">
+                      <button onClick={() => handleReceiptClick(activity.id)} className="cursor-pointer text-green-600 hover:text-green-900">
+                        <ReceiptText size={20} />
+                      </button>
+                    </Tooltip>
+                    <Tooltip title="Chỉnh sửa hoạt động" placement="top">
+                      <button onClick={() => handleEdit(activity)} className="cursor-pointer text-blue-600 hover:text-blue-900">
+                        <SquarePen size={20} />
+                      </button>
+                    </Tooltip>
+                    <Tooltip title="Xóa hoạt động" placement="top">
+                      <button onClick={() => onDeleteActivity(activity.id)} className="cursor-pointer text-red-600 hover:text-red-900">
+                        <Trash size={20} />
+                      </button>
+                    </Tooltip>
                   </div>
                 )}
               </td>

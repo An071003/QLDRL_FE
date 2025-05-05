@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Criteria } from "@/types/criteria";
 import { SquarePen, Trash } from "lucide-react";
+import { Tooltip } from "antd";
 
 interface CriteriaTableProps {
   criterias: Criteria[];
@@ -111,18 +112,22 @@ export default function CriteriaTable({ criterias, onDeleteCriteria, onUpdateCri
                   </div>
                 ) : (
                   <div className="flex justify-center gap-2">
-                    <button
-                      onClick={() => handleEdit(criteria)}
-                      className="cursor-pointer text-blue-600 hover:text-blue-900"
-                    >
-                      <SquarePen size={20} />
-                    </button>
-                    <button
-                      onClick={() => onDeleteCriteria(criteria.id)}
-                      className="cursor-pointer text-red-600 hover:text-red-900"
-                    >
-                      <Trash size={20} />
-                    </button>
+                    <Tooltip title="Chỉnh sửa">
+                      <button
+                        onClick={() => handleEdit(criteria)}
+                        className="cursor-pointer text-blue-600 hover:text-blue-900"
+                      >
+                        <SquarePen size={20} />
+                      </button>
+                    </Tooltip>
+                    <Tooltip title="Xóa">
+                      <button
+                        onClick={() => onDeleteCriteria(criteria.id)}
+                        className="cursor-pointer text-red-600 hover:text-red-900"
+                      >
+                        <Trash size={20} />
+                      </button>
+                    </Tooltip>
                   </div>
                 )}
               </td>
