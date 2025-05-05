@@ -21,7 +21,7 @@ export default function LecturerCriteriaTable({ criterias, sortOrder, onSortMaxS
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STT</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên Tiêu chí</th>
             <th
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+              className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
               onClick={onSortMaxScore}
             >
               Điểm Tối Đa {sortOrder === "asc" ? "▲" : "▼"}
@@ -31,9 +31,9 @@ export default function LecturerCriteriaTable({ criterias, sortOrder, onSortMaxS
         <tbody className="bg-white divide-y divide-gray-200">
           {criterias.map((criteria, index) => (
             <tr key={criteria.id}>
-              <td className="px-6 py-4 w-10 whitespace-nowrap">{index + 1}</td>
-              <td className="px-6 py-4 w-3xl truncate">{criteria.name}</td>
-              <td className="px-6 py-4 w-auto whitespace-nowrap">{criteria.max_score}</td>
+              <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
+              <td className="px-6 py-4 truncate">{criteria.name}</td>
+              <td className="px-6 py-4 text-center whitespace-nowrap">{criteria.max_score}</td>
             </tr>
           ))}
         </tbody>

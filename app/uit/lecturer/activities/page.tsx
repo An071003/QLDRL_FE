@@ -13,7 +13,7 @@ export default function LecturerActivityManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 3;
+  const itemsPerPage = 20;
   const tableRef = useRef<HTMLDivElement>(null);
 
   const fetchActivities = async () => {
@@ -66,7 +66,6 @@ export default function LecturerActivityManagement() {
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Danh sách Hoạt động</h1>
-
       <div ref={tableRef} className="mb-6">
         <input
           type="text"

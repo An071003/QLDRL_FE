@@ -6,6 +6,7 @@ import { Activity } from "@/types/activity";
 import { Campaign } from "@/types/campaign";
 import { ReceiptText, SquarePen, Trash } from "lucide-react";
 import { Tooltip } from "antd";
+import Loading from "./Loading";
 
 interface ActivityTableProps {
   currentcampaigns: Campaign[];
@@ -30,6 +31,7 @@ export default function ActivityTable({
   onSortPoint,
   sortOrder,
 }: ActivityTableProps) {
+  const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [editPoint, setEditPoint] = useState(0);
@@ -65,6 +67,7 @@ export default function ActivityTable({
       toast.error("Vui lòng điền đầy đủ thông tin hợp lệ.");
       return;
     }
+    
     if (editNegativeScore < 0) {
       toast.error("Điểm trừ phải lớn hơn hoặc bằng 0.");
       return;
@@ -77,7 +80,7 @@ export default function ActivityTable({
     const campaign = campaigns.find((c) => c.id === editCampaignId);
 
     if (!campaign) {
-      toast.error("Không tìm thấy thông tin phong trào.");
+      handleCancel();
       return;
     }
 
@@ -94,18 +97,29 @@ export default function ActivityTable({
         negativescore: editNegativeScore,
         status: editStatus,
       } as any;
+      setLoading(true);
       await onUpdateActivity(id, updated);
 
       handleCancel();
     } catch (error) {
       console.error(error);
       toast.error("Lỗi khi cập nhật hoạt động.");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleReceiptClick = (id: number) => {
+    setLoading(true);
     router.push(`/uit/admin/activities/${id}`);
+    setLoading(false);
   };
+
+  if (loading) {
+    return(
+      <Loading />
+    )
+  }
 
   return (
     <div className="bg-white rounded-lg shadow overflow-x-auto">
