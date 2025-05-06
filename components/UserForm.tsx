@@ -3,9 +3,14 @@ import { NewUser } from "@/types/user";
 import { useState } from "react";
 import { toast } from "sonner";
 
-export default function UserForm({ onUserCreated }: {onUserCreated : (newUser: NewUser) => Promise<{ success: boolean }> }) {
+export default function UserForm({
+     onUserCreated,
+     setLoading 
+    }:{
+        onUserCreated: (newUser: NewUser) => Promise<{ success: boolean }>,
+        setLoading: (value: boolean) => void;
+    }) {
     const [newUser, setNewUser] = useState<NewUser>({ name: '', email: '', role: 'student' });
-    const [isCreating, setIsCreating] = useState(false);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -14,20 +19,20 @@ export default function UserForm({ onUserCreated }: {onUserCreated : (newUser: N
 
     const handleCreateUser = async (e: React.FormEvent) => {
         e.preventDefault();
-        setIsCreating(true);
+        setLoading(true);
         try {
             const result = await onUserCreated(newUser);
             if (result.success) {
                 setNewUser({ name: '', email: '', role: 'student' });
                 toast.success('Tạo người dùng thành công');
-              } else {
+            } else {
                 toast.error('Lỗi tạo người dùng');
-              }
+            }
         } catch (error) {
             console.error('Error creating user:', error);
             toast.error('Lỗi tạo người dùng');
         } finally {
-            setIsCreating(false);
+            setLoading(false);
         }
     };
 
@@ -75,10 +80,9 @@ export default function UserForm({ onUserCreated }: {onUserCreated : (newUser: N
                 <div className="flex justify-end mt-4">
                     <button
                         type="submit"
-                        disabled={isCreating}
                         className="px-4 py-2 text-white rounded bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300"
                     >
-                        {isCreating ? 'Creating...' : 'Create User'}
+                        'Tạo User'
                     </button>
                 </div>
             </form>
