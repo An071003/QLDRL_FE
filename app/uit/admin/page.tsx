@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
-import AdminLayout from '@/components/layout/admin';
 
 
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
@@ -83,7 +82,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <AdminLayout>
+    <div>
       <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
         {[
@@ -143,6 +142,6 @@ export default function AdminDashboard() {
           height={350}
         />
       </motion.div>
-    </AdminLayout>
+    </div>
   );
 }

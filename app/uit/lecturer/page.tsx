@@ -1,11 +1,9 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import LecturerLayout from '@/components/layout/lecturer';
 
 export default function LecturerDashboard() {
   return (
-    <LecturerLayout>
       <motion.div 
         className="flex justify-center items-center h-[80vh]"
         initial={{ opacity: 0 }}
@@ -16,6 +14,5 @@ export default function LecturerDashboard() {
           
         </h1>
       </motion.div>
-    </LecturerLayout>
   );
 }
