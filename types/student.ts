@@ -1,5 +1,8 @@
 export interface Student {
-    student_id: number;
+    id: string;
     student_name: string;
+    faculty: string;
+    course: string;
     class: string;
-}
+    sumscore: number;
+  }

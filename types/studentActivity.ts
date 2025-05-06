@@ -5,4 +5,7 @@ export interface StudentActivity {
     awarded_score: number;
     participated: boolean;
     semester: string;
+    semester_name: string;
+    start_year: number;
+    end_year: number;
 }
