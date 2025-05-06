@@ -8,8 +8,10 @@ import Loading from './Loading';
 
 export default function UserImport({
   onUsersImported,
+  setLoadingManager
 }: {
   onUsersImported: (users: any[]) => Promise<{ success: boolean }>;
+  setLoadingManager: (value: boolean) => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [previewUsers, setPreviewUsers] = useState<any[]>([]);
@@ -63,11 +65,11 @@ export default function UserImport({
   };
 
   const handleImport = async () => {
-    setLoading(true);
+    setLoadingManager(true);
     const invalidUsers = previewUsers.filter(user => !isValidEmail(user.email));
     if (invalidUsers.length > 0) {
       toast.error("Một số email không hợp lệ");
-      setLoading(false);
+      setLoadingManager(false);
       return;
     }
     if (previewUsers.length > 0) {
@@ -80,14 +82,8 @@ export default function UserImport({
         }
       }
     }
-    setLoading(false);
+    setLoadingManager(false);
   };
-
-  if (loading) {
-    return (
-      <Loading />
-    );
-  }
 
   return (
     <div className="mb-8">

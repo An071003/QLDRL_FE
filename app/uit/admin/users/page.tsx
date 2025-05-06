@@ -112,9 +112,9 @@ export default function UserManagement() {
   const renderComponent = () => {
     switch (activeComponent) {
       case 'form':
-        return <UserForm onUserCreated={handleCreateUser} />;
+        return <UserForm onUserCreated={handleCreateUser} setLoading={setLoading}/>;
       case 'import':
-        return <UserImport onUsersImported={handleUsersImported} />;
+        return <UserImport onUsersImported={handleUsersImported} setLoadingManager={setLoading}/>;
       default:
         return <UserTable users={filteredUsers} onDeleteUser={handleDeleteClick} />;
     }
