@@ -6,7 +6,7 @@ import { Activity } from "@/types/activity";
 import { Campaign } from "@/types/campaign";
 import { ReceiptText, SquarePen, Trash } from "lucide-react";
 import { Tooltip } from "antd";
-import Loading from "./Loading";
+import Loading from "../Loading";
 
 interface ActivityTableProps {
   currentcampaigns: Campaign[];

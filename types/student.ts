@@ -4,5 +4,6 @@ export interface Student {
     faculty: string;
     course: string;
     class: string;
+    status: 'none'| 'disciplined',
     sumscore: number;
   }

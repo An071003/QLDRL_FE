@@ -29,9 +29,10 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
       </header>
 
       <nav className="flex items-center p-2 bg-[#0a3a60]">
-        <a href="#" className="flex items-center space-x-2">
-          <img src="/home-icon.png" alt="Home" className="w-8 h-8" />
-        </a>
+        
+        <Link href="/" className="flex items-center space-x-2">
+          <img src="/house-user-solid.svg" alt="Home" className="w-8 h-8" />
+        </Link>
       </nav>
 
       <main className="p-4">

@@ -18,7 +18,7 @@ export default function AssignActivitiesPage() {
 
     const columns: ColumnsType<Activity> = [
         { title: "Tên hoạt động", dataIndex: "name", key: "name" },
-        { title: "Chiến dịch", dataIndex: "campaign_name", key: "campaign_name" },
+        { title: "Phong trào", dataIndex: "campaign_name", key: "campaign_name" },
         { title: "Điểm", dataIndex: "point", key: "point" },
     ];
 

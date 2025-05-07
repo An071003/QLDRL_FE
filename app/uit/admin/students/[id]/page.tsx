@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import api from "@/lib/api";
 import Loading from "@/components/Loading";
-import ActivitiesStudentTable from "@/components/ActivitiesStudentTable";
+import ActivitiesStudentTable from "@/components/Table/ActivitiesStudentTable";
 import { StudentActivity } from "@/types/studentActivity";
 import { toast } from "sonner";
 
@@ -51,7 +51,13 @@ export default function StudentActivitiesPage() {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Danh sách hoạt động của sinh viên {studentId}</h1>
-
+      <div className="flex justify-end gap-4 mb-6">
+        <button
+          className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
+          onClick={() => window.history.back()}>
+          Quay về danh sách
+        </button>
+      </div>
       <div ref={tableRef}>
         <ActivitiesStudentTable activities={currentActivities} />
       </div>
@@ -69,11 +75,10 @@ export default function StudentActivitiesPage() {
             <button
               key={index}
               onClick={() => changePage(index + 1)}
-              className={`px-3 py-1 cursor-pointer rounded-md ${
-                currentPage === index + 1
+              className={`px-3 py-1 cursor-pointer rounded-md ${currentPage === index + 1
                   ? "bg-blue-500 text-white"
                   : "bg-gray-200 hover:bg-gray-300"
-              }`}
+                }`}
             >
               {index + 1}
             </button>

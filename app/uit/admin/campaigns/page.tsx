@@ -5,9 +5,9 @@ import { toast } from "sonner";
 import api from "@/lib/api";
 import { Campaign } from "@/types/campaign";
 import { Criteria } from "@/types/criteria";
-import CampaignForm from "@/components/CampaignForm";
+import CampaignForm from "@/components/form/CampaignForm";
 import CampaignImport from "@/components/CampaignImport";
-import CampaignTable from "@/components/CampaignTable";
+import CampaignTable from "@/components/Table/CampaignTable";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import Loading from "@/components/Loading";
 

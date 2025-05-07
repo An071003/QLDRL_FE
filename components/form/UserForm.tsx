@@ -82,7 +82,7 @@ export default function UserForm({
                         type="submit"
                         className="px-4 py-2 text-white rounded bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300"
                     >
-                        'Tạo User'
+                        Tạo User
                     </button>
                 </div>
             </form>

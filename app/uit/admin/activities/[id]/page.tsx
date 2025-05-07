@@ -4,8 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import Loading from "@/components/Loading";
-import StudentActivitiesTable from "@/components/StudentActivitiesTable";
-import StudentActivitiesForm from "@/components/StudentActivitiesForm";
+import StudentActivitiesTable from "@/components/Table/StudentActivitiesTable";
+import StudentActivitiesForm from "@/components/form/StudentActivitiesForm";
 import StudentsActivitesImport from "@/components/StudentsActivitesImport";
 import { StudentActivity } from "@/types/studentActivity";
 import { useParams } from "next/navigation";
@@ -142,7 +142,7 @@ export default function ActivityStudentManagement() {
             <button
               className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
               onClick={() => window.history.back()}>
-              Quay lại hoạt động
+              Quay về danh sách
             </button>
             {activitySemesterId === currentSemesterId || !activitySemesterId ? (
               <>

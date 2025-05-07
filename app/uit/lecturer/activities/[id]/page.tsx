@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import api from "@/lib/api";
 import Loading from "@/components/Loading";
 import { StudentActivity } from "@/types/studentActivity";
-import LectureActivityStudentTable from "@/components/LecturerStudentActivitiesTable";
+import LectureActivityStudentTable from "@/components/Table/LecturerStudentActivitiesTable";
 import { useParams } from "next/navigation";
 
 export default function LectureActivityStudentManagement() {
@@ -41,7 +41,7 @@ export default function LectureActivityStudentManagement() {
         <button
           className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
           onClick={() => window.history.back()}>
-          Quay lại hoạt động
+          Quay về danh sách
         </button>
       </div>
       <div ref={tableRef}>

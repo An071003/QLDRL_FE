@@ -3,8 +3,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import api from '@/lib/api';
 import { toast } from 'sonner';
-import LecturerStudentTable from '@/components/LecturerStudentTable';
-import StudentActivityModal from '@/components/StudentActivityModal';
+import LecturerStudentTable from '@/components/Table/LecturerStudentTable';
+import StudentActivityModal from '@/components/Table/StudentActivityTable';
 import Loading from '@/components/Loading';
 import debounce from 'lodash.debounce';
 

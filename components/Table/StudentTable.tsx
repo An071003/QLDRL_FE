@@ -11,12 +11,14 @@ interface Props {
   students: Student[];
   onDeleteStudent: (id: string) => void;
   onUpdateStudent: (id: string, updatedData: Partial<Student>) => void;
+  onViewActivities: (id: string) => void;
 }
 
 export default function StudentTable({
   students,
   onDeleteStudent,
   onUpdateStudent,
+  onViewActivities
 }: Props) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -24,7 +26,7 @@ export default function StudentTable({
   const [editFaculty, setEditFaculty] = useState("");
   const [editCourse, setEditCourse] = useState("");
   const [editClass, setEditClass] = useState("");
-  const [editStatus, setEditStatus] = useState<"active" | "inactive">("active");
+  const [editStatus, setEditStatus] = useState<'none'| 'disciplined'>('none');
 
   const handleViewActivities = (id: string) => {
     router.push(`/uit/admin/students/${id}`);
@@ -64,6 +66,7 @@ export default function StudentTable({
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">STT</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">MSSV</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khoa</th>
@@ -74,8 +77,9 @@ export default function StudentTable({
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {students.map((student) => (
+          {students.map((student, index) => (
             <tr key={student.id}>
+              <td className="px-4 py-3 whitespace-nowrap">{index + 1}</td>
               <td className="px-4 py-3 whitespace-nowrap">{student.id}</td>
               <td className="px-4 py-3 whitespace-nowrap">
                 {editingId === student.id ? (

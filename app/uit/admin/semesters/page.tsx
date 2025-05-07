@@ -3,7 +3,7 @@
 import { useState, useEffect} from "react";
 import api from "@/lib/api";
 import { Semester } from "@/types/semester";
-import SemesterTable from "@/components/SemesterTable";
+import SemesterTable from "@/components/Table/SemesterTable";
 import { toast } from "sonner";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 

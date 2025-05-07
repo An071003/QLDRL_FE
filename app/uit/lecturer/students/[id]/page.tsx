@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import api from "@/lib/api";
 import Loading from "@/components/Loading";
-import ActivitiesStudentTable from "@/components/ActivitiesStudentTable";
+import ActivitiesStudentTable from "@/components/Table/ActivitiesStudentTable";
 import { StudentActivity } from "@/types/studentActivity";
 import { toast } from "sonner";
 

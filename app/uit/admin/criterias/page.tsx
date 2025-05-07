@@ -4,9 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import { Criteria } from "@/types/criteria";
 import { toast } from "sonner";
 import api from "@/lib/api";
-import CriteriaForm from "@/components/CriteriaForm";
+import CriteriaForm from "@/components/form/CriteriaForm";
 import CriteriaImport from "@/components/CriteriaImport";
-import CriteriaTable from "@/components/CriteriaTable";
+import CriteriaTable from "@/components/Table/CriteriaTable";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import Loading from "@/components/Loading";
 
@@ -150,12 +150,12 @@ export default function CriteriaManagement() {
                 >
                   + Thêm tiêu chí
                 </button>
-                <button
+                {/* <button
                   onClick={() => setActiveComponent("import")}
                   className="px-4 py-2 cursor-pointer bg-blue-600 text-white rounded hover:bg-blue-700"
                 >
                   + Import tiêu chí
-                </button>
+                </button> */}
               </div>
             </div>
 
@@ -211,12 +211,14 @@ export default function CriteriaManagement() {
       <h1 className="text-3xl font-bold mb-6">Quản lý Tiêu chí</h1>
 
       {activeComponent !== "table" && (
-        <button
-          onClick={() => setActiveComponent("table")}
-          className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
-        >
-          Quay về danh sách
-        </button>
+        <div className="flex justify-end mb-6">
+          <button
+            onClick={() => setActiveComponent("table")}
+            className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
+          >
+            Quay về danh sách
+          </button>
+        </div>
       )}
 
       <div>{renderComponent()}</div>

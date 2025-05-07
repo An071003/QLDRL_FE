@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
-import Loading from './Loading';
+import Loading from '../Loading';
 
 interface Props {
   studentId: string | null;
@@ -50,7 +50,7 @@ export default function StudentActivityModal({ studentId, onClose }: Props) {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tên hoạt động</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Chiến dịch</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Phong trào</th>
                 <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Điểm</th>
                 <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Ngày tham gia</th>
               </tr>

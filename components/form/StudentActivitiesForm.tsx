@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { toast } from "sonner";
-import { Student } from "@/types/student";
-import Loading from "./Loading";
-import { se } from "date-fns/locale";
+import { StudentActivity } from "@/types/studentActivity";
+import Loading from "../Loading";
+
 
 interface Props {
     activityId: string;
@@ -13,7 +13,7 @@ interface Props {
 }
 
 export default function StudentActivitiesForm({ activityId, onAddStudents }: Props) {
-    const [students, setStudents] = useState<Student[]>([]);
+    const [students, setStudents] = useState<StudentActivity[]>([]);
     const [selected, setSelected] = useState<number[]>([]);
     const [studentLength, setStudentLength] = useState<number>(0);
     const [loading, setLoading] = useState(true);
@@ -24,7 +24,6 @@ export default function StudentActivitiesForm({ activityId, onAddStudents }: Pro
             const res = await api.get(`/api/student-activities/${activityId}/not-participated`);
             setStudents(res.data.data.students);
             setStudentLength(res.data.data.students.length);
-            console.log(res.data.data.students);
         } catch {
             toast.error("Không thể tải danh sách sinh viên ❌");
         } finally {
@@ -75,7 +74,7 @@ export default function StudentActivitiesForm({ activityId, onAddStudents }: Pro
                             (
                                 <tr>
                                     <td colSpan={4} className="text-center py-4">
-                                        Không có nào tham gia hoạt động sinh viên
+                                        Không có sinh viên nào tham gia hoạt động 
                                     </td>
                                 </tr>
                             ) :

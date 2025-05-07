@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import api from "@/lib/api";
-import LecturerActivityTable from "@/components/LecturerActivityTable";
+import LecturerActivityTable from "@/components/Table/LecturerActivityTable";
 import Loading from "@/components/Loading";
 import { Activity } from "@/types/activity";
 

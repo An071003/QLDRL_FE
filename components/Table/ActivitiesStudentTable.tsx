@@ -1,14 +1,5 @@
 'use client';
-
-interface StudentActivity {
-  activity_id: number;
-  activity_name: string;
-  campaign_name: string;
-  point: number;
-  awarded_score: number;
-  status: 'ongoing' | 'expired';
-  semester_name: string;
-}
+import { StudentActivity } from "@/types/studentActivity";
 
 interface Props {
   activities: StudentActivity[];

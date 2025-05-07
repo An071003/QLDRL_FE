@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import Loading from "./Loading";
+import Loading from "../Loading";
 
 
 interface ActivityTableProps {

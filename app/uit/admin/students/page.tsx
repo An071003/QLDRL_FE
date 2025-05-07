@@ -3,10 +3,10 @@
 import { useEffect, useState, useMemo } from 'react';
 import api from '@/lib/api';
 import { toast } from 'sonner';
-import StudentTable from '@/components/StudentTable';
-import StudentForm from '@/components/StudentForm';
+import StudentTable from '@/components/Table/StudentTable';
+import StudentForm from '@/components/form/StudentForm';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
-import StudentActivityModal from '@/components/StudentActivityModal';
+import StudentActivityModal from '@/components/Table/StudentActivityTable';
 import Loading from '@/components/Loading';
 import debounce from 'lodash.debounce';
 
@@ -50,6 +50,16 @@ export default function StudentManagementPage() {
   const handleDeleteClick = (studentId: string) => {
     setStudentIdToDelete(studentId);
     setShowConfirmModal(true);
+  };
+
+  const handleUpdateStudent = async (id: string, updatedData: any) => {
+    try {
+      await api.put(`/api/students/${id}`, updatedData);
+      toast.success("Cập nhật sinh viên thành công");
+      fetchStudents();
+    } catch {
+      toast.error("Cập nhật thất bại");
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -119,27 +129,21 @@ export default function StudentManagementPage() {
 
       {activeComponent === 'form' ? (
         <div className="mb-6">
-          <button
-            onClick={() => setActiveComponent('table')}
-            className="px-4 py-2 mb-4 bg-gray-400 text-white rounded hover:bg-gray-600"
-          >
-            ← Quay lại danh sách
-          </button>
-          <StudentForm onStudentCreated={handleCreateStudent} />
+          <div className='flex justify-end mb-6'>
+            <button
+              onClick={() => setActiveComponent('table')}
+              className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
+            >
+              Quay về danh sách
+            </button>
+          </div>
+          <StudentForm onStudentCreated={handleCreateStudent} setLoading={setLoading} />
         </div>
       ) : (
         <StudentTable
           students={filteredStudents}
           onDeleteStudent={handleDeleteClick}
-          onUpdateStudent={async (id, updatedData) => {
-            try {
-              await api.put(`/api/students/${id}`, updatedData);
-              toast.success("Cập nhật sinh viên thành công");
-              fetchStudents();
-            } catch {
-              toast.error("Cập nhật thất bại");
-            }
-          }}
+          onUpdateStudent={handleUpdateStudent}
           onViewActivities={(id) => setSelectedStudentId(id)}
         />
       )}

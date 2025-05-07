@@ -1,7 +1,7 @@
 'use client';
 
 import { Semester } from '@/types/semester';
-import Loading from './Loading';
+import Loading from '../Loading';
 import { Trash } from 'lucide-react';
 import { Tooltip } from 'antd';
 

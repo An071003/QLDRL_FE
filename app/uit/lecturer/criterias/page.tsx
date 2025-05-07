@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import api from "@/lib/api";
-import LecturerCriteriaTable from "@/components/LecturerCriteriaTable";
+import LecturerCriteriaTable from "@/components/Table/LecturerCriteriaTable";
 import Loading from "@/components/Loading";
 
 interface Criteria {

@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import api from '@/lib/api';
 import { User } from '@/types/user';
-import UserForm from '@/components/UserForm';
-import UserTable from '@/components/UserTable';
+import UserForm from '@/components/form/UserForm';
+import UserTable from '@/components/Table/UserTable';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
 import UserImport from '@/components/UserImport';
 import { toast } from 'sonner';
