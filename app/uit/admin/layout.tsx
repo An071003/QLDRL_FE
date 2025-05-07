@@ -30,7 +30,7 @@ const Sidebar = () => {
         </Link>
       </nav>
       <div className="mt-auto">
-        <Link href="logout" className="block py-2 px-4 rounded hover:bg-gray-700">
+        <Link href="/logout" className="block py-2 px-4 rounded hover:bg-gray-700">
           Logout
         </Link>
       </div>

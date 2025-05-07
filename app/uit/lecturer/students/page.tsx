@@ -1,69 +1,75 @@
 'use client';
 
-import { useEffect, useState, useRef } from "react";
-import { toast } from "sonner";
-import api from "@/lib/api";
-import LecturerStudentTable from "@/components/LecturerStudentTable";
-import Loading from "@/components/Loading";
+import { useEffect, useState, useMemo } from 'react';
+import api from '@/lib/api';
+import { toast } from 'sonner';
+import LecturerStudentTable from '@/components/LecturerStudentTable';
+import StudentActivityModal from '@/components/StudentActivityModal';
+import Loading from '@/components/Loading';
+import debounce from 'lodash.debounce';
 
-interface Student {
-  id: string;
-  student_name: string;
-  faculty: string;
-  course: string;
-  class: string;
-  sumscore: number | null;
-}
-
-export default function LecturerStudentManagement() {
-  const [students, setStudents] = useState<Student[]>([]);
+export default function LecturerStudentManagementPage() {
+  const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-
-  const tableRef = useRef<HTMLDivElement>(null);
-
-  const fetchStudents = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get("/api/students");
-      setStudents(res.data.data.students);
-    } catch (err) {
-      toast.error("Không thể tải danh sách sinh viên ❌");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchStudents();
   }, []);
 
-  const filteredStudents = students.filter((student) =>
-    student.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.class.toLowerCase().includes(searchTerm.toLowerCase())
+  const fetchStudents = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/api/students');
+      setStudents(res.data.data.students);
+    } catch (err) {
+      toast.error('Không thể tải danh sách sinh viên');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const debouncedSearch = useMemo(
+    () => debounce((value: string) => setSearchTerm(value), 300),
+    []
   );
 
-  if (loading) {
-    return (
-      <Loading />
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    debouncedSearch(e.target.value);
+  };
+
+  const filteredStudents = useMemo(() => {
+    return students.filter(
+      (s) =>
+        s.student_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.id?.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }
+  }, [students, searchTerm]);
+
+  if (loading) return <Loading />;
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">Danh sách Sinh viên</h1>
-      <div ref={tableRef} className="mb-6">
+      <h1 className="text-3xl font-bold mb-6">Sinh viên trong hệ thống</h1>
+
+      <StudentActivityModal
+        studentId={selectedStudentId}
+        onClose={() => setSelectedStudentId(null)}
+      />
+
+      <div className="flex justify-between items-center mb-6 gap-4">
         <input
           type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Tìm kiếm theo tên, MSSV hoặc lớp..."
-          className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/3"
+          placeholder="Tìm theo mã sinh viên hoặc tên..."
+          onChange={handleSearchChange}
+          className="px-4 py-2 border border-gray-300 rounded w-full md:w-1/3"
         />
       </div>
 
-      <LecturerStudentTable students={filteredStudents} />
+      <LecturerStudentTable
+        students={filteredStudents}
+      />
     </div>
   );
 }

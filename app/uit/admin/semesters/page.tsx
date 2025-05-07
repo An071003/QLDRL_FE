@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect} from "react";
 import api from "@/lib/api";
 import { Semester } from "@/types/semester";
 import SemesterTable from "@/components/SemesterTable";
@@ -51,7 +51,7 @@ export default function SemesterManagement() {
       await fetchSemesters();
       toast.success("Xóa học kỳ thành công!");
       setModalOpen(false);
-    } catch (error) {
+    } catch {
       toast.error("Xóa học kỳ thất bại!");
     }
   };
