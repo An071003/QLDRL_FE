@@ -11,14 +11,12 @@ interface Props {
   students: Student[];
   onDeleteStudent: (id: string) => void;
   onUpdateStudent: (id: string, updatedData: Partial<Student>) => void;
-  onViewActivities: (id: string) => void;
 }
 
 export default function StudentTable({
   students,
   onDeleteStudent,
   onUpdateStudent,
-  onViewActivities
 }: Props) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -26,7 +24,7 @@ export default function StudentTable({
   const [editFaculty, setEditFaculty] = useState("");
   const [editCourse, setEditCourse] = useState("");
   const [editClass, setEditClass] = useState("");
-  const [editStatus, setEditStatus] = useState<'none'| 'disciplined'>('none');
+  const [editStatus, setEditStatus] = useState<'none' | 'disciplined'>('none');
 
   const handleViewActivities = (id: string) => {
     router.push(`/uit/admin/students/${id}`);
@@ -72,6 +70,7 @@ export default function StudentTable({
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khoa</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khóa</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lớp</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tổng DRL</th>
             <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Hành động</th>
           </tr>
@@ -123,6 +122,27 @@ export default function StudentTable({
                   />
                 ) : (
                   student.class
+                )}
+              </td>
+              <td className="px-4 py-3 whitespace-nowrap">
+                {editingId === student.id ? (
+                  <select
+                    className="border px-2 py-1 rounded w-full"
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as 'none' | 'disciplined')}
+                  >
+                    <option value="none">Bình thường</option>
+                    <option value="disciplined">Bị kỷ luật</option>
+                  </select>
+                ) : (
+                  <span
+                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                        ${student.status === 'none'
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-red-100 text-red-800'}`}
+                  >
+                    {student.status === 'none' ? 'Bình thường' : 'Bị kỷ luật'}
+                  </span>
                 )}
               </td>
               <td className="px-4 py-3 whitespace-nowrap">{student.sumscore ?? 0}</td>

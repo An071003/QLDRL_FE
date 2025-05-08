@@ -4,7 +4,6 @@ import { useState, useRef } from 'react';
 import { UploadCloud } from "lucide-react";
 import ExcelJS from 'exceljs';
 import { toast } from 'sonner';
-import Loading from './Loading';
 
 export default function UserImport({
   onUsersImported,

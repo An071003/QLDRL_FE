@@ -6,9 +6,9 @@ import { toast } from 'sonner';
 import StudentTable from '@/components/Table/StudentTable';
 import StudentForm from '@/components/form/StudentForm';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
-import StudentActivityModal from '@/components/Table/StudentActivityTable';
 import Loading from '@/components/Loading';
 import debounce from 'lodash.debounce';
+import StudentImport from '@/components/StudentImport';
 
 export default function StudentManagementPage() {
   const [students, setStudents] = useState<any[]>([]);
@@ -16,8 +16,7 @@ export default function StudentManagementPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [studentIdToDelete, setStudentIdToDelete] = useState<string | null>(null);
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
-  const [activeComponent, setActiveComponent] = useState<'table' | 'form'>('table');
+  const [activeComponent, setActiveComponent] = useState<'table' | 'form' | 'import'>('table');
 
   useEffect(() => {
     fetchStudents();
@@ -93,6 +92,38 @@ export default function StudentManagementPage() {
     );
   }, [students, searchTerm]);
 
+  const handleStudentsImported = async (importedStudents: any[]): Promise<{ success: boolean }> => {
+    try {
+      setLoading(true);
+      const res = await api.post('/api/students/import', { students: importedStudents });
+      toast.success(`Đã import ${res.data.createdCount || importedStudents.length} sinh viên thành công!`);
+      fetchStudents();
+      setActiveComponent('table');
+      return { success: true };
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Lỗi khi import sinh viên';
+      toast.error(msg);
+      return { success: false };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderComponent = () => {
+    switch (activeComponent) {
+      case 'form':
+        return <StudentForm onStudentCreated={handleCreateStudent} setLoading={setLoading} />
+      case 'import':
+        return <StudentImport onStudentsImported={handleStudentsImported} setLoadingManager={setLoading} />
+      default:
+        return <StudentTable
+          students={filteredStudents}
+          onDeleteStudent={handleDeleteClick}
+          onUpdateStudent={handleUpdateStudent}
+        />
+    }
+  };
+
   if (loading) return <Loading />;
 
   return (
@@ -105,48 +136,39 @@ export default function StudentManagementPage() {
         onConfirm={handleConfirmDelete}
       />
 
-      <StudentActivityModal
-        studentId={selectedStudentId}
-        onClose={() => setSelectedStudentId(null)}
-      />
-
-      {activeComponent === 'table' && (
-        <div className="flex justify-between items-center mb-6 gap-4">
+      {activeComponent === 'table' ? (
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
           <input
             type="text"
             placeholder="Tìm theo mã sinh viên hoặc tên..."
             onChange={handleSearchChange}
             className="px-4 py-2 border border-gray-300 rounded w-full md:w-1/3"
           />
-          <button
-            onClick={() => setActiveComponent('form')}
-            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-          >
-            + Thêm sinh viên
-          </button>
-        </div>
-      )}
-
-      {activeComponent === 'form' ? (
-        <div className="mb-6">
-          <div className='flex justify-end mb-6'>
+          <div className="flex gap-4">
             <button
-              onClick={() => setActiveComponent('table')}
-              className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
+              onClick={() => setActiveComponent('form')}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
             >
-              Quay về danh sách
+              + Thêm sinh viên
+            </button>
+            <button
+              onClick={() => setActiveComponent('import')}
+              className="px-4 py-2 cursor-pointer bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              + Import sinh viên
             </button>
           </div>
-          <StudentForm onStudentCreated={handleCreateStudent} setLoading={setLoading} />
         </div>
       ) : (
-        <StudentTable
-          students={filteredStudents}
-          onDeleteStudent={handleDeleteClick}
-          onUpdateStudent={handleUpdateStudent}
-          onViewActivities={(id) => setSelectedStudentId(id)}
-        />
-      )}
+        <div className='flex justify-end mb-6'>
+          <button
+            onClick={() => setActiveComponent('table')}
+            className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
+          >
+            Quay về danh sách
+          </button>
+        </div>)}
+      <div className="mb-6">{renderComponent()}</div>
     </div>
   );
 }
