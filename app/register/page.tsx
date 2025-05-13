@@ -1,57 +1,104 @@
 'use client';
 
-import React from "react";
-import { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Form, Input, Select, Button, Typography, notification } from 'antd';
 import api from '@/lib/api';
 import { MainLayout } from '@/components/layout';
 import { NotificationModal } from '@/components/NotificationModal';
-import { toast } from "sonner";
 
+const { Title } = Typography;
+const { Option } = Select;
 
 export default function RegisterPage() {
-    const [form, setForm] = useState({
-        name: '',
-        email: '',
-        password: '',
-        role: 'student',
-    });
+    const [form] = Form.useForm();
     const router = useRouter();
+    const [roles, setRoles] = useState<{ id: number; name: string }[]>([]);
     const [Notification, setNotification] = useState('');
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        setForm({ ...form, [e.target.name]: e.target.value });
-    };
+    useEffect(() => {
+        const fetchRoles = async () => {
+            try {
+                const res = await api.get('/api/roles');
+                setRoles(res.data.roles);
+            } catch (err) {
+                console.error("Không thể tải danh sách quyền:", err);
+                notification.error({ message: "Lỗi", description: "Không thể tải danh sách vai trò" });
+            }
+        };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+        fetchRoles();
+    }, []);
+
+    const handleSubmit = async (values: any) => {
         try {
-            console.log(form);
-            await api.post("/api/auth/register", form);
-            setNotification('Đăng ký thành công!');
+            await api.post("/api/auth/register", values);
+            setNotification("Đăng ký thành công!");
             router.push('/login');
         } catch (err) {
             console.error(err);
-            toast.error("Đăng ký thất bại, vui lòng thử lại sau.");
+            notification.error({ message: "Đăng ký thất bại", description: "Vui lòng thử lại sau." });
         }
     };
 
     return (
         <MainLayout>
-            {Notification && <NotificationModal message={Notification} onClose={() => setNotification("")}/>}
-            <div className="max-w-md mx-auto mt-10">
-                <h1 className="text-2xl font-bold mb-4">Đăng ký tài khoản</h1>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <input name="name" placeholder="Họ tên" onChange={handleChange} className="w-full border p-2 rounded" required />
-                    <input name="email" placeholder="Email" onChange={handleChange} className="w-full border p-2 rounded" required />
-                    <input name="password" type="password" placeholder="Mật khẩu" onChange={handleChange} className="w-full border p-2 rounded" required />
-                    <select name="role" value={form.role} onChange={handleChange} className="w-full border p-2 rounded">
-                        <option value="student">Sinh viên</option>
-                        <option value="lecturer">Giảng viên</option>
-                        <option value="admin">Admin</option>
-                    </select>
-                    <button type="submit" className="cursor-pointer bg-blue-500 text-white py-2 px-4 rounded">Đăng ký</button>
-                </form>
+            {Notification && <NotificationModal message={Notification} onClose={() => setNotification("")} />}
+            <div className="max-w-md mx-auto mt-10 bg-white p-6 rounded shadow">
+                <Title level={2}>Đăng ký tài khoản</Title>
+                <Form
+                    form={form}
+                    layout="vertical"
+                    onFinish={handleSubmit}
+                    initialValues={{ role_id: 1 }}
+                >
+                    <Form.Item
+                        label="Họ tên"
+                        name="user_name"
+                        rules={[{ required: true, message: 'Vui lòng nhập họ tên' }]}
+                    >
+                        <Input placeholder="Nhập họ tên" />
+                    </Form.Item>
+
+                    <Form.Item
+                        label="Email"
+                        name="email"
+                        rules={[
+                            { required: true, message: 'Vui lòng nhập email' },
+                            { type: 'email', message: 'Email không hợp lệ' }
+                        ]}
+                    >
+                        <Input placeholder="Nhập email" />
+                    </Form.Item>
+
+                    <Form.Item
+                        label="Mật khẩu"
+                        name="password"
+                        rules={[{ required: true, message: 'Vui lòng nhập mật khẩu' }]}
+                    >
+                        <Input.Password placeholder="Nhập mật khẩu" />
+                    </Form.Item>
+
+                    <Form.Item
+                        label="Vai trò"
+                        name="role_id"
+                        rules={[{ required: true, message: 'Vui lòng chọn vai trò' }]}
+                    >
+                        <Select placeholder="Chọn vai trò">
+                            {roles.map(role => (
+                                <Option key={role.id} value={role.id}>
+                                    {role.name}
+                                </Option>
+                            ))}
+                        </Select>
+                    </Form.Item>
+
+                    <Form.Item>
+                        <Button type="primary" htmlType="submit" block>
+                            Đăng ký
+                        </Button>
+                    </Form.Item>
+                </Form>
             </div>
         </MainLayout>
     );

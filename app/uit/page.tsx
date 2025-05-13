@@ -12,7 +12,7 @@ export default function DashboardPage() {
     const fetchUserRole = async () => {
       try {
         const res = await api.get("/api/auth/me");
-        setRole(res.data.data.user[0].role);
+        setRole(res.data.data.user.Role.name);
       } catch (error) {
         router.push("/login");
       }
