@@ -113,7 +113,6 @@ export default function ActivityManagement() {
     try {
       await api.put(`/api/activities/${id}`, updatedActivity);
       await fetchActivities();
-      console.log("updatedActivity", updatedActivity);
       toast.success("Cập nhật hoạt động thành công ✨");
     } catch (err: any) {
       toast.error("Cập nhật hoạt động thất bại ❌");

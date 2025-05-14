@@ -51,10 +51,8 @@ export default function UserManagement() {
 
   const handleCreateUser = async (newUser: { user_name: string; email: string; role_id: number }) => {
     try {
-      const res = await api.post('/api/users', newUser);
-      const createdUser = res.data.data.user;
-      console.log(res.data.data.user);
-      setUsers(prev => [...prev, createdUser]);
+      await api.post('/api/users', newUser);
+      fetchUsers();
       setActiveComponent('table');
       return { success: true, message: 'Tạo người dùng thành công!' };
     } catch (err: any) {
@@ -72,7 +70,7 @@ export default function UserManagement() {
     if (userIdToDelete === null) return;
     try {
       await api.delete(`/api/users/${userIdToDelete}`);
-      setUsers(prev => prev.filter(user => user.id !== userIdToDelete));
+      fetchUsers();
       toast.success('Xóa người dùng thành công!');
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Lỗi xóa người dùng';
@@ -86,8 +84,7 @@ export default function UserManagement() {
   const handleUsersImported = async (importedUsers: User[]) => {
     try {
       await api.post('/api/users/import', importedUsers);
-      const res = await api.get('/api/users');
-      setUsers(res.data.data.users);
+      fetchUsers();
       setActiveComponent('table');
       toast.success('Thêm người dùng thành công!');
       return { success: true };

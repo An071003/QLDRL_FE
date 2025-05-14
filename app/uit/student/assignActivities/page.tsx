@@ -33,7 +33,6 @@ export default function AssignActivitiesPage() {
             const studentId = res.data.data?.studentId;
             if (!studentId) throw new Error("Không tìm thấy mã sinh viên");
             setStudentId(studentId);
-            console.log("Student ID:", studentId);
             fetchAvailableActivities(studentId);
             fetchRegisteredActivities(studentId);
         } catch (err) {

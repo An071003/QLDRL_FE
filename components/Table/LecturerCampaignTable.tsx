@@ -9,7 +9,6 @@ interface CampaignTableProps {
 }
 
 export default function LecturerCampaignTable({ campaigns, onSortMaxScore, sortOrder }: CampaignTableProps) {
-  console.log(campaigns);
   return (
     <div className="bg-white rounded-lg shadow overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200">
