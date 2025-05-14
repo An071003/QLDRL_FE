@@ -11,6 +11,12 @@ interface UserTableProps {
 }
 
 export default function UserTable({ users, onDeleteUser }: UserTableProps) {
+  const roleColors: Record<string, string> = {
+    admin: 'bg-purple-100 text-purple-800',
+    advisor: 'bg-green-100 text-green-800',
+    departmentofficer: 'bg-orange-100 text-orange-800',
+    student: 'bg-blue-100 text-blue-800',
+  };
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
       <table className="min-w-full divide-y divide-gray-200">
@@ -40,16 +46,14 @@ export default function UserTable({ users, onDeleteUser }: UserTableProps) {
           {users.map((user, index) => (
             <tr key={user.id}>
               <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
-              <td className="px-6 py-4 whitespace-nowrap">{user.name}</td>
+              <td className="px-6 py-4 whitespace-nowrap">{user.user_name}</td>
               <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <span
                   className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                    ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
-                      user.role === 'lecturer' ? 'bg-green-100 text-green-800' :
-                        'bg-blue-100 text-blue-800'}`}
+                  ${roleColors[(user.Role?.name?.toString() ?? 'student')]}`}
                 >
-                  {user.role}
+                  {user.Role?.name}
                 </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap">{format(new Date(user.created_at), 'dd/MM/yyyy')}</td>

@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import ExcelJS from "exceljs";
 import { toast } from "sonner";
 import { UploadCloud } from "lucide-react";
-import Loading from "./Loading";
+import Loading from "../Loading";
 
 interface Props {
   onImport: (students: { mssv: string }[]) => Promise<{ success: boolean }>;

@@ -6,7 +6,7 @@ import api from "@/lib/api";
 import Loading from "@/components/Loading";
 import StudentActivitiesTable from "@/components/Table/StudentActivitiesTable";
 import StudentActivitiesForm from "@/components/form/StudentActivitiesForm";
-import StudentsActivitesImport from "@/components/StudentsActivitesImport";
+import StudentsActivitesImport from "@/components/Import/StudentsActivitesImport";
 import { StudentActivity } from "@/types/studentActivity";
 import { useParams } from "next/navigation";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";

@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import api from "@/lib/api";
 import { Activity } from "@/types/activity";
 import ActivityForm from "@/components/form/ActivityForm";
-import ActivityImport from "@/components/ActivityImport";
+import ActivityImport from "@/components/Import/ActivityImport";
 import ActivityTable from "@/components/Table/ActivityTable";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import Loading from "@/components/Loading";

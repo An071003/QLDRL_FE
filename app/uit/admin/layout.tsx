@@ -28,6 +28,10 @@ const Sidebar = () => {
         <Link href="/uit/admin/semesters" className="block py-2 px-4 rounded hover:bg-gray-700">
           Semesters Management
         </Link>
+
+        <Link href="/uit/admin/roles" className="block py-2 px-4 rounded hover:bg-gray-700">
+          Role Management
+        </Link>
       </nav>
       <div className="mt-auto">
         <Link href="/logout" className="block py-2 px-4 rounded hover:bg-gray-700">

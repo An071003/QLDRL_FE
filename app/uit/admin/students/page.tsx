@@ -8,7 +8,7 @@ import StudentForm from '@/components/form/StudentForm';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
 import Loading from '@/components/Loading';
 import debounce from 'lodash.debounce';
-import StudentImport from '@/components/StudentImport';
+import StudentImport from '@/components/Import/StudentImport';
 
 export default function StudentManagementPage() {
   const [students, setStudents] = useState<any[]>([]);

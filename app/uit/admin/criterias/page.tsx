@@ -5,7 +5,7 @@ import { Criteria } from "@/types/criteria";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import CriteriaForm from "@/components/form/CriteriaForm";
-import CriteriaImport from "@/components/CriteriaImport";
+import CriteriaImport from "@/components/Import/CriteriaImport";
 import CriteriaTable from "@/components/Table/CriteriaTable";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import Loading from "@/components/Loading";

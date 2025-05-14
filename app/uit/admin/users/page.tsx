@@ -1,21 +1,21 @@
 'use client';
 
-import { useState, useEffect, useMemo, Suspense } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import api from '@/lib/api';
 import { User } from '@/types/user';
 import UserForm from '@/components/form/UserForm';
 import UserTable from '@/components/Table/UserTable';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
-import UserImport from '@/components/UserImport';
+import UserImport from '@/components/Import/UserImport';
 import { toast } from 'sonner';
 import debounce from 'lodash.debounce';
-import Loading from '@components/Loading'
+import Loading from '@components/Loading';
 
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
+  const [roles, setRoles] = useState<{ id: number; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeComponent, setActiveComponent] = useState<'form' | 'import' | 'table'>('table');
-  const [error, setError] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [userIdToDelete, setUserIdToDelete] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,33 +24,42 @@ export default function UserManagement() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/api/users');
-      setUsers(res.data.data.users);
-    } catch (err) {
-      console.error(err);
-      setError('Failed to load users');
-    } finally {
+      const usersRes = await api.get('/api/users');
+      setUsers(usersRes.data.data.users);
+    } catch (err: any) {
+      toast.error('Lỗi tải dữ liệu người dùng');
+    } finally{
       setLoading(false);
     }
   };
 
+  const fetchRoles = async () => {
+    setLoading(true);
+    try {
+      const rolesRes = await api.get('/api/roles');
+      setRoles(rolesRes.data.roles);
+    } catch (err: any) {
+      toast.error('Lỗi tải dữ liệu vai trò');
+    } finally{
+      setLoading(false);
+    }
+  };
   useEffect(() => {
     fetchUsers();
+    fetchRoles();
   }, []);
 
-  const handleCreateUser = async (newUser: { name: string; email: string; role: string }) => {
+  const handleCreateUser = async (newUser: { user_name: string; email: string; role_id: number }) => {
     try {
       const res = await api.post('/api/users', newUser);
       const createdUser = res.data.data.user;
-      console.log('Created user:', createdUser[0])
-      setUsers(prev => [...prev, createdUser[0]]);
+      console.log(res.data.data.user);
+      setUsers(prev => [...prev, createdUser]);
       setActiveComponent('table');
-      toast.success('Tạo người dùng thành công!');
-      return { success: true };
+      return { success: true, message: 'Tạo người dùng thành công!' };
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Lỗi tạo người dùng.';
-      toast.error(msg);
-      return { success: false };
+      return { success: false, message: msg };
     }
   };
 
@@ -65,7 +74,6 @@ export default function UserManagement() {
       await api.delete(`/api/users/${userIdToDelete}`);
       setUsers(prev => prev.filter(user => user.id !== userIdToDelete));
       toast.success('Xóa người dùng thành công!');
-      toast.success('Xóa người dùng thành công!');
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Lỗi xóa người dùng';
       toast.error(msg);
@@ -78,7 +86,8 @@ export default function UserManagement() {
   const handleUsersImported = async (importedUsers: User[]) => {
     try {
       await api.post('/api/users/import', importedUsers);
-      fetchUsers();
+      const res = await api.get('/api/users');
+      setUsers(res.data.data.users);
       setActiveComponent('table');
       toast.success('Thêm người dùng thành công!');
       return { success: true };
@@ -100,31 +109,32 @@ export default function UserManagement() {
 
   const filteredUsers = useMemo(
     () =>
-      users.filter(
-        (user) =>
-          (user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.email?.toLowerCase().includes(searchTerm.toLowerCase())) &&
-          (roleFilter === '' || user.role === roleFilter)
-      ),
+      users.filter((user) => {
+        const userName = String(user?.user_name || '').toLowerCase();
+        const email = String(user?.email || '').toLowerCase();
+        const search = searchTerm.toLowerCase();
+
+        return (
+          (userName.includes(search) || email.includes(search)) &&
+          (roleFilter === '' || user?.Role?.name === roleFilter)
+        );
+      }),
     [users, searchTerm, roleFilter]
   );
+
 
   const renderComponent = () => {
     switch (activeComponent) {
       case 'form':
-        return <UserForm onUserCreated={handleCreateUser} setLoading={setLoading}/>;
+        return <UserForm onUserCreated={handleCreateUser} setLoading={setLoading} roles={roles} />;
       case 'import':
-        return <UserImport onUsersImported={handleUsersImported} setLoadingManager={setLoading}/>;
+        return <UserImport onUsersImported={handleUsersImported} setLoadingManager={setLoading} roles={roles} />;
       default:
         return <UserTable users={filteredUsers} onDeleteUser={handleDeleteClick} />;
     }
   };
 
-  if (loading) {
-    return (
-      <Loading />
-    );
-  }
+  if (loading) return <Loading />;
 
   return (
     <div>
@@ -151,9 +161,11 @@ export default function UserManagement() {
             className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/4"
           >
             <option value="">Tất cả vai trò</option>
-            <option value="admin">Admin</option>
-            <option value="student">Student</option>
-            <option value="lecturer">Lecturer</option>
+            {roles.map(role => (
+              <option key={role.id} value={role.name}>
+                {role.name}
+              </option>
+            ))}
           </select>
 
           <div className="flex gap-4">
