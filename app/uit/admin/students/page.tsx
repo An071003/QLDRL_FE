@@ -9,9 +9,10 @@ import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
 import Loading from '@/components/Loading';
 import debounce from 'lodash.debounce';
 import StudentImport from '@/components/Import/StudentImport';
+import { Student } from '@/types/student';
 
 export default function StudentManagementPage() {
-  const [students, setStudents] = useState<any[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -51,7 +52,7 @@ export default function StudentManagementPage() {
     setShowConfirmModal(true);
   };
 
-  const handleUpdateStudent = async (id: string, updatedData: any) => {
+  const handleUpdateStudent = async (id: string, updatedData: Partial<Student>) => {
     try {
       await api.put(`/api/students/${id}`, updatedData);
       toast.success("Cập nhật sinh viên thành công");
@@ -87,8 +88,8 @@ export default function StudentManagementPage() {
   const filteredStudents = useMemo(() => {
     return students.filter(
       (s) =>
-        s.student_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.id?.toLowerCase().includes(searchTerm.toLowerCase())
+        (s.student_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        s.student_id?.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [students, searchTerm]);
 

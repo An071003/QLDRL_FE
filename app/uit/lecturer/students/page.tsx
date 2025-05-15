@@ -7,9 +7,10 @@ import LecturerStudentTable from '@/components/Table/LecturerStudentTable';
 import StudentActivityModal from '@/components/Table/StudentActivityTable';
 import Loading from '@/components/Loading';
 import debounce from 'lodash.debounce';
+import { Student } from '@/types/student';
 
 export default function LecturerStudentManagementPage() {
-  const [students, setStudents] = useState<any[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
@@ -42,8 +43,8 @@ export default function LecturerStudentManagementPage() {
   const filteredStudents = useMemo(() => {
     return students.filter(
       (s) =>
-        s.student_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.id?.toLowerCase().includes(searchTerm.toLowerCase())
+        (s.student_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        s.student_id?.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [students, searchTerm]);
 

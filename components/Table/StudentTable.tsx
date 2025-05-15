@@ -21,9 +21,7 @@ export default function StudentTable({
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
-  const [editFaculty, setEditFaculty] = useState("");
-  const [editCourse, setEditCourse] = useState("");
-  const [editClass, setEditClass] = useState("");
+  const [editPhone, setEditPhone] = useState("");
   const [editStatus, setEditStatus] = useState<'none' | 'disciplined'>('none');
 
   const handleViewActivities = (id: string) => {
@@ -31,11 +29,9 @@ export default function StudentTable({
   };
 
   const handleEdit = (student: Student) => {
-    setEditingId(student.id);
-    setEditName(student.student_name);
-    setEditFaculty(student.faculty);
-    setEditCourse(student.course);
-    setEditClass(student.class);
+    setEditingId(student.student_id);
+    setEditName(student.student_name || "");
+    setEditPhone(student.phone || "");
     setEditStatus(student.status);
   };
 
@@ -44,16 +40,19 @@ export default function StudentTable({
   };
 
   const handleSave = (id: string) => {
-    if (!editName.trim() || !editFaculty.trim() || !editCourse.trim() || !editClass.trim()) {
-      toast.error("Vui lòng nhập đầy đủ thông tin.");
+    if (!editName.trim()) {
+      toast.error("Vui lòng nhập tên sinh viên.");
+      return;
+    }
+
+    if (editPhone && editPhone.trim().length !== 10) {
+      toast.error("Số điện thoại phải có đúng 10 ký tự.");
       return;
     }
 
     onUpdateStudent(id, {
       student_name: editName,
-      faculty: editFaculty,
-      course: editCourse,
-      class: editClass,
+      phone: editPhone,
       status: editStatus,
     });
     setEditingId(null);
@@ -67,9 +66,7 @@ export default function StudentTable({
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">STT</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">MSSV</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khoa</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khóa</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lớp</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số điện thoại</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tổng DRL</th>
             <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Hành động</th>
@@ -77,55 +74,41 @@ export default function StudentTable({
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {students.map((student, index) => (
-            <tr key={student.id}>
+            <tr key={student.student_id}>
               <td className="px-4 py-3 whitespace-nowrap">{index + 1}</td>
-              <td className="px-4 py-3 whitespace-nowrap">{student.id}</td>
+              <td className="px-4 py-3 whitespace-nowrap">{student.student_id}</td>
               <td className="px-4 py-3 whitespace-nowrap">
-                {editingId === student.id ? (
+                {editingId === student.student_id ? (
                   <input
                     className="border px-2 py-1 rounded w-full"
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
                   />
                 ) : (
-                  student.student_name
+                  student.student_name || "--"
                 )}
               </td>
               <td className="px-4 py-3 whitespace-nowrap">
-                {editingId === student.id ? (
+                {editingId === student.student_id ? (
                   <input
                     className="border px-2 py-1 rounded w-full"
-                    value={editFaculty}
-                    onChange={(e) => setEditFaculty(e.target.value)}
+                    value={editPhone}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Chỉ cho phép nhập số và tối đa 10 ký tự
+                      if (/^\d{0,10}$/.test(value)) {
+                        setEditPhone(value);
+                      }
+                    }}
+                    placeholder="Nhập 10 số"
+                    maxLength={10}
                   />
                 ) : (
-                  student.faculty
+                  student.phone || "--"
                 )}
               </td>
               <td className="px-4 py-3 whitespace-nowrap">
-                {editingId === student.id ? (
-                  <input
-                    className="border px-2 py-1 rounded w-full"
-                    value={editCourse}
-                    onChange={(e) => setEditCourse(e.target.value)}
-                  />
-                ) : (
-                  student.course
-                )}
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap">
-                {editingId === student.id ? (
-                  <input
-                    className="border px-2 py-1 rounded w-full"
-                    value={editClass}
-                    onChange={(e) => setEditClass(e.target.value)}
-                  />
-                ) : (
-                  student.class
-                )}
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap">
-                {editingId === student.id ? (
+                {editingId === student.student_id ? (
                   <select
                     className="border px-2 py-1 rounded w-full"
                     value={editStatus}
@@ -145,12 +128,12 @@ export default function StudentTable({
                   </span>
                 )}
               </td>
-              <td className="px-4 py-3 whitespace-nowrap">{student.sumscore ?? 0}</td>
+              <td className="px-4 py-3 whitespace-nowrap">{student.sumscore}</td>
               <td className="px-4 py-3 text-center whitespace-nowrap flex gap-2 justify-center">
-                {editingId === student.id ? (
+                {editingId === student.student_id ? (
                   <>
                     <button
-                      onClick={() => handleSave(student.id)}
+                      onClick={() => handleSave(student.student_id)}
                       className="text-green-600 hover:text-green-800"
                     >
                       Lưu
@@ -166,7 +149,7 @@ export default function StudentTable({
                   <>
                     <Tooltip title="Xem hoạt động đã tham gia">
                       <button
-                        onClick={() => handleViewActivities(student.id)}
+                        onClick={() => handleViewActivities(student.student_id)}
                         className="text-green-600 hover:text-green-800"
                       >
                         <ReceiptText size={20} />
@@ -182,7 +165,7 @@ export default function StudentTable({
                     </Tooltip>
                     <Tooltip title="Xóa sinh viên">
                       <button
-                        onClick={() => onDeleteStudent(student.id)}
+                        onClick={() => onDeleteStudent(student.student_id)}
                         className="text-red-600 hover:text-red-800"
                       >
                         <Trash2 size={20} />

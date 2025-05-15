@@ -66,6 +66,21 @@ export default function RoleManagement() {
     }
   };
 
+  const handleUpdateRole = async (roleId: number, updatedData: { name: string }) => {
+    try {
+      await api.put(`/api/roles/${roleId}`, updatedData);
+      setRoles(prev => prev.map(role => 
+        role.id === roleId ? { ...role, name: updatedData.name } : role
+      ));
+      
+      return true;
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Lỗi cập nhật vai trò.';
+      toast.error(msg);
+      return false;
+    }
+  };
+
   const handleCreatePermission = async (newPermission: { name: string; action: string }) => {
     try {
       const res = await api.post('/api/permissions', newPermission);
@@ -153,11 +168,12 @@ export default function RoleManagement() {
           roles={filteredRoles} 
           onDeleteRole={(id: number) => handleDeleteClick(id, 'role')} 
           onManagePermissions={(roleId: number) => handleManageRolePermissions(roleId)}
+          onUpdateRole={handleUpdateRole}
         />;
     }
   };
 
-  if (loading) return <Loading />;
+  if (loading && roles.length === 0 && permissions.length === 0) return <Loading />;
 
   return (
     <div>

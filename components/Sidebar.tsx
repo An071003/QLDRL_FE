@@ -15,6 +15,12 @@ export default function Sidebar(){
           <Link href="/uit/admin/students" className="block py-2 px-4 rounded hover:bg-gray-700">
             Student Management
           </Link>
+          <Link href="/uit/admin/faculties" className="block py-2 px-4 rounded hover:bg-gray-700">
+            Faculty Management
+          </Link>
+          <Link href="/uit/admin/classes" className="block py-2 px-4 rounded hover:bg-gray-700">
+            Class Management
+          </Link>
           <Link href="/uit/admin/criteria" className="block py-2 px-4 rounded hover:bg-gray-700">
             Criteria Management
           </Link>
@@ -24,8 +30,9 @@ export default function Sidebar(){
           <Link href="/uit/admin/campaigns" className="block py-2 px-4 rounded hover:bg-gray-700">
             Campaigns
           </Link>
-          <Link href="/uit/admin/reports" className="block py-2 px-4 rounded hover:bg-gray-700">
-            Reports
+
+          <Link href="/uit/admin/roles" className="block py-2 px-4 rounded hover:bg-gray-700">
+            Role Management
           </Link>
         </nav>
       </div>

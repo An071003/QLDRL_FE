@@ -23,26 +23,22 @@ export default function LecturerStudentTable({ students }: Props) {
           <tr>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">MSSV</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khoa</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khóa</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lớp</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số điện thoại</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tổng DRL</th>
             <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Hành động</th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {students.map((student) => (
-            <tr key={student.id}>
-              <td className="px-4 py-3 whitespace-nowrap">{student.id}</td>
-              <td className="px-4 py-3 whitespace-nowrap">{student.student_name}</td>
-              <td className="px-4 py-3 whitespace-nowrap">{student.faculty}</td>
-              <td className="px-4 py-3 whitespace-nowrap">{student.year}</td>
-              <td className="px-4 py-3 whitespace-nowrap">{student.class}</td>
-              <td className="px-4 py-3 whitespace-nowrap">{student.total_score}</td>
+            <tr key={student.student_id}>
+              <td className="px-4 py-3 whitespace-nowrap">{student.student_id}</td>
+              <td className="px-4 py-3 whitespace-nowrap">{student.student_name || "--"}</td>
+              <td className="px-4 py-3 whitespace-nowrap">{student.phone || "--"}</td>
+              <td className="px-4 py-3 whitespace-nowrap">{student.sumscore}</td>
               <td className="px-4 py-3 text-center whitespace-nowrap flex gap-2 justify-center">
                 <Tooltip title="Xem hoạt động đã tham gia">
                   <button
-                    onClick={() => handleViewActivities(student.id)}
+                    onClick={() => handleViewActivities(student.student_id)}
                     className="text-green-600 hover:text-green-800"
                   >
                     <ReceiptText size={20} />

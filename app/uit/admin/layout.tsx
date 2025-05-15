@@ -13,6 +13,13 @@ const Sidebar = () => {
           Student Management
         </Link>
 
+        <Link href="/uit/admin/faculties" className="block py-2 px-4 rounded hover:bg-gray-700">
+          Faculty Management
+        </Link>
+        
+        <Link href="/uit/admin/classes" className="block py-2 px-4 rounded hover:bg-gray-700">
+          Class Management
+        </Link>
         <Link href="/uit/admin/criterias" className="block py-2 px-4 rounded hover:bg-gray-700">
           Criteria Management
         </Link>
