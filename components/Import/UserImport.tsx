@@ -5,6 +5,7 @@ import { UploadCloud, Trash2, Check, X, RefreshCw, Plus, SquarePen } from "lucid
 import ExcelJS from 'exceljs';
 import { toast } from 'sonner';
 import { Tooltip } from 'antd';
+import { useData } from '@/lib/contexts/DataContext';
 
 export default function UserImport({
   onUsersImported,
@@ -15,6 +16,8 @@ export default function UserImport({
   setLoadingManager: (value: boolean) => void;
   roles: { id: number; name: string }[];
 }) {
+  const { faculties, classes, getFilteredClasses } = useData();
+  
   const [loading, setLoading] = useState(false);
   const [previewUsers, setPreviewUsers] = useState<any[]>([]);
   const [showErrors, setShowErrors] = useState(false);
@@ -34,7 +37,9 @@ export default function UserImport({
     return {
       emailError: !isValidEmail(user.email),
       roleError: !user.role || !roles.some(r => r.name === user.role),
-      nameError: !user.user_name || user.user_name.trim() === ''
+      nameError: !user.user_name || user.user_name.trim() === '',
+      facultyIdError: user.role === 'student' && !user.faculty_id,
+      classIdError: user.role === 'student' && !user.class_id
     };
   };
 
@@ -69,16 +74,33 @@ export default function UserImport({
         const name = row.getCell(1).value?.toString().trim() || '';
         const email = row.getCell(2).value?.toString().trim() || '';
         const rawRole = row.getCell(3).value?.toString().trim().toLowerCase() || '';
+        const facultyAbbr = row.getCell(4)?.value?.toString().trim() || '';
+        const className = row.getCell(5)?.value?.toString().trim() || '';
 
         const matchedRole = roles.find(r => r.name.toLowerCase() === rawRole);
         const roleName = matchedRole ? matchedRole.name : '';
         const roleId = matchedRole?.id || null;
+
+        // Find faculty by abbreviation
+        const faculty = faculties.find(f => f.faculty_abbr.toLowerCase() === facultyAbbr.toLowerCase());
+        const faculty_id = faculty?.id || null;
+
+        // Find class by name and faculty_id
+        const classMatch = classes.find(c => 
+          c.name.toLowerCase() === className.toLowerCase() && 
+          (!faculty_id || c.faculty_id === faculty_id)
+        );
+        const class_id = classMatch?.id || null;
 
         users.push({
           user_name: name,
           email,
           role: roleName,
           role_id: roleId,
+          faculty_id,
+          class_id,
+          faculty_name: faculty?.name || '',
+          class_name: classMatch?.name || '',
           row_number: rowNumber
         });
       });
@@ -131,6 +153,8 @@ export default function UserImport({
         email: '',
         role: '',
         role_id: null,
+        faculty_id: null,
+        class_id: null,
         row_number: prev.length > 0 ? Math.max(...prev.map(u => u.row_number || 0)) + 1 : 2
       }
     ]);
@@ -142,15 +166,22 @@ export default function UserImport({
   const handleUserChange = (index: number, key: string, value: string) => {
     setPreviewUsers(prev => {
       const updated = [...prev];
-      updated[index][key] = value;
-
-      if (key === 'email') {
-        // keep live update
+      
+      // Convert faculty_id and class_id to numbers when storing
+      if (key === 'faculty_id' || key === 'class_id') {
+        updated[index][key] = value ? Number(value) : null;
+      } else {
+        updated[index][key] = value;
       }
 
       if (key === 'role') {
         const matched = roles.find(r => r.name === value);
         updated[index].role_id = matched?.id || null;
+      }
+
+      // Handle class filtering based on faculty
+      if (key === 'faculty_id') {
+        updated[index].class_id = null; // Reset class when faculty changes
       }
 
       return updated;
@@ -186,13 +217,16 @@ export default function UserImport({
     if (editingIndex === null) return;
 
     const user = previewUsers[editingIndex];
-    const { emailError, roleError, nameError } = validateUser(user);
+    const { emailError, roleError, nameError, facultyIdError, classIdError } = validateUser(user);
 
-    if (emailError || roleError || nameError) {
+    if (emailError || roleError || nameError || 
+        (user.role === 'student' && (facultyIdError || classIdError))) {
       setEditErrors({
         email: emailError,
         role: roleError,
-        user_name: nameError
+        user_name: nameError,
+        faculty_id: facultyIdError,
+        class_id: classIdError
       });
       return;
     }
@@ -206,8 +240,9 @@ export default function UserImport({
     setShowErrors(true);
 
     const invalidUsers = previewUsers.filter(user => {
-      const { emailError, roleError, nameError } = validateUser(user);
-      return emailError || roleError || nameError;
+      const { emailError, roleError, nameError, facultyIdError, classIdError } = validateUser(user);
+      return emailError || roleError || nameError || 
+             (user.role === 'student' && (facultyIdError || classIdError));
     });
 
     if (invalidUsers.length > 0) {
@@ -217,10 +252,12 @@ export default function UserImport({
     }
 
     setLoadingManager(true);
-    const usersToImport = previewUsers.map(({ user_name, email, role_id }) => ({
+    const usersToImport = previewUsers.map(({ user_name, email, role_id, faculty_id, class_id }) => ({
       user_name,
       email,
       role_id,
+      faculty_id,
+      class_id
     }));
 
     try {
@@ -318,13 +355,16 @@ export default function UserImport({
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vai trò</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khoa</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lớp</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {previewUsers.map((user, index) => {
-                const { emailError, roleError, nameError } = validateUser(user);
+                const { emailError, roleError, nameError, facultyIdError, classIdError } = validateUser(user);
                 const isEditing = editingIndex === index;
+                const isStudent = user.role === 'student';
 
                 return (
                   <tr key={index} className="border-b hover:bg-gray-50">
@@ -386,13 +426,68 @@ export default function UserImport({
                         <span className={roleError && showErrors ? "text-red-700 font-semibold border-b-2 border-red-500" : ""}>
                           {user.role ? (
                             <span
-                              className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${roleColors[user.role.toLowerCase()] || 'bg-gray-100 text-gray-800'
-                                }`}
+                              className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${roleColors[user.role.toLowerCase()] || 'bg-gray-100 text-gray-800'}`}
                             >
                               {user.role}
                             </span>
                           ) : "-"}
                         </span>
+                      )}
+                    </td>
+                    <td className={`px-6 py-4 whitespace-nowrap ${isStudent && showErrors && facultyIdError ? 'bg-red-100' : ''}`}>
+                      {isEditing && isStudent ? (
+                        <>
+                          <select
+                            value={user.faculty_id || ""}
+                            onChange={(e) => handleUserChange(index, 'faculty_id', e.target.value)}
+                            className={`w-full border rounded px-2 py-1 ${isStudent && ((showErrors && facultyIdError) || editErrors.faculty_id) ? 'border-red-600 bg-red-50' : ''}`}
+                          >
+                            <option value="">-- Chọn khoa --</option>
+                            {faculties.map((faculty) => (
+                              <option key={faculty.id} value={faculty.id}>
+                                {faculty.name} ({faculty.faculty_abbr})
+                              </option>
+                            ))}
+                          </select>
+                          {isStudent && ((showErrors && facultyIdError) || editErrors.faculty_id) && (
+                            <p className="text-xs text-red-600 font-medium mt-1">Vui lòng chọn khoa</p>
+                          )}
+                        </>
+                      ) : (
+                        isStudent ? (
+                          <span className={facultyIdError && showErrors ? "text-red-700 font-semibold border-b-2 border-red-500" : ""}>
+                            {faculties.find(f => f.id === user.faculty_id)?.faculty_abbr || "-"}
+                          </span>
+                        ) : "-"
+                      )}
+                    </td>
+                    <td className={`px-6 py-4 whitespace-nowrap ${isStudent && showErrors && classIdError ? 'bg-red-100' : ''}`}>
+                      {isEditing && isStudent ? (
+                        <>
+                          <select
+                            name="class_id"
+                            value={user.class_id || ""}
+                            onChange={(e) => handleUserChange(index, 'class_id', e.target.value)}
+                            disabled={!user.faculty_id}
+                            className={`w-full border rounded px-2 py-1 ${isStudent && ((showErrors && classIdError) || editErrors.class_id) ? 'border-red-600 bg-red-50' : ''}`}
+                          >
+                            <option value="">-- Chọn lớp --</option>
+                            {getFilteredClasses(Number(user.faculty_id)).map((cls) => (
+                              <option key={cls.id} value={cls.id}>
+                                {cls.name}
+                              </option>
+                            ))}
+                          </select>
+                          {isStudent && ((showErrors && classIdError) || editErrors.class_id) && (
+                            <p className="text-xs text-red-600 font-medium mt-1">Vui lòng chọn lớp</p>
+                          )}
+                        </>
+                      ) : (
+                        isStudent ? (
+                          <span className={classIdError && showErrors ? "text-red-700 font-semibold border-b-2 border-red-500" : ""}>
+                            {classes.find(c => c.id === user.class_id)?.name || "-"}
+                          </span>
+                        ) : "-"
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

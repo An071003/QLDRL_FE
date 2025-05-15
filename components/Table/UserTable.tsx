@@ -35,6 +35,12 @@ export default function UserTable({ users, onDeleteUser }: UserTableProps) {
               Vai trò
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Khoa
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Lớp
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Ngày tạo
             </th>
             <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -43,32 +49,41 @@ export default function UserTable({ users, onDeleteUser }: UserTableProps) {
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {users.map((user, index) => (
-            <tr key={user.id}>
-              <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
-              <td className="px-6 py-4 whitespace-nowrap">{user.user_name}</td>
-              <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span
-                  className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                  ${roleColors[(user.Role?.name?.toString() ?? 'student')]}`}
-                >
-                  {user.Role?.name}
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">{format(new Date(user.created_at), 'dd/MM/yyyy')}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                <Tooltip title="Xóa người dùng" placement="top">
-                  <button
-                    onClick={() => onDeleteUser(user.id)}
-                    className="text-red-600 hover:text-red-900 ml-2"
+          {users.map((user, index) => {
+            const isStudent = user.Role?.name === 'student';
+            return (
+              <tr key={user.id}>
+                <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{user.user_name}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span
+                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                    ${roleColors[(user.Role?.name?.toString() ?? 'student')]}`}
                   >
-                    <Trash size={20} />
-                  </button>
-                </Tooltip>
-              </td>
-            </tr>
-          ))}
+                    {user.Role?.name}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {isStudent && user.Faculty ? user.Faculty.faculty_abbr : "-"}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {isStudent && user.Class ? user.Class.name : "-"}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">{format(new Date(user.created_at), 'dd/MM/yyyy')}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                  <Tooltip title="Xóa người dùng" placement="top">
+                    <button
+                      onClick={() => onDeleteUser(user.id)}
+                      className="text-red-600 hover:text-red-900 ml-2"
+                    >
+                      <Trash size={20} />
+                    </button>
+                  </Tooltip>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

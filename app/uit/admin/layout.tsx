@@ -1,4 +1,7 @@
+'use client';
+
 import Link from "next/link";
+import { DataProvider } from '@/lib/contexts/DataContext';
 
 const Sidebar = () => {
   return (
@@ -51,11 +54,13 @@ const Sidebar = () => {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div>
-      <Sidebar />
-      <main className="ml-64 p-4">
-        {children}
-      </main>
-    </div>
+    <DataProvider>
+      <div>
+        <Sidebar />
+        <main className="ml-64 p-4">
+          {children}
+        </main>
+      </div>
+    </DataProvider>
   );
 }

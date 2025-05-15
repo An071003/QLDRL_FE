@@ -3,9 +3,11 @@
 import { Tooltip } from "antd";
 import { ReceiptText, Trash2, SquarePen } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Student } from "@/types/student";
 import { toast } from "sonner";
+import api from "@/lib/api";
+import { useData } from '@/lib/contexts/DataContext';
 
 interface Props {
   students: Student[];
@@ -19,10 +21,24 @@ export default function StudentTable({
   onUpdateStudent,
 }: Props) {
   const router = useRouter();
+  const { faculties, classes, getFilteredClasses } = useData();
+  
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editStatus, setEditStatus] = useState<'none' | 'disciplined'>('none');
+  const [editFacultyId, setEditFacultyId] = useState<string>("");
+  const [editClassId, setEditClassId] = useState<string>("");
+  
+  const [filteredClasses, setFilteredClasses] = useState<Array<{id: number, name: string, faculty_id: number}>>([]);
+
+  useEffect(() => {
+    if (editFacultyId) {
+      setFilteredClasses(getFilteredClasses(parseInt(editFacultyId)));
+    } else {
+      setFilteredClasses([]);
+    }
+  }, [editFacultyId, getFilteredClasses]);
 
   const handleViewActivities = (id: string) => {
     router.push(`/uit/admin/students/${id}`);
@@ -33,6 +49,8 @@ export default function StudentTable({
     setEditName(student.student_name || "");
     setEditPhone(student.phone || "");
     setEditStatus(student.status);
+    setEditFacultyId(student.faculty_id ? student.faculty_id.toString() : "");
+    setEditClassId(student.class_id ? student.class_id.toString() : "");
   };
 
   const handleCancel = () => {
@@ -54,6 +72,8 @@ export default function StudentTable({
       student_name: editName,
       phone: editPhone,
       status: editStatus,
+      faculty_id: editFacultyId ? parseInt(editFacultyId) : null,
+      class_id: editClassId ? parseInt(editClassId) : null
     });
     setEditingId(null);
   };
@@ -66,6 +86,8 @@ export default function StudentTable({
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">STT</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">MSSV</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khoa</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lớp</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số điện thoại</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tổng DRL</th>
@@ -90,12 +112,48 @@ export default function StudentTable({
               </td>
               <td className="px-4 py-3 whitespace-nowrap">
                 {editingId === student.student_id ? (
+                  <select
+                    className="border px-2 py-1 rounded w-full"
+                    value={editFacultyId}
+                    onChange={(e) => setEditFacultyId(e.target.value)}
+                  >
+                    <option value="">Chọn khoa</option>
+                    {faculties.map(faculty => (
+                      <option key={faculty.id} value={faculty.id}>
+                        {faculty.faculty_abbr}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  student.Faculty ? student.Faculty.faculty_abbr : "--"
+                )}
+              </td>
+              <td className="px-4 py-3 whitespace-nowrap">
+                {editingId === student.student_id ? (
+                  <select
+                    className="border px-2 py-1 rounded w-full"
+                    value={editClassId}
+                    onChange={(e) => setEditClassId(e.target.value)}
+                    disabled={!editFacultyId}
+                  >
+                    <option value="">Chọn lớp</option>
+                    {filteredClasses.map(cls => (
+                      <option key={cls.id} value={cls.id}>
+                        {cls.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  student.Class ? student.Class.name : "--"
+                )}
+              </td>
+              <td className="px-4 py-3 whitespace-nowrap">
+                {editingId === student.student_id ? (
                   <input
                     className="border px-2 py-1 rounded w-full"
                     value={editPhone}
                     onChange={(e) => {
                       const value = e.target.value;
-                      // Chỉ cho phép nhập số và tối đa 10 ký tự
                       if (/^\d{0,10}$/.test(value)) {
                         setEditPhone(value);
                       }

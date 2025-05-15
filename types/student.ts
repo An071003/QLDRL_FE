@@ -9,4 +9,15 @@ export interface Student {
     classification: string | null;
     status: 'none' | 'disciplined';
     sumscore: number;
+    Faculty?: {
+      id: number;
+      faculty_abbr: string;
+      name: string;
+    };
+    Class?: {
+      id: number;
+      name: string;
+      faculty_id: number;
+      cohort: number;
+    };
   }
