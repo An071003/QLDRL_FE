@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { Activity } from "@/types/activity";
+import { Campaign } from "@/types/campaign";
 import ActivityForm from "@/components/form/ActivityForm";
 import ActivityImport from "@/components/Import/ActivityImport";
 import ActivityTable from "@/components/Table/ActivityTable";
@@ -18,38 +19,79 @@ export default function ActivityManagement() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSemester, setSelectedSemester] = useState<string>("all");
-  const semesterOptions = [...new Set(activities.map(a => `${a.semester_name} (${a.start_year}-${a.end_year})|${a.semester}`))];
+  
+  // Lấy danh sách campaign_id đang được sử dụng trong activities
+  const usedCampaignIds = Array.from(new Set(activities.map(a => a.campaign_id)));
+
+  // Tạo options cho bộ lọc học kỳ từ các campaign có activity
+  const semesterOptions = (() => {
+    const options: {label: string, value: string}[] = [];
+    const added = new Set<string>();
+    
+    campaigns.filter(campaign => usedCampaignIds.includes(campaign.id)).forEach(campaign => {
+      if (campaign.semester_no && campaign.academic_year) {
+        const nextYear = campaign.academic_year + 1;
+        const semesterLabel = campaign.semester_no === 3 
+          ? `Học kỳ Hè (${campaign.academic_year} - ${nextYear})` 
+          : `Học kỳ ${campaign.semester_no} (${campaign.academic_year} - ${nextYear})`;
+        const value = `${campaign.semester_no}_${campaign.academic_year}`;
+        if (!added.has(value)) {
+          options.push({ label: semesterLabel, value });
+          added.add(value);
+        }
+      }
+    });
+    return options;
+  })();
+
   const itemsPerPage = 20;
   const tableRef = useRef<HTMLDivElement>(null);
 
-  const fetchActivities = async () => {
+  // Hàm chung để tải dữ liệu
+  const loadData = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/api/activities");
-      setActivities(res.data.data.activities);
-    } catch (err) {
-      console.error(err);
-      toast.error("Không thể tải danh sách hoạt động ❌");
+      // Tải campaigns trước
+      const campaignsRes = await api.get("/api/campaigns");
+      const campaignsData = campaignsRes.data.data.campaigns;
+      setCampaigns(campaignsData);
+      
+      // Sau đó tải activities và kết hợp với thông tin campaigns
+      const activitiesRes = await api.get("/api/activities");
+      let activitiesData;
+      
+      if (activitiesRes.data.data.activities) {
+        activitiesData = activitiesRes.data.data.activities;
+      } else {
+        activitiesData = activitiesRes.data.data;
+      }
+      
+      // Thêm thông tin campaign_name vào activities
+      activitiesData = activitiesData.map((activity: Partial<Activity>) => {
+        const campaign = campaignsData.find((c: Campaign) => c.id === activity.campaign_id);
+        return {
+          ...activity,
+          campaign_name: campaign ? campaign.name : "Không xác định",
+          // Thêm thông tin học kỳ từ campaign
+          semester_no: campaign?.semester_no,
+          academic_year: campaign?.academic_year
+        };
+      });
+      
+      setActivities(activitiesData);
+    } catch (error) {
+      console.error("Lỗi khi tải dữ liệu:", error);
+      toast.error("Không thể tải dữ liệu. Vui lòng thử lại sau.");
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchCampaigns = async () => {
-    try {
-      const res = await api.get("/api/campaigns/semester");
-      setCampaigns(res.data.data.campaigns);
-    } catch (err) {
-      toast.error("Không thể tải danh sách phong trào.");
-    }
-  };
-
   useEffect(() => {
-    fetchActivities();
-    fetchCampaigns();
+    loadData();
   }, []);
 
   const handleCreateActivity = async (newActivity: {
@@ -58,19 +100,34 @@ export default function ActivityManagement() {
     campaign_id: number;
     is_negative: boolean;
     negativescore: number;
+    max_participants?: number;
+    registration_start?: string;
+    registration_end?: string;
   }) => {
     const campaign = campaigns.find(c => c.id === newActivity.campaign_id);
-    if (campaign && newActivity.point > campaign.max_score) {
+    if (campaign && newActivity.point > (campaign?.max_score || 0)) {
       toast.error(`Điểm hoạt động không được lớn hơn điểm tối đa (${campaign.max_score}) của phong trào.`);
       return { success: false };
     }
+    
+    // Đảm bảo các trường bắt buộc có giá trị
+    if (!newActivity.registration_start || !newActivity.registration_end) {
+      toast.error("Ngày bắt đầu và kết thúc đăng ký là bắt buộc.");
+      return { success: false };
+    }
+    
+    if (newActivity.max_participants === undefined) {
+      newActivity.max_participants = 0; // Mặc định không giới hạn
+    }
+    
     try {
       await api.post("/api/activities", newActivity);
-      await fetchActivities();
+      await loadData();
       setActiveComponent("table");
       toast.success("Thêm hoạt động thành công 🎉");
       return { success: true };
-    } catch (err: any) {
+    } catch (error) {
+      console.error(error);
       toast.error("Thêm hoạt động thất bại ❌");
       return { success: false };
     }
@@ -85,9 +142,10 @@ export default function ActivityManagement() {
     if (selectedId === null) return;
     try {
       await api.delete(`/api/activities/${selectedId}`);
-      await fetchActivities();
+      await loadData();
       toast.success("Xóa hoạt động thành công ✅");
-    } catch (err: any) {
+    } catch (error) {
+      console.error(error);
       toast.error("Xóa hoạt động thất bại ❌");
     } finally {
       setModalOpen(false);
@@ -103,18 +161,29 @@ export default function ActivityManagement() {
       campaign_id: number;
       negativescore?: number;
       status: "ongoing" | "expired";
+      max_participants?: number;
+      registration_start?: string;
+      registration_end?: string;
     }
   ) => {
     const campaign = campaigns.find(c => c.id === updatedActivity.campaign_id);
-    if (campaign && updatedActivity.point > campaign.max_score) {
+    if (campaign && updatedActivity.point > (campaign?.max_score || 0)) {
       toast.error(`Điểm hoạt động không được lớn hơn điểm tối đa (${campaign.max_score}) của phong trào.`);
       return;
     }
+
+    // Kiểm tra các trường bắt buộc
+    if (!updatedActivity.registration_start || !updatedActivity.registration_end) {
+      toast.error("Ngày bắt đầu và kết thúc đăng ký là bắt buộc.");
+      return;
+    }
+    
     try {
       await api.put(`/api/activities/${id}`, updatedActivity);
-      await fetchActivities();
+      await loadData();
       toast.success("Cập nhật hoạt động thành công ✨");
-    } catch (err: any) {
+    } catch (error) {
+      console.error(error);
       toast.error("Cập nhật hoạt động thất bại ❌");
     }
   };
@@ -128,11 +197,12 @@ export default function ActivityManagement() {
   }[]) => {
     try {
       await api.post("/api/activities/import", importedActivities);
-      await fetchActivities();
+      await loadData();
       setActiveComponent("table");
       toast.success("Import hoạt động thành công 🚀");
       return { success: true };
-    } catch (err: any) {
+    } catch (error) {
+      console.error(error);
       toast.error("Import hoạt động thất bại ❌");
       return { success: false };
     }
@@ -144,9 +214,18 @@ export default function ActivityManagement() {
 
   const filteredActivities = activities
     .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()))
-    .filter((activity) =>
-      selectedSemester === "all" ? true : activity.semester.toString() === selectedSemester
-    )
+    .filter((activity) => {
+      if (selectedSemester === "all") return true;
+      
+      // Tìm campaign tương ứng với hoạt động
+      const campaign = campaigns.find(c => c.id === activity.campaign_id);
+      if (!campaign) return false;
+      
+      // Kiểm tra xem campaign có match với semester đã chọn không
+      const [semester_no, academic_year] = selectedSemester.split("_");
+      return campaign.semester_no?.toString() === semester_no && 
+             campaign.academic_year?.toString() === academic_year;
+    })
     .sort((a, b) => {
       if (sortOrder === "asc") {
         return a.point - b.point;
@@ -194,14 +273,11 @@ export default function ActivityManagement() {
                 className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/4"
               >
                 <option value="all">Tất cả học kỳ</option>
-                {semesterOptions.map((option) => {
-                  const [label, id] = option.split("|");
-                  return (
-                    <option key={id} value={id}>
-                      {label}
-                    </option>
-                  );
-                })}
+                {semesterOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
               <div className="flex justify-end gap-4">
                 <button

@@ -10,10 +10,12 @@ interface Campaign {
   id: number;
   name: string;
   max_score: number;
-  semester_name: string;
-  start_year: number;
-  end_year: number;
-  semester: number;
+  semester_no?: number;
+  academic_year?: number;
+  semester_name?: string;
+  start_year?: number;
+  end_year?: number;
+  semester?: number;
 }
 
 export default function LecturerCampaignManagement() {
@@ -48,17 +50,23 @@ export default function LecturerCampaignManagement() {
     setSortOrder(prev => (prev === "asc" ? "desc" : "asc"));
   };
 
-  const semesterOptions = [...new Set(
-    campaigns.map(c => `${c.semester_name} (${c.start_year}-${c.end_year})|${c.semester}`)
-  )];
-
   const filteredCampaigns = campaigns
     .filter((campaign) =>
       campaign.name.toLowerCase().includes(searchTerm.toLowerCase())
     )
-    .filter((campaign) =>
-      selectedSemester === "all" ? true : campaign.semester.toString() === selectedSemester
-    )
+    .filter((campaign) => {
+      if (selectedSemester === "all") return true;
+      
+      // Kiểm tra xem campaign có match với semester đã chọn không
+      if (selectedSemester.includes("_")) {
+        const [semester_no, academic_year] = selectedSemester.split("_");
+        return campaign.semester_no?.toString() === semester_no && 
+               campaign.academic_year?.toString() === academic_year;
+      } else {
+        // Hỗ trợ tương thích với filter theo semester cũ
+        return campaign.semester?.toString() === selectedSemester;
+      }
+    })
     .sort((a, b) => {
       if (sortOrder === "asc") {
         return a.max_score - b.max_score;
@@ -76,6 +84,35 @@ export default function LecturerCampaignManagement() {
     setCurrentPage(page);
     tableRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  // Tạo options cho bộ lọc học kỳ từ các campaign đang được lọc và hiển thị
+  const semesterOptions = (() => {
+    const options: {label: string, value: string}[] = [];
+    const added = new Set<string>();
+    filteredCampaigns.forEach(campaign => {
+      if (campaign.semester_no && campaign.academic_year) {
+        const nextYear = campaign.academic_year + 1;
+        const semesterLabel = campaign.semester_no === 3 
+          ? `Học kỳ Hè (${campaign.academic_year} - ${nextYear})` 
+          : `Học kỳ ${campaign.semester_no} (${campaign.academic_year} - ${nextYear})`;
+        const value = `${campaign.semester_no}_${campaign.academic_year}`;
+        if (!added.has(value)) {
+          options.push({ label: semesterLabel, value });
+          added.add(value);
+        }
+      } else if (campaign.semester_name && campaign.semester !== undefined) {
+        const value = campaign.semester.toString();
+        if (!added.has(value)) {
+          options.push({
+            label: `${campaign.semester_name} (${campaign.start_year}-${campaign.end_year})`,
+            value: value
+          });
+          added.add(value);
+        }
+      }
+    });
+    return options;
+  })();
 
   if (loading) {
     return (
@@ -107,14 +144,11 @@ export default function LecturerCampaignManagement() {
           className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/4"
         >
           <option value="all">Tất cả học kỳ</option>
-          {semesterOptions.map((option) => {
-            const [label, id] = option.split("|");
-            return (
-              <option key={id} value={id}>
-                {label}
-              </option>
-            );
-          })}
+          {semesterOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
         </select>
       </div>
 

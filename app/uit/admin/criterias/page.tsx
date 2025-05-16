@@ -9,6 +9,7 @@ import CriteriaImport from "@/components/Import/CriteriaImport";
 import CriteriaTable from "@/components/Table/CriteriaTable";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import Loading from "@/components/Loading";
+import axios from "axios";
 
 export default function CriteriaManagement() {
   const [criterias, setCriterias] = useState<Criteria[]>([]);
@@ -27,7 +28,7 @@ export default function CriteriaManagement() {
     setLoading(true);
     try {
       const res = await api.get("/api/criteria");
-      setCriterias(res.data.data.criterias);
+      setCriterias(res.data.data.criteria);
     } catch (err) {
       console.error(err);
       toast.error("Không thể tải danh sách tiêu chí ❌");
@@ -48,7 +49,8 @@ export default function CriteriaManagement() {
       toast.success("Thêm tiêu chí thành công 🎉");
 
       return { success: true };
-    } catch (err: any) {
+    } catch (error: unknown) {
+      console.error(error);
       toast.error("Thêm tiêu chí thất bại ❌");
       return { success: false };
     }
@@ -65,7 +67,8 @@ export default function CriteriaManagement() {
       await api.delete(`/api/criteria/${selectedId}`);
       await fetchCriterias();
       toast.success("Xóa tiêu chí thành công ✅");
-    } catch (err: any) {
+    } catch (error: unknown) {
+      console.error(error);
       toast.error("Xóa tiêu chí thất bại ❌");
     } finally {
       setModalOpen(false);
@@ -78,20 +81,39 @@ export default function CriteriaManagement() {
       await api.put(`/api/criteria/${id}`, updatedCriteria);
       await fetchCriterias();
       toast.success("Cập nhật tiêu chí thành công ✨");
-    } catch (err: any) {
+    } catch (error: unknown) {
+      console.error(error);
       toast.error("Cập nhật tiêu chí thất bại ❌");
     }
   };
 
-  const handleCriteriasImported = async (importedCriterias: { name: string; max_score: number }[]) => {
+  const handleCriteriasImported = async (importedCriterias: { 
+    name: string; 
+    max_score: number;
+    created_by: number; 
+  }[]) => {
     try {
-      await api.post("/api/criteria/import", importedCriterias);
+      console.log("Attempting to import criteria:", importedCriterias);
+      const response = await api.post("/api/criteria/import", importedCriterias);
+      console.log("Import response:", response.data);
+      
       await fetchCriterias();
       setActiveComponent("table");
-      toast.success("Import tiêu chí thành công 🚀");
+      
+      if (response.data.status === "partial") {
+        toast.success(`${response.data.message}`);
+        console.log("Failed imports:", response.data.data.failed);
+      } else {
+        toast.success("Import tiêu chí thành công 🚀");
+      }
       return { success: true };
-    } catch (err: any) {
-      toast.error("Import tiêu chí thất bại ❌");
+    } catch (error: unknown) {
+      console.error("Import error:", error);
+      if (axios.isAxiosError(error) && error.response) {
+        toast.error(`Lỗi: ${error.response.data.message || "Import thất bại"} ❌`);
+      } else {
+        toast.error("Import tiêu chí thất bại ❌");
+      }
       return { success: false };
     }
   };
@@ -101,16 +123,18 @@ export default function CriteriaManagement() {
   };
 
   const filteredCriterias = criterias
-    .filter((criteria) =>
-      criteria.name.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      if (sortOrder === "asc") {
-        return a.max_score - b.max_score;
-      } else {
-        return b.max_score - a.max_score;
-      }
-    });
+    ? criterias
+        .filter((criteria) =>
+          criteria.name.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .sort((a, b) => {
+          if (sortOrder === "asc") {
+            return a.max_score - b.max_score;
+          } else {
+            return b.max_score - a.max_score;
+          }
+        })
+    : [];
 
   const totalPages = Math.ceil(filteredCriterias.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -143,19 +167,18 @@ export default function CriteriaManagement() {
                 className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/3"
               />
               <div className="flex justify-end gap-4">
-
                 <button
                   onClick={() => setActiveComponent("form")}
                   className="px-4 py-2 cursor-pointer bg-green-600 text-white rounded hover:bg-green-700"
                 >
                   + Thêm tiêu chí
                 </button>
-                {/* <button
+                <button
                   onClick={() => setActiveComponent("import")}
                   className="px-4 py-2 cursor-pointer bg-blue-600 text-white rounded hover:bg-blue-700"
                 >
                   + Import tiêu chí
-                </button> */}
+                </button>
               </div>
             </div>
 

@@ -3,12 +3,28 @@
 import { Campaign } from "@/types/campaign";
 
 interface CampaignTableProps {
-  campaigns: any[];
+  campaigns: Campaign[];
   onSortMaxScore: () => void;
   sortOrder: "asc" | "desc";
 }
 
 export default function LecturerCampaignTable({ campaigns, onSortMaxScore, sortOrder }: CampaignTableProps) {
+  // Hàm để hiển thị tên học kỳ dựa trên semester_no và academic_year
+  const getSemesterDisplay = (campaign: Campaign) => {
+    if (campaign.semester_no && campaign.academic_year) {
+      return campaign.semester_no === 3 
+        ? `Học kỳ Hè (${campaign.academic_year})` 
+        : `Học kỳ ${campaign.semester_no} (${campaign.academic_year})`;
+    } 
+    
+    // Hỗ trợ tương thích với dữ liệu cũ
+    if (campaign.semester_name && campaign.start_year && campaign.end_year) {
+      return `${campaign.semester_name} (${campaign.start_year}-${campaign.end_year})`;
+    }
+    
+    return "Không xác định";
+  };
+  
   return (
     <div className="bg-white rounded-lg shadow overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200">
@@ -39,10 +55,10 @@ export default function LecturerCampaignTable({ campaigns, onSortMaxScore, sortO
                 {campaign.criteria_name}
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
-                {`${campaign.semester_name} (${campaign.start_year}-${campaign.end_year})`}
+                {getSemesterDisplay(campaign)}
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
-                {campaign.campaign_max_score}
+                {campaign.campaign_max_score || campaign.max_score}
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 {campaign.is_negative ? (

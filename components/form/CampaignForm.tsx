@@ -7,22 +7,28 @@ import { toast } from "sonner";
 
 interface CampaignFormProps {
   criteria: Criteria[];
-  onCampaignCreated: (campaign: { name: string; max_score: number; criteria_id: number; is_negative: boolean; negativescore: number }) => Promise<{ success: boolean }>;
+  onCampaignCreated: (campaign: { 
+    name: string; 
+    max_score: number; 
+    criteria_id: number; 
+    semester_no: number; 
+    academic_year: number 
+  }) => Promise<{ success: boolean }>;
 }
 
 export default function CampaignForm({ criteria, onCampaignCreated }: CampaignFormProps) {
   const [name, setName] = useState("");
   const [maxScore, setMaxScore] = useState(0);
   const [criteriaId, setCriteriaId] = useState<number | null>(null);
-  const [isNegative, setIsNegative] = useState(false);
-  const [negativeScore, setNegativeScore] = useState(0);
+  const [semesterNo, setSemesterNo] = useState<number>(1);
+  const [academicYear, setAcademicYear] = useState<number>(new Date().getFullYear());
   const [criterias, setCriterias] = useState<Criteria[]>([]);
 
   useEffect(() => {
     const fetchCriterias = async () => {
       try {
         const res = await api.get("/api/criteria");
-        setCriterias(res.data.data.criterias);
+        setCriterias(res.data.data.criteria);
       } catch (err) {
         toast.error("Không thể tải danh sách tiêu chí.");
       }
@@ -32,7 +38,7 @@ export default function CampaignForm({ criteria, onCampaignCreated }: CampaignFo
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !criteriaId) {
+    if (!name.trim() || !criteriaId || !semesterNo || !academicYear) {
       toast.error("Vui lòng điền đầy đủ thông tin.");
       return;
     }
@@ -51,15 +57,15 @@ export default function CampaignForm({ criteria, onCampaignCreated }: CampaignFo
       name,
       max_score: maxScore,
       criteria_id: criteriaId,
-      is_negative: isNegative,
-      negativescore: isNegative ? negativeScore : 0,
+      semester_no: semesterNo,
+      academic_year: academicYear
     });
     if (result.success) {
       setName("");
       setMaxScore(0);
       setCriteriaId(null);
-      setIsNegative(false);
-      setNegativeScore(0);
+      setSemesterNo(1);
+      setAcademicYear(new Date().getFullYear());
     }
   };
 
@@ -105,30 +111,32 @@ export default function CampaignForm({ criteria, onCampaignCreated }: CampaignFo
       </div>
 
       <div>
-        <label className="block mb-1">Có phải điểm trừ?</label>
+        <label className="block mb-1">Học kỳ:</label>
         <select
-          value={isNegative ? "true" : "false"}
-          onChange={(e) => setIsNegative(e.target.value === "true")}
+          value={semesterNo}
+          onChange={(e) => setSemesterNo(Number(e.target.value))}
           className="w-full border px-4 py-2 rounded-md"
+          required
         >
-          <option value="false">Không</option>
-          <option value="true">Có</option>
+          <option value={1}>Học kỳ 1</option>
+          <option value={2}>Học kỳ 2</option>
+          <option value={3}>Học kỳ hè</option>
         </select>
       </div>
 
-      {isNegative && (
-        <div>
-          <label className="block mb-1">Điểm trừ:</label>
-          <input
-            type="number"
-            value={negativeScore}
-            onChange={(e) => setNegativeScore(Number(e.target.value))}
-            className="w-full border px-4 py-2 rounded-md"
-            min={0}
-            required
-          />
-        </div>
-      )}
+      <div>
+        <label className="block mb-1">Năm học:</label>
+        <input
+          type="number"
+          value={academicYear}
+          onChange={(e) => setAcademicYear(Number(e.target.value))}
+          className="w-full border px-4 py-2 rounded-md"
+          min={2000}
+          max={2100}
+          required
+        />
+      </div>
+
       <div className="flex justify-end mt-4">
         <button
           type="submit"

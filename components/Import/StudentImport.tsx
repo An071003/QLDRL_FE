@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from 'react';
-import { UploadCloud, Trash2, Check, X, RefreshCw, Plus, SquarePen } from "lucide-react";
+import { UploadCloud, Trash2, Check, X, RefreshCw, Plus, SquarePen, Download } from "lucide-react";
 import ExcelJS from 'exceljs';
 import { toast } from 'sonner';
 import { Tooltip } from 'antd';
@@ -288,6 +288,67 @@ export default function StudentImport({
     }
   };
 
+  // Function to generate and download a sample Excel template
+  const downloadSampleTemplate = async () => {
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Student Import Template');
+      
+      // Add headers
+      worksheet.columns = [
+        { header: 'MSSV', key: 'student_id', width: 15 },
+        { header: 'Họ và tên', key: 'student_name', width: 30 },
+        { header: 'Mã khoa', key: 'faculty_abbr', width: 15 },
+        { header: 'Tên lớp', key: 'class_name', width: 20 },
+        { header: 'Email', key: 'email', width: 30 },
+        { header: 'Số điện thoại', key: 'phone', width: 15 },
+        { header: 'Ngày sinh (DD/MM/YYYY)', key: 'birthdate', width: 25 },
+      ];
+      
+      // Add some sample data
+      worksheet.addRow({
+        student_id: '20050001',
+        student_name: 'Nguyễn Văn A',
+        faculty_abbr: 'CNTT',
+        class_name: 'CNTT01',
+        email: 'nguyenvana@example.com',
+        phone: '0123456789',
+        birthdate: new Date(2000, 0, 1).toLocaleDateString(),
+      });
+      
+      worksheet.addRow({
+        student_id: '20050002',
+        student_name: 'Trần Thị B',
+        faculty_abbr: 'KTPM',
+        class_name: 'KTPM02',
+        email: 'tranthib@example.com',
+        phone: '0987654321',
+        birthdate: new Date(2000, 5, 15).toLocaleDateString(),
+      });
+      
+      // Style the header row
+      worksheet.getRow(1).font = { bold: true, color: { argb: 'FF000000' } };
+      worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFCCCCCC' } };
+      
+      // Generate Excel file
+      const buffer = await workbook.xlsx.writeBuffer();
+      
+      // Create blob and download
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'student_import_template.xlsx';
+      a.click();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Tải xuống mẫu Excel thành công!');
+    } catch (error) {
+      console.error('Error creating template:', error);
+      toast.error('Có lỗi khi tạo file mẫu.');
+    }
+  };
+
   if (dataLoading) {
     return (
       <div className="text-center py-10">
@@ -311,7 +372,7 @@ export default function StudentImport({
           disabled={loading}
           className="hidden"
         />
-        <div className="flex gap-2">
+        <div className="flex gap-4 mb-4">
           <button
             onClick={handleReselect}
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-1"
@@ -319,6 +380,13 @@ export default function StudentImport({
           >
             <UploadCloud size={16} />
             <span>{previewStudents.length > 0 ? "Chọn file khác" : "Chọn File"}</span>
+          </button>
+          <button
+            onClick={downloadSampleTemplate}
+            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+          >
+            <Download size={18} />
+            Tải mẫu Excel
           </button>
         </div>
         {lastUpdated && (
@@ -351,6 +419,20 @@ export default function StudentImport({
               </button>
             </div>
           </div>
+          
+          <div className="mb-4 p-4 bg-blue-50 text-sm border-b">
+            <p className="mb-2 font-semibold">Lưu ý về định dạng dữ liệu:</p>
+            <ul className="list-disc pl-4">
+              <li><strong>MSSV:</strong> Mã số sinh viên, không được để trống</li>
+              <li><strong>Họ và tên:</strong> Tên đầy đủ của sinh viên, không được để trống</li>
+              <li><strong>Mã khoa:</strong> Phải khớp với mã khoa trong hệ thống</li>
+              <li><strong>Tên lớp:</strong> Phải khớp với tên lớp trong hệ thống</li>
+              <li><strong>Email:</strong> Phải là email hợp lệ (vd: example@example.com)</li>
+              <li><strong>Số điện thoại:</strong> Chuỗi 10 số (tùy chọn)</li>
+              <li><strong>Ngày sinh:</strong> Định dạng ngày DD/MM/YYYY (tùy chọn)</li>
+            </ul>
+          </div>
+          
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from 'react';
-import { UploadCloud, Trash2, Check, X, RefreshCw, Plus, SquarePen } from "lucide-react";
+import { UploadCloud, Trash2, Check, X, RefreshCw, Plus, SquarePen, Download } from "lucide-react";
 import ExcelJS from 'exceljs';
 import { toast } from 'sonner';
 import { Tooltip } from 'antd';
@@ -294,6 +294,77 @@ export default function UserImport({
     student: 'bg-blue-100 text-blue-800',
   };
 
+  // Function to generate and download a sample Excel template
+  const downloadSampleTemplate = async () => {
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('User Import Template');
+      
+      // Add headers
+      worksheet.columns = [
+        { header: 'Họ và tên', key: 'name', width: 30 },
+        { header: 'Email', key: 'email', width: 30 },
+        { header: 'Vai trò', key: 'role', width: 15 },
+        { header: 'Mã khoa (nếu là sinh viên)', key: 'faculty_abbr', width: 25 },
+        { header: 'Tên lớp (nếu là sinh viên)', key: 'class_name', width: 25 },
+      ];
+      
+      // Add some sample data - 1 sample for each role type
+      worksheet.addRow({
+        name: 'Nguyễn Văn Admin',
+        email: 'admin@example.com',
+        role: 'admin',
+        faculty_abbr: '',
+        class_name: '',
+      });
+      
+      worksheet.addRow({
+        name: 'Trần Thị Advisor',
+        email: 'advisor@example.com',
+        role: 'advisor',
+        faculty_abbr: '',
+        class_name: '',
+      });
+
+      worksheet.addRow({
+        name: 'Lê Văn Officer',
+        email: 'officer@example.com',
+        role: 'departmentofficer',
+        faculty_abbr: '',
+        class_name: '',
+      });
+      
+      worksheet.addRow({
+        name: 'Phạm Thị Sinh Viên',
+        email: 'student@example.com',
+        role: 'student',
+        faculty_abbr: 'CNTT', // Ví dụ: CNTT - Công nghệ thông tin
+        class_name: 'CNTT01', // Ví dụ: CNTT01
+      });
+      
+      // Style the header row
+      worksheet.getRow(1).font = { bold: true, color: { argb: 'FF000000' } };
+      worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFCCCCCC' } };
+      
+      // Generate Excel file
+      const buffer = await workbook.xlsx.writeBuffer();
+      
+      // Create blob and download
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'user_import_template.xlsx';
+      a.click();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Tải xuống mẫu Excel thành công!');
+    } catch (error) {
+      console.error('Error creating template:', error);
+      toast.error('Có lỗi khi tạo file mẫu.');
+    }
+  };
+
   return (
     <div className="mb-8">
       <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 transition">
@@ -308,7 +379,7 @@ export default function UserImport({
           disabled={loading}
           className="hidden"
         />
-        <div className="flex gap-2">
+        <div className="flex gap-4 mb-4">
           <button
             onClick={handleReselect}
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-1"
@@ -316,6 +387,13 @@ export default function UserImport({
           >
             <UploadCloud size={16} />
             <span>{previewUsers.length > 0 ? "Chọn file khác" : "Chọn File"}</span>
+          </button>
+          <button
+            onClick={downloadSampleTemplate}
+            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+          >
+            <Download size={18} />
+            Tải mẫu Excel
           </button>
         </div>
         {lastUpdated && (
@@ -348,6 +426,17 @@ export default function UserImport({
               </button>
             </div>
           </div>
+          
+          <div className="mb-4 p-4 bg-blue-50 text-sm border-b">
+            <p className="mb-2 font-semibold">Lưu ý về định dạng dữ liệu:</p>
+            <ul className="list-disc pl-4">
+              <li><strong>Email:</strong> Phải là email hợp lệ (vd: example@example.com)</li>
+              <li><strong>Vai trò:</strong> Phải là một trong các giá trị: admin, advisor, departmentofficer, student</li>
+              <li><strong>Mã khoa:</strong> Bắt buộc đối với sinh viên. Phải khớp với mã khoa trong hệ thống</li>
+              <li><strong>Tên lớp:</strong> Bắt buộc đối với sinh viên. Phải khớp với tên lớp trong hệ thống</li>
+            </ul>
+          </div>
+          
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>

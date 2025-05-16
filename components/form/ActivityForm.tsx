@@ -1,13 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import api from "@/lib/api";
 import { toast } from "sonner";
 import { Campaign } from "@/types/campaign";
 
 interface ActivityFormProps {
   currentcampaigns: Campaign[];
-  onActivityCreated: (activity: { name: string; point: number; campaign_id: number; is_negative: boolean; negativescore: number }) => Promise<{ success: boolean }>;
+  onActivityCreated: (activity: { 
+    name: string; 
+    point: number; 
+    campaign_id: number; 
+    is_negative: boolean; 
+    negativescore: number;
+    max_participants?: number;
+    registration_start?: string;
+    registration_end?: string;
+  }) => Promise<{ success: boolean }>;
 }
 
 export default function ActivityForm({ currentcampaigns, onActivityCreated }: ActivityFormProps) {
@@ -17,6 +25,9 @@ export default function ActivityForm({ currentcampaigns, onActivityCreated }: Ac
   const [isNegative, setIsNegative] = useState(false);
   const [negativeScore, setNegativeScore] = useState(0);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [maxParticipants, setMaxParticipants] = useState<number | undefined>(undefined);
+  const [registrationStart, setRegistrationStart] = useState("");
+  const [registrationEnd, setRegistrationEnd] = useState("");
 
   useEffect(() => {
     setCampaigns(currentcampaigns);
@@ -39,8 +50,8 @@ export default function ActivityForm({ currentcampaigns, onActivityCreated }: Ac
       toast.error("Điểm trừ phải lớn hơn 0.");
       return;
     }
-    if (point > campaign.campaign_max_score) {
-      toast.error(`Điểm hoạt động không được lớn hơn điểm tối đa (${campaign.campaign_max_score}) của phong trào.`);
+    if (point > (campaign?.campaign_max_score || 0)) {
+      toast.error(`Điểm hoạt động không được lớn hơn điểm tối đa (${campaign?.campaign_max_score || 0}) của phong trào.`);
       return;
     }
 
@@ -50,6 +61,9 @@ export default function ActivityForm({ currentcampaigns, onActivityCreated }: Ac
       campaign_id: campaignId,
       is_negative: isNegative,
       negativescore: isNegative ? negativeScore : 0,
+      max_participants: maxParticipants,
+      registration_start: registrationStart || undefined,
+      registration_end: registrationEnd || undefined,
     });
     if (result.success) {
       setName("");
@@ -57,6 +71,9 @@ export default function ActivityForm({ currentcampaigns, onActivityCreated }: Ac
       setCampaignId(null);
       setIsNegative(false);
       setNegativeScore(0);
+      setMaxParticipants(undefined);
+      setRegistrationStart("");
+      setRegistrationEnd("");
     }
   };
 
@@ -131,6 +148,38 @@ export default function ActivityForm({ currentcampaigns, onActivityCreated }: Ac
           />
         </div>
       )}
+
+      <div>
+        <label className="block mb-1">Số lượng tham gia tối đa (để trống nếu không giới hạn):</label>
+        <input
+          type="number"
+          value={maxParticipants ?? ""}
+          onChange={(e) => setMaxParticipants(e.target.value ? Number(e.target.value) : undefined)}
+          className="w-full border px-4 py-2 rounded-md"
+          min={1}
+        />
+      </div>
+
+      <div>
+        <label className="block mb-1">Ngày bắt đầu đăng ký:</label>
+        <input
+          type="date"
+          value={registrationStart}
+          onChange={(e) => setRegistrationStart(e.target.value)}
+          className="w-full border px-4 py-2 rounded-md"
+        />
+      </div>
+
+      <div>
+        <label className="block mb-1">Ngày kết thúc đăng ký:</label>
+        <input
+          type="date"
+          value={registrationEnd}
+          onChange={(e) => setRegistrationEnd(e.target.value)}
+          className="w-full border px-4 py-2 rounded-md"
+        />
+      </div>
+
       <div className="flex justify-end mt-4">
         <button
           type="submit"

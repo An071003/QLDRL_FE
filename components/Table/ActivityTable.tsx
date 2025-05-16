@@ -18,6 +18,9 @@ interface ActivityTableProps {
     campaign_id: number;
     negativescore?: number;
     status: "ongoing" | "expired";
+    max_participants?: number;
+    registration_start?: string;
+    registration_end?: string;
   }) => void;
   onSortPoint: () => void;
   sortOrder: "asc" | "desc";
@@ -38,6 +41,9 @@ export default function ActivityTable({
   const [editCampaignId, setEditCampaignId] = useState<number | null>(null);
   const [editNegativeScore, setEditNegativeScore] = useState<number>(0);
   const [editStatus, setEditStatus] = useState<"ongoing" | "expired">("ongoing");
+  const [editMaxParticipants, setEditMaxParticipants] = useState<number | undefined>(undefined);
+  const [editRegistrationStart, setEditRegistrationStart] = useState("");
+  const [editRegistrationEnd, setEditRegistrationEnd] = useState("");
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const router = useRouter();
 
@@ -50,8 +56,11 @@ export default function ActivityTable({
     setEditName(activity.name);
     setEditPoint(activity.point);
     setEditCampaignId(activity.campaign_id);
-    setEditNegativeScore(activity.is_negative ? activity.negativescore : 0);
+    setEditNegativeScore(activity.is_negative && activity.negativescore ? activity.negativescore : 0);
     setEditStatus(activity.status);
+    setEditMaxParticipants(activity.max_participants);
+    setEditRegistrationStart(activity.registration_start || "");
+    setEditRegistrationEnd(activity.registration_end || "");
   };
 
   const handleCancel = () => {
@@ -60,6 +69,9 @@ export default function ActivityTable({
     setEditPoint(0);
     setEditCampaignId(null);
     setEditNegativeScore(0);
+    setEditMaxParticipants(undefined);
+    setEditRegistrationStart("");
+    setEditRegistrationEnd("");
   };
 
   const handleSave = async (id: number) => {
@@ -77,6 +89,11 @@ export default function ActivityTable({
       setEditNegativeScore(0);
     }
 
+    if (!editRegistrationStart || !editRegistrationEnd) {
+      toast.error("Ngày bắt đầu và kết thúc đăng ký là bắt buộc.");
+      return;
+    }
+
     const campaign = campaigns.find((c) => c.id === editCampaignId);
 
     if (!campaign) {
@@ -84,8 +101,8 @@ export default function ActivityTable({
       return;
     }
 
-    if (editPoint > campaign.campaign_max_score) {
-      toast.error(`Điểm không được lớn hơn điểm tối đa (${campaign.campaign_max_score}) của phong trào.`);
+    if (editPoint > (campaign?.campaign_max_score || 0)) {
+      toast.error(`Điểm không được lớn hơn điểm tối đa (${campaign?.campaign_max_score || 0}) của phong trào.`);
       return;
     }
 
@@ -96,7 +113,19 @@ export default function ActivityTable({
         campaign_id: editCampaignId,
         negativescore: editNegativeScore,
         status: editStatus,
-      } as any;
+        max_participants: editMaxParticipants || 0,
+        registration_start: editRegistrationStart,
+        registration_end: editRegistrationEnd
+      } as {
+        name: string;
+        point: number;
+        campaign_id: number;
+        negativescore: number;
+        status: "ongoing" | "expired";
+        max_participants: number;
+        registration_start: string;
+        registration_end: string;
+      };
       setLoading(true);
       await onUpdateActivity(id, updated);
 
@@ -134,7 +163,9 @@ export default function ActivityTable({
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Điểm trừ</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
-            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Số lượng</th>
+            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">SL đăng ký</th>
+            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">SL tối đa</th>
+            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian đăng ký</th>
             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
           </tr>
         </thead>
@@ -171,7 +202,9 @@ export default function ActivityTable({
                     ))}
                   </select>
                 ) : (
-                  activity.campaign_name
+                  campaigns.find(campaign => campaign.id === activity.campaign_id)?.name || 
+                  activity.campaign_name || 
+                  "Không xác định"
                 )}
               </td>
 
@@ -220,6 +253,38 @@ export default function ActivityTable({
               </td>
               <td className="px-6 py-4 text-center whitespace-nowrap">
                 {activity.number_students}
+              </td>
+              <td className="px-6 py-4 text-center whitespace-nowrap">
+                {editingId === activity.id ? (
+                  <input
+                    type="number"
+                    className="border px-2 py-1 rounded w-30"
+                    value={editMaxParticipants}
+                    onChange={(e) => setEditMaxParticipants(Number(e.target.value))}
+                  />
+                ) : activity.max_participants || "Không giới hạn"}
+              </td>
+              <td className="px-6 py-4 text-center whitespace-nowrap">
+                {editingId === activity.id ? (
+                  <div className="flex flex-col space-y-2">
+                    <input
+                      type="date"
+                      className="border px-2 py-1 rounded w-full"
+                      value={editRegistrationStart}
+                      onChange={(e) => setEditRegistrationStart(e.target.value)}
+                    />
+                    <input
+                      type="date"
+                      className="border px-2 py-1 rounded w-full"
+                      value={editRegistrationEnd}
+                      onChange={(e) => setEditRegistrationEnd(e.target.value)}
+                    />
+                  </div>
+                ) : (
+                  activity.registration_start && activity.registration_end 
+                     ? `${new Date(activity.registration_start).toLocaleDateString('vi-VN')} - ${new Date(activity.registration_end).toLocaleDateString('vi-VN')}`
+                    : "Không có thông tin"
+                )}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-right text-md font-medium">
                 {editingId === activity.id ? (

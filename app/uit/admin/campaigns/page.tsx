@@ -10,6 +10,7 @@ import CampaignImport from "@/components/Import/CampaignImport";
 import CampaignTable from "@/components/Table/CampaignTable";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import Loading from "@/components/Loading";
+import axios from "axios";
 
 export default function CampaignManagement() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -42,7 +43,7 @@ export default function CampaignManagement() {
   const fetchCriterias = async () => {
     try {
       const res = await api.get("/api/criteria");
-      setCriterias(res.data.data.criterias);
+      setCriterias(res.data.data.criteria);
     } catch (err) {
       console.error(err);
       toast.error("Không thể tải danh sách tiêu chí ❌");
@@ -55,14 +56,21 @@ export default function CampaignManagement() {
     fetchCriterias();
   }, []);
 
-  const handleCreateCampaign = async (newCampaign: { name: string; max_score: number; criteria_id: number; is_negative: boolean; negativescore: number }) => {
+  const handleCreateCampaign = async (newCampaign: { 
+    name: string; 
+    max_score: number; 
+    criteria_id: number; 
+    semester_no: number; 
+    academic_year: number 
+  }) => {
     try {
       await api.post("/api/campaigns", newCampaign);
       await fetchCampaigns();
       setActiveComponent("table");
       toast.success("Thêm phong trào thành công 🎉");
       return { success: true };
-    } catch (err: any) {
+    } catch (error: unknown) {
+      console.error(error);
       toast.error("Thêm phong trào thất bại ❌");
       return { success: false };
     }
@@ -79,7 +87,8 @@ export default function CampaignManagement() {
       await api.delete(`/api/campaigns/${selectedId}`);
       await fetchCampaigns();
       toast.success("Xóa phong trào thành công ✅");
-    } catch (err: any) {
+    } catch (error: unknown) {
+      console.error(error);
       toast.error("Xóa phong trào thất bại ❌");
     } finally {
       setModalOpen(false);
@@ -87,25 +96,53 @@ export default function CampaignManagement() {
     }
   };
 
-  const handleUpdateCampaign = async (id: number, updatedCampaign: { name: string; max_score: number; criteria_id: number; negativescore: number }) => {
+  const handleUpdateCampaign = async (id: number, updatedCampaign: { 
+    name: string; 
+    max_score: number; 
+    criteria_id: number; 
+    semester_no: number; 
+    academic_year: number 
+  }) => {
     try {
       await api.put(`/api/campaigns/${id}`, updatedCampaign);
       await fetchCampaigns();
       toast.success("Cập nhật phong trào thành công ✨");
-    } catch (err: any) {
+    } catch (error: unknown) {
+      console.error(error);
       toast.error("Cập nhật phong trào thất bại ❌");
     }
   };
 
-  const handleCampaignsImported = async (importedCampaigns: { name: string; max_score: number; criteria_id: number; is_negative: boolean; negativescore: number }[]) => {
+  const handleCampaignsImported = async (importedCampaigns: { 
+    name: string; 
+    max_score: number; 
+    criteria_id: number; 
+    semester_no: number; 
+    academic_year: number;
+    created_by: number;
+  }[]) => {
     try {
-      await api.post("/api/campaigns/import", importedCampaigns);
+      console.log("Attempting to import campaigns:", importedCampaigns);
+      const response = await api.post("/api/campaigns/import", importedCampaigns);
+      console.log("Import response:", response.data);
+      
       await fetchCampaigns();
       setActiveComponent("table");
-      toast.success("Import phong trào thành công 🚀");
+      
+      if (response.data.status === "partial") {
+        toast.success(`${response.data.message}`);
+        console.log("Failed imports:", response.data.data.failed);
+      } else {
+        toast.success("Import phong trào thành công 🚀");
+      }
       return { success: true };
-    } catch (err: any) {
-      toast.error("Import phong trào thất bại ❌");
+    } catch (error: unknown) {
+      console.error("Import error:", error);
+      if (axios.isAxiosError(error) && error.response) {
+        toast.error(`Lỗi: ${error.response.data.message || "Import thất bại"} ❌`);
+      } else {
+        toast.error("Import phong trào thất bại ❌");
+      }
       return { success: false };
     }
   };
@@ -114,22 +151,30 @@ export default function CampaignManagement() {
     setSortOrder(prev => (prev === "asc" ? "desc" : "asc"));
   };
 
-  const semesterOptions = [...new Set(campaigns.map(c => `${c.semester_name} (${c.start_year}-${c.end_year})|${c.semester}`))];
+  // Group campaigns by semester_no and academic_year
+  const semesterOptions = [...new Set(campaigns
+    .filter(c => c.semester_no && c.academic_year)
+    .map(c => `Học kỳ ${c.semester_no} (${c.academic_year})|${c.semester_no}_${c.academic_year}`))];
 
   const filteredCampaigns = campaigns
-    .filter((campaign) =>
-      campaign.name.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .filter((campaign) =>
-      selectedSemester === "all" ? true : campaign.semester.toString() === selectedSemester
-    )
-    .sort((a, b) => {
-      if (sortOrder === "asc") {
-        return a.campaign_max_score - b.campaign_max_score;
-      } else {
-        return b.campaign_max_score - a.campaign_max_score;
-      }
-    });
+    ? campaigns
+        .filter((campaign) =>
+          campaign.name.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .filter((campaign) => {
+          if (selectedSemester === "all") return true;
+          const [semesterNo, academicYear] = selectedSemester.split('_');
+          return campaign.semester_no === parseInt(semesterNo) && 
+                 campaign.academic_year === parseInt(academicYear);
+        })
+        .sort((a, b) => {
+          if (sortOrder === "asc") {
+            return a.max_score - b.max_score;
+          } else {
+            return b.max_score - a.max_score;
+          }
+        })
+    : [];
 
   const totalPages = Math.ceil(filteredCampaigns.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -187,12 +232,12 @@ export default function CampaignManagement() {
                 >
                   + Thêm phong trào
                 </button>
-                {/* <button
+                <button
                   onClick={() => setActiveComponent("import")}
                   className="px-4 py-2 cursor-pointer bg-blue-600 text-white rounded hover:bg-blue-700"
                 >
                   + Import phong trào
-                </button> */}
+                </button>
 
               </div>
             </div>

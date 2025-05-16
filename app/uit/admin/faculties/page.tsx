@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Faculty } from '@/types/faculty';
 import FacultyTable from '@/components/Table/FacultyTable';
 import FacultyForm from '@/components/form/FacultyForm';
+import FacultyImport from '@/components/Import/FacultyImport';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
 import Loading from '@/components/Loading';
 import debounce from 'lodash.debounce';
@@ -17,7 +18,7 @@ export default function FacultyManagementPage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [facultyIdToDelete, setFacultyIdToDelete] = useState<number | null>(null);
   const [selectedFaculty, setSelectedFaculty] = useState<Faculty | null>(null);
-  const [mode, setMode] = useState<'list' | 'create'>('list');
+  const [mode, setMode] = useState<'list' | 'create' | 'import'>('list');
   const [submitLoading, setSubmitLoading] = useState(false);
 
   useEffect(() => {
@@ -86,6 +87,21 @@ export default function FacultyManagementPage() {
     }
   };
 
+  const handleImportFaculties = async (importedFaculties: Partial<Faculty>[]) => {
+    try {
+      // The backend API needs to be implemented for this
+      await api.post('/api/faculties/import', importedFaculties);
+      toast.success('Import khoa thành công!');
+      setMode('list');
+      fetchFaculties();
+      return { success: true };
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Lỗi khi import khoa';
+      toast.error(msg);
+      return { success: false };
+    }
+  };
+
   const debouncedSearch = useMemo(
     () => debounce((value: string) => setSearchTerm(value), 300),
     []
@@ -109,6 +125,13 @@ export default function FacultyManagementPage() {
         <FacultyForm 
           onSubmit={handleCreateFaculty}
           setLoading={setSubmitLoading}
+        />
+      );
+    } else if (mode === 'import') {
+      return (
+        <FacultyImport 
+          onFacultiesImported={handleImportFaculties}
+          setLoadingManager={setSubmitLoading}
         />
       );
     } else {
@@ -142,12 +165,20 @@ export default function FacultyManagementPage() {
             onChange={handleSearchChange}
             className="px-4 py-2 border border-gray-300 rounded w-full md:w-1/3"
           />
-          <button
-            onClick={() => setMode('create')}
-            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-          >
-            + Thêm khoa mới
-          </button>
+          <div className="flex gap-4">
+            <button
+              onClick={() => setMode('create')}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              + Thêm khoa mới
+            </button>
+            <button
+              onClick={() => setMode('import')}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              + Import khoa
+            </button>
+          </div>
         </div>
       ) : (
         <div className="flex justify-end mb-6">

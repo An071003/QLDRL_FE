@@ -15,13 +15,30 @@ export default function ActivityStudentManagement() {
   const params = useParams();
   const activityId = params?.id as string;
   const [students, setStudents] = useState<StudentActivity[]>([]);
-  const [currentSemesterId, setCurrentSemesterId] = useState<number | null>(null);
-  const [activitySemesterId, setActivitySemesterId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeComponent, setActiveComponent] = useState<"table" | "form" | "import">("table");
   const tableRef = useRef<HTMLDivElement>(null);
   const [studentIdToDelete, setStudentIdToDelete] = useState<number | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  
+  // Thông tin campaign và activity
+  interface ActivityInfo {
+    id: number;
+    name: string;
+    point: number;
+    max_participants?: number;
+    status: "ongoing" | "expired";
+    campaign_id: number;
+    campaign?: {
+      id: number;
+      name: string;
+      semester_no?: number;
+      academic_year?: number;
+    }
+  }
+  
+  const [activityInfo, setActivityInfo] = useState<ActivityInfo | null>(null);
+  const [canEdit, setCanEdit] = useState(false);
 
   const fetchStudents = async () => {
     setLoading(true);
@@ -29,9 +46,6 @@ export default function ActivityStudentManagement() {
       const res = await api.get(`/api/student-activities/${activityId}`);
       const fetchedStudents = res.data.data.students;
       setStudents(fetchedStudents);
-      if (fetchedStudents.length > 0) {
-        setActivitySemesterId(fetchedStudents[0].semester);
-      }
     } catch (err) {
       toast.error("Không thể tải danh sách sinh viên tham gia ❌");
     } finally {
@@ -39,15 +53,34 @@ export default function ActivityStudentManagement() {
     }
   };
 
-  const fetchCurrentSemester = async () => {
-    const res = await api.get("/api/semesters/current");
-    setCurrentSemesterId(res.data.data.currentSemester);
-
+  // Tải thông tin activity và campaign tương ứng
+  const fetchActivityInfo = async () => {
+    try {
+      // Tải thông tin activity 
+      const activityRes = await api.get(`/api/activities/${activityId}`);
+      const activity = activityRes.data.data.activity;
+      
+      // Tải thông tin campaign tương ứng
+      const campaignRes = await api.get(`/api/campaigns/${activity.campaign_id}`);
+      const campaign = campaignRes.data.data.campaign;
+      
+      setActivityInfo({
+        ...activity,
+        campaign
+      });
+      
+      // Kiểm tra xem activity này có đang diễn ra không
+      if (activity.status === "ongoing") {
+        setCanEdit(true);
+      }
+    } catch (error) {
+      console.error("Không thể tải thông tin hoạt động:", error);
+    }
   };
   
   useEffect(() => {
     fetchStudents();
-    fetchCurrentSemester();
+    fetchActivityInfo();
   }, [activityId]);
   
   const handleAddStudents = async (studentIds: number[]) => {
@@ -144,7 +177,7 @@ export default function ActivityStudentManagement() {
               onClick={() => window.history.back()}>
               Quay về danh sách
             </button>
-            {activitySemesterId === currentSemesterId || !activitySemesterId ? (
+            {canEdit && (
               <>
                 <button
                   onClick={() => setActiveComponent("form")}
@@ -159,7 +192,7 @@ export default function ActivityStudentManagement() {
                   + Import từ Excel
                 </button>
               </>
-            ) : null}
+            )}
           </>
         ) : (
           <button

@@ -41,7 +41,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const [facultiesRes, classesRes] = await Promise.all([
         api.get('/api/faculties'),
         api.get('/api/classes')
+        
       ]);
+      console.log(facultiesRes, classesRes);
       setFaculties(facultiesRes.data.data.faculties);
       setClasses(classesRes.data.data.classes);
     } catch (err) {
