@@ -35,12 +35,6 @@ export default function UserTable({ users, onDeleteUser }: UserTableProps) {
               Vai trò
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Khoa
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Lớp
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Ngày tạo
             </th>
             <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -63,12 +57,6 @@ export default function UserTable({ users, onDeleteUser }: UserTableProps) {
                   >
                     {user.Role?.name}
                   </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {isStudent && user.Faculty ? user.Faculty.faculty_abbr : "-"}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {isStudent && user.Class ? user.Class.name : "-"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">{format(new Date(user.created_at), 'dd/MM/yyyy')}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
