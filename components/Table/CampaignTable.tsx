@@ -146,7 +146,6 @@ export default function CampaignTable({ campaigns, criterias, onDeleteCampaign, 
                     >
                       <option value={1}>Học kỳ 1</option>
                       <option value={2}>Học kỳ 2</option>
-                      <option value={3}>Học kỳ hè</option>
                     </select>
                     <input
                       type="number"

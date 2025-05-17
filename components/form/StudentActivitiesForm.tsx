@@ -6,15 +6,20 @@ import { toast } from "sonner";
 import { StudentActivity } from "@/types/studentActivity";
 import Loading from "../Loading";
 
+interface Student {
+  student_id: string;
+  student_name: string;
+  class?: string;
+}
 
 interface Props {
     activityId: string;
-    onAddStudents: (studentIds: number[]) => void;
+    onAddStudents: (studentIds: string[]) => void;
 }
 
 export default function StudentActivitiesForm({ activityId, onAddStudents }: Props) {
-    const [students, setStudents] = useState<StudentActivity[]>([]);
-    const [selected, setSelected] = useState<number[]>([]);
+    const [students, setStudents] = useState<Student[]>([]);
+    const [selected, setSelected] = useState<string[]>([]);
     const [studentLength, setStudentLength] = useState<number>(0);
     const [loading, setLoading] = useState(true);
 
@@ -35,7 +40,7 @@ export default function StudentActivitiesForm({ activityId, onAddStudents }: Pro
         fetchUnjoinedStudents();
     }, []);
 
-    const toggleSelect = (id: number) => {
+    const toggleSelect = (id: string) => {
         setSelected((prev) =>
             prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
         );

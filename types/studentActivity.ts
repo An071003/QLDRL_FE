@@ -1,16 +1,28 @@
 export interface StudentActivity {
-    student_id: number;
-    student_name: string;
-    class: string;
-    participated: boolean;
-    awarded_score: number;
-    activity_id: number;
-    activity_name: string;
+  activity_id: number;
+  student_id: string;
+  student_name: string;
+  Class?: {
+    name: string;
+  };
+  Activity?: {
+    id: number;
+    name: string;
     point: number;
     status: 'ongoing' | 'expired';
-    campaign_name: string;
-    semester: string;
-    semester_name: string;
-    start_year: number;
-    end_year: number;
-  }
+    Campaign?: {
+      name: string;
+    };
+  };
+  participated: boolean;
+  awarded_score: number;
+  created_at: string;
+  register_id: number;
+  Student?: {
+    student_id: string;
+    student_name: string;
+    Class?: {
+      name: string;
+    };
+  };
+}

@@ -120,7 +120,6 @@ export default function CampaignForm({ criteria, onCampaignCreated }: CampaignFo
         >
           <option value={1}>Học kỳ 1</option>
           <option value={2}>Học kỳ 2</option>
-          <option value={3}>Học kỳ hè</option>
         </select>
       </div>
 

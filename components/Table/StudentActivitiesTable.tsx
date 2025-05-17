@@ -8,8 +8,8 @@ import { toast } from "sonner";
 
 interface Props {
   students: StudentActivity[];
-  onRemoveStudent: (studentId: number) => void;
-  onToggleParticipated: (studentId: number, current: boolean) => void;
+  onRemoveStudent: (studentId: string) => void;
+  onToggleParticipated: (studentId: string, current: boolean) => void;
 }
 
 export default function StudentActivitiesTable({
@@ -18,14 +18,19 @@ export default function StudentActivitiesTable({
   onToggleParticipated,
 }: Props) {
   const [search, setSearch] = useState("");
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [editParticipated, setEditParticipated] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
 
-  const filtered = students.filter((s) =>
-    `${s.student_id} ${s.student_name} ${s.class}`.toLowerCase().includes(search.toLowerCase())
-  );
-
+  const filtered = students.filter((s) => {
+    // Get student name and class from the appropriate location based on API response
+    const studentName = s.Student?.student_name || s.student_name || "";
+    const studentId = s.Student?.student_id || s.student_id || "";
+    const className = s.Student?.Class?.name || s.Class?.name || "";
+    
+    return `${studentId} ${studentName} ${className}`.toLowerCase().includes(search.toLowerCase());
+  });
+  
   const handleEdit = (s: StudentActivity) => {
     setEditingId(s.student_id);
     setEditParticipated(s.participated);
@@ -36,7 +41,7 @@ export default function StudentActivitiesTable({
     setEditParticipated(false);
   };
 
-  const handleSave = async (studentId: number, participated: boolean) => {
+  const handleSave = async (studentId: string, participated: boolean) => {
     if (editParticipated === participated) {
         handleCancel();
         return;
@@ -78,71 +83,78 @@ export default function StudentActivitiesTable({
             </tr>
           </thead>
           <tbody>
-            {filtered.map((s, index) => (
-              <tr key={s.student_id}>
-                <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{s.student_id}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{s.student_name}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{s.class}</td>
-                <td className="px-6 py-4 text-center w-48 whitespace-nowrap">
-                  {editingId === s.student_id ? (
-                    <select
-                      value={editParticipated ? "true" : "false"}
-                      onChange={(e) => setEditParticipated(e.target.value === "true")}
-                      className="border rounded px-2 py-1"
-                    >
-                      <option value="true">Đã tham gia</option>
-                      <option value="false">Chưa tham gia</option>
-                    </select>
-                  ) : s.participated ? (
-                    "Đã tham gia"
-                  ) : (
-                    "Chưa tham gia"
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                  {editingId === s.student_id ? (
-                    <div className="flex justify-center gap-2">
-                      <button
-                        onClick={() => handleSave(s.student_id, s.participated)}
-                        className="text-green-600 hover:text-green-900 disabled:opacity-50"
-                        disabled={loading}
+            {filtered.map((s, index) => {
+              // Get student info from the appropriate location based on API response
+              const studentId = s.Student?.student_id || s.student_id;
+              const studentName = s.Student?.student_name || s.student_name;
+              const className = s.Student?.Class?.name || s.Class?.name || "";
+              
+              return (
+                <tr key={studentId}>
+                  <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{studentId}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{studentName}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{className}</td>
+                  <td className="px-6 py-4 text-center w-48 whitespace-nowrap">
+                    {editingId === studentId ? (
+                      <select
+                        value={editParticipated ? "true" : "false"}
+                        onChange={(e) => setEditParticipated(e.target.value === "true")}
+                        className="border rounded px-2 py-1"
                       >
-                        {loading ? "Đang lưu..." : "Lưu"}
-                      </button>
-                      <button
-                        onClick={handleCancel}
-                        className="text-gray-600 hover:text-gray-900"
-                        disabled={loading}
-                      >
-                        Hủy
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex justify-center gap-2">
-                      <Tooltip title="Chỉnh sửa trạng thái">
+                        <option value="true">Đã tham gia</option>
+                        <option value="false">Chưa tham gia</option>
+                      </select>
+                    ) : s.participated ? (
+                      "Đã tham gia"
+                    ) : (
+                      "Chưa tham gia"
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                    {editingId === studentId ? (
+                      <div className="flex justify-center gap-2">
                         <button
-                          onClick={() => handleEdit(s)}
-                          className="cursor-pointer text-blue-600 hover:text-blue-900"
-                          disabled={editingId !== null}
+                          onClick={() => handleSave(studentId, s.participated)}
+                          className="text-green-600 hover:text-green-900 disabled:opacity-50"
+                          disabled={loading}
                         >
-                          <SquarePen size={20} />
+                          {loading ? "Đang lưu..." : "Lưu"}
                         </button>
-                      </Tooltip>
-                      <Tooltip title="Xóa sinh viên" placement="top">
                         <button
-                          onClick={() => onRemoveStudent(s.student_id)}
-                          className="cursor-pointer text-red-600 hover:underline"
-                          disabled={editingId !== null}
+                          onClick={handleCancel}
+                          className="text-gray-600 hover:text-gray-900"
+                          disabled={loading}
                         >
-                          <Trash size={20} />
+                          Hủy
                         </button>
-                      </Tooltip>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
+                      </div>
+                    ) : (
+                      <div className="flex justify-center gap-2">
+                        <Tooltip title="Chỉnh sửa trạng thái">
+                          <button
+                            onClick={() => handleEdit(s)}
+                            className="cursor-pointer text-blue-600 hover:text-blue-900"
+                            disabled={editingId !== null}
+                          >
+                            <SquarePen size={20} />
+                          </button>
+                        </Tooltip>
+                        <Tooltip title="Xóa sinh viên" placement="top">
+                          <button
+                            onClick={() => onRemoveStudent(studentId)}
+                            className="cursor-pointer text-red-600 hover:underline"
+                            disabled={editingId !== null}
+                          >
+                            <Trash size={20} />
+                          </button>
+                        </Tooltip>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={6} className="text-center py-4 text-gray-500">

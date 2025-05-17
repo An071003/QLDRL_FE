@@ -16,7 +16,6 @@ interface ActivityTableProps {
     name: string;
     point: number;
     campaign_id: number;
-    negativescore?: number;
     status: "ongoing" | "expired";
     max_participants?: number;
     registration_start?: string;
@@ -39,7 +38,6 @@ export default function ActivityTable({
   const [editName, setEditName] = useState("");
   const [editPoint, setEditPoint] = useState(0);
   const [editCampaignId, setEditCampaignId] = useState<number | null>(null);
-  const [editNegativeScore, setEditNegativeScore] = useState<number>(0);
   const [editStatus, setEditStatus] = useState<"ongoing" | "expired">("ongoing");
   const [editMaxParticipants, setEditMaxParticipants] = useState<number | undefined>(undefined);
   const [editRegistrationStart, setEditRegistrationStart] = useState("");
@@ -56,7 +54,6 @@ export default function ActivityTable({
     setEditName(activity.name);
     setEditPoint(activity.point);
     setEditCampaignId(activity.campaign_id);
-    setEditNegativeScore(activity.is_negative && activity.negativescore ? activity.negativescore : 0);
     setEditStatus(activity.status);
     setEditMaxParticipants(activity.max_participants);
     setEditRegistrationStart(activity.registration_start || "");
@@ -68,25 +65,15 @@ export default function ActivityTable({
     setEditName("");
     setEditPoint(0);
     setEditCampaignId(null);
-    setEditNegativeScore(0);
     setEditMaxParticipants(undefined);
     setEditRegistrationStart("");
     setEditRegistrationEnd("");
   };
 
   const handleSave = async (id: number) => {
-    if (!editName.trim() || editPoint < 0 || editCampaignId === null) {
+    if (!editName.trim() || editCampaignId === null) {
       toast.error("Vui lòng điền đầy đủ thông tin hợp lệ.");
       return;
-    }
-    
-    if (editNegativeScore < 0) {
-      toast.error("Điểm trừ phải lớn hơn hoặc bằng 0.");
-      return;
-    }
-
-    if (editNegativeScore == null) {
-      setEditNegativeScore(0);
     }
 
     if (!editRegistrationStart || !editRegistrationEnd) {
@@ -95,14 +82,15 @@ export default function ActivityTable({
     }
 
     const campaign = campaigns.find((c) => c.id === editCampaignId);
-
+    console.log("camoaun", campaign);
     if (!campaign) {
       handleCancel();
       return;
     }
 
-    if (editPoint > (campaign?.campaign_max_score || 0)) {
-      toast.error(`Điểm không được lớn hơn điểm tối đa (${campaign?.campaign_max_score || 0}) của phong trào.`);
+    // For positive points, check against max campaign score
+    if (editPoint > 0 && editPoint > (campaign?.max_score || 0)) {
+      toast.error(`Điểm không được lớn hơn điểm tối đa (${campaign?.max_score || 0}) của phong trào.`);
       return;
     }
 
@@ -111,7 +99,6 @@ export default function ActivityTable({
         name: editName,
         point: editPoint,
         campaign_id: editCampaignId,
-        negativescore: editNegativeScore,
         status: editStatus,
         max_participants: editMaxParticipants || 0,
         registration_start: editRegistrationStart,
@@ -120,7 +107,6 @@ export default function ActivityTable({
         name: string;
         point: number;
         campaign_id: number;
-        negativescore: number;
         status: "ongoing" | "expired";
         max_participants: number;
         registration_start: string;
@@ -161,10 +147,9 @@ export default function ActivityTable({
             <th onClick={onSortPoint} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
               Điểm {sortOrder === "asc" ? "▲" : "▼"}
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Điểm trừ</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
-            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">SL đăng ký</th>
-            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">SL tối đa</th>
+            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">SL đăng ký</th>
+            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">SL tối đa</th>
             <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian đăng ký</th>
             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
           </tr>
@@ -183,7 +168,11 @@ export default function ActivityTable({
                     autoFocus
                   />
                 ) : (
-                  activity.name
+                  <Tooltip title={activity.name} placement="topLeft">
+                    <div className="max-w-[200px] overflow-hidden text-ellipsis">
+                      {activity.name}
+                    </div>
+                  </Tooltip>
                 )}
               </td>
 
@@ -202,9 +191,18 @@ export default function ActivityTable({
                     ))}
                   </select>
                 ) : (
-                  campaigns.find(campaign => campaign.id === activity.campaign_id)?.name || 
-                  activity.campaign_name || 
-                  "Không xác định"
+                  <Tooltip 
+                    title={campaigns.find(campaign => campaign.id === activity.campaign_id)?.name || 
+                    activity.campaign_name || 
+                    "Không xác định"} 
+                    placement="topLeft"
+                  >
+                    <div className="max-w-[200px] overflow-hidden text-ellipsis">
+                      {campaigns.find(campaign => campaign.id === activity.campaign_id)?.name || 
+                      activity.campaign_name || 
+                      "Không xác định"}
+                    </div>
+                  </Tooltip>
                 )}
               </td>
 
@@ -214,27 +212,27 @@ export default function ActivityTable({
                     type="number"
                     className="border px-2 py-1 rounded w-30"
                     value={editPoint}
-                    min={0}
-                    onChange={(e) => setEditPoint(Number(e.target.value))}
+                    min={-100}
+                    max={100}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === "" || value === "-") {
+                        setEditPoint(value === "-" ? -0 : 0);
+                      } else {
+                        setEditPoint(Number(value));
+                      }
+                    }}
                   />
                 ) : (
-                  activity.point
+                  <span className={activity.point < 0 ? "text-red-600" : "text-green-600"}>
+                    {activity.point}
+                    <span className="ml-2 text-xs">
+                      {activity.point < 0 ? '(Trừ điểm)' : '(Cộng điểm)'}
+                    </span>
+                  </span>
                 )}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                {editingId === activity.id ? (
-                  <input
-                    type="number"
-                    className="border px-2 py-1 rounded w-30"
-                    value={editNegativeScore}
-                    onChange={(e) => setEditNegativeScore(Number(e.target.value))}
-                  />
-                ) : activity.is_negative ? (
-                  activity.negativescore
-                ) : (
-                  "Không"
-                )}
-              </td>
+              
               <td className="px-6 py-4 whitespace-nowrap">
                 {editingId === activity.id ? (
                   <select
@@ -323,3 +321,4 @@ export default function ActivityTable({
     </div>
   );
 }
+

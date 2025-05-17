@@ -14,48 +14,18 @@ export default function UserForm({
     user_name: string; 
     email: string; 
     role_id: number;
-    faculty_id?: number;
-    class_id?: number;
   }) => Promise<{ success: boolean; message: any; }>;
   setLoading: (value: boolean) => void;
   roles: { id: number; name: string }[];
 }) {
-  const { faculties, classes, getFilteredClasses } = useData();
+  const { getFilteredClasses } = useData();
   
   const [newUser, setNewUser] = useState<NewUser>({
     user_name: '',
     email: '',
     role_id: '',
-    faculty_id: '',
-    class_id: '',
   });
 
-  const [isStudent, setIsStudent] = useState(false);
-
-  useEffect(() => {
-    // Check if selected role is student
-    const selectedRole = roles.find(r => r.id === Number(newUser.role_id));
-    setIsStudent(selectedRole?.name === 'student');
-    
-    // Reset faculty and class when changing away from student role
-    if (!isStudent) {
-      setNewUser(prev => ({
-        ...prev,
-        faculty_id: '',
-        class_id: ''
-      }));
-    }
-  }, [newUser.role_id, roles]);
-
-  // Reset class when faculty changes
-  useEffect(() => {
-    if (newUser.faculty_id !== '') {
-      setNewUser(prev => ({
-        ...prev,
-        class_id: ''
-      }));
-    }
-  }, [newUser.faculty_id]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -63,7 +33,7 @@ export default function UserForm({
     const { name, value } = e.target;
     setNewUser({
       ...newUser,
-      [name]: ['role_id', 'faculty_id', 'class_id'].includes(name) 
+      [name]: ['role_id'].includes(name) 
         ? (value === "" ? "" : Number(value)) 
         : value,
     });
@@ -76,8 +46,6 @@ export default function UserForm({
     const userForCreation = {
       ...newUser,
       role_id: newUser.role_id === "" ? 0 : Number(newUser.role_id),
-      faculty_id: isStudent && newUser.faculty_id !== "" ? Number(newUser.faculty_id) : undefined,
-      class_id: isStudent && newUser.class_id !== "" ? Number(newUser.class_id) : undefined,
     };
 
     try {
@@ -87,8 +55,6 @@ export default function UserForm({
           user_name: '', 
           email: '', 
           role_id: '',
-          faculty_id: '',
-          class_id: ''
         });
         toast.success("Tạo người dùng thành công");
       } else {
@@ -145,46 +111,6 @@ export default function UserForm({
               ))}
             </select>
           </div>
-          
-          {isStudent && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Khoa</label>
-                <select
-                  name="faculty_id"
-                  value={newUser.faculty_id}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                >
-                  <option value="" disabled>-- Chọn khoa --</option>
-                  {faculties.map((faculty) => (
-                    <option key={faculty.id} value={faculty.id}>
-                      {faculty.name} ({faculty.faculty_abbr})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Lớp</label>
-                <select
-                  name="class_id"
-                  value={newUser.class_id}
-                  onChange={handleInputChange}
-                  required
-                  disabled={!newUser.faculty_id}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                >
-                  <option value="" disabled>-- Chọn lớp --</option>
-                  {getFilteredClasses(Number(newUser.faculty_id)).map((cls) => (
-                    <option key={cls.id} value={cls.id}>
-                      {cls.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </>
-          )}
         </div>
         <div className="flex justify-end mt-4">
           <button

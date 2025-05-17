@@ -98,8 +98,6 @@ export default function ActivityManagement() {
     name: string;
     point: number;
     campaign_id: number;
-    is_negative: boolean;
-    negativescore: number;
     max_participants?: number;
     registration_start?: string;
     registration_end?: string;
@@ -110,14 +108,13 @@ export default function ActivityManagement() {
       return { success: false };
     }
     
-    // Đảm bảo các trường bắt buộc có giá trị
     if (!newActivity.registration_start || !newActivity.registration_end) {
       toast.error("Ngày bắt đầu và kết thúc đăng ký là bắt buộc.");
       return { success: false };
     }
     
     if (newActivity.max_participants === undefined) {
-      newActivity.max_participants = 0; // Mặc định không giới hạn
+      newActivity.max_participants = 0; 
     }
     
     try {
@@ -192,8 +189,10 @@ export default function ActivityManagement() {
     name: string;
     point: number;
     campaign_id: number;
-    is_negative: boolean;
-    negativescore: number;
+    max_participants: number;
+    registration_start: string;
+    registration_end: string;
+    status?: string;
   }[]) => {
     try {
       await api.post("/api/activities/import", importedActivities);
@@ -249,7 +248,7 @@ export default function ActivityManagement() {
       case "form":
         return <ActivityForm currentcampaigns={campaigns} onActivityCreated={handleCreateActivity} />;
       case "import":
-        return <ActivityImport onActivitiesImported={handleActivitiesImported} />;
+        return <ActivityImport onActivitiesImported={handleActivitiesImported} currentcampaigns={campaigns} />;
       default:
         return (
           <>
@@ -286,12 +285,12 @@ export default function ActivityManagement() {
                 >
                   + Thêm hoạt động
                 </button>
-                {/* <button
+                <button
                   onClick={() => setActiveComponent("import")}
                   className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                 >
                   + Import hoạt động
-                </button> */}
+                </button>
               </div>
             </div>
 

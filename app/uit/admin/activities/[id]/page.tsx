@@ -18,7 +18,7 @@ export default function ActivityStudentManagement() {
   const [loading, setLoading] = useState(true);
   const [activeComponent, setActiveComponent] = useState<"table" | "form" | "import">("table");
   const tableRef = useRef<HTMLDivElement>(null);
-  const [studentIdToDelete, setStudentIdToDelete] = useState<number | null>(null);
+  const [studentIdToDelete, setStudentIdToDelete] = useState<string | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   
   // Thông tin campaign và activity
@@ -45,6 +45,7 @@ export default function ActivityStudentManagement() {
     try {
       const res = await api.get(`/api/student-activities/${activityId}`);
       const fetchedStudents = res.data.data.students;
+      console.log(res.data.data.students);
       setStudents(fetchedStudents);
     } catch (err) {
       toast.error("Không thể tải danh sách sinh viên tham gia ❌");
@@ -83,7 +84,7 @@ export default function ActivityStudentManagement() {
     fetchActivityInfo();
   }, [activityId]);
   
-  const handleAddStudents = async (studentIds: number[]) => {
+  const handleAddStudents = async (studentIds: string[]) => {
     try {
       await api.post(`/api/student-activities/${activityId}/students`, { studentIds });
       await fetchStudents();
@@ -107,7 +108,7 @@ export default function ActivityStudentManagement() {
     }
   };
 
-  const handleToggleParticipated = async (studentId: number, participated: boolean) => {
+  const handleToggleParticipated = async (studentId: string, participated: boolean) => {
     try {
       await api.patch(`/api/student-activities/${activityId}`, {
         studentId: studentId,
@@ -120,7 +121,7 @@ export default function ActivityStudentManagement() {
     }
   };
 
-  const handleRemoveStudent = (studentId: number) => {
+  const handleRemoveStudent = (studentId: string) => {
     setStudentIdToDelete(studentId);
     setConfirmDeleteOpen(true);
   };

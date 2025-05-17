@@ -43,7 +43,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
         api.get('/api/classes')
         
       ]);
-      console.log(facultiesRes, classesRes);
       setFaculties(facultiesRes.data.data.faculties);
       setClasses(classesRes.data.data.classes);
     } catch (err) {
