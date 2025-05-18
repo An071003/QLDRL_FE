@@ -31,7 +31,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
 
-    if (pathname.startsWith("/uit/lecturer") && role !== "lecturer") {
+    if (pathname.startsWith("/uit/advisor") && role !== "advisor") {
       return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
 

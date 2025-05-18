@@ -1,0 +1,234 @@
+'use client';
+
+import { useEffect, useState, useMemo } from 'react';
+import api from '@/lib/api';
+import { toast } from 'sonner';
+import Loading from '@/components/Loading';
+import debounce from 'lodash.debounce';
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
+import { Advisor, Faculty } from '@/types/advisor';
+import AdvisorTable from '@/components/Table/AdvisorTable';
+import AdvisorForm from '@/components/form/AdvisorForm';
+
+export default function AdvisorManagementPage() {
+  const [advisors, setAdvisors] = useState<Advisor[]>([]);
+  const [faculties, setFaculties] = useState<Faculty[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [advisorIdToDelete, setAdvisorIdToDelete] = useState<number | null>(null);
+  const [editingAdvisorId, setEditingAdvisorId] = useState<number | null>(null);
+  const [activeComponent, setActiveComponent] = useState<'table' | 'form'>('table');
+  
+  // Edit state for inline editing
+  const [editData, setEditData] = useState<{
+    name: string;
+    user_id: string;
+    faculty_id: string;
+    phone: string;
+  }>({
+    name: '',
+    user_id: '',
+    faculty_id: '',
+    phone: '',
+  });
+
+  useEffect(() => {
+    fetchAdvisors();
+    fetchFaculties();
+  }, []);
+
+  const fetchAdvisors = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/api/advisors');
+      if (res.data.advisors) {
+        setAdvisors(res.data.advisors);
+      } else {
+        setAdvisors([]);
+      }
+    } catch (err) {
+      console.error('Failed to fetch advisors:', err);
+      toast.error('Không thể tải danh sách cố vấn học tập');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchFaculties = async () => {
+    try {
+      const res = await api.get('/api/faculties');
+      if (Array.isArray(res.data.data)) {
+        setFaculties(res.data.data);
+      } else if (res.data.data.faculties) {
+        setFaculties(res.data.data.faculties);
+      } else {
+        setFaculties([]);
+      }
+    } catch (err) {
+      console.error('Failed to fetch faculties:', err);
+      toast.error('Không thể tải danh sách khoa');
+    }
+  };
+
+  const handleCreateAdvisor = async (advisorData: any) => {
+    try {
+      await api.post('/api/advisors', advisorData);
+      toast.success('Thêm cố vấn học tập thành công!');
+      fetchAdvisors();
+      setActiveComponent('table');
+      return Promise.resolve();
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Lỗi khi thêm cố vấn học tập';
+      toast.error(msg);
+      return Promise.reject(err);
+    }
+  };
+
+  const handleEditClick = (advisor: Advisor) => {
+    setEditingAdvisorId(advisor.id);
+    setEditData({
+      name: advisor.name || '',
+      user_id: advisor.user_id?.toString() || '',
+      faculty_id: advisor.faculty_id?.toString() || '',
+      phone: advisor.phone || '',
+    });
+  };
+
+  const handleSaveEdit = async (id: number) => {
+    setLoading(true);
+    try {
+      const userId = editData.user_id ? parseInt(editData.user_id) : null;
+      
+      await api.put(`/api/advisors/${id}`, {
+        name: editData.name,
+        user_id: userId,
+        faculty_id: editData.faculty_id ? parseInt(editData.faculty_id) : null,
+        phone: editData.phone || null
+      });
+      
+      toast.success('Cập nhật cố vấn học tập thành công!');
+      fetchAdvisors();
+      setEditingAdvisorId(null);
+    } catch (err) {
+      console.error('Failed to update advisor:', err);
+      toast.error('Lỗi khi cập nhật cố vấn học tập');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingAdvisorId(null);
+  };
+
+  const handleDeleteClick = (advisorId: number) => {
+    setAdvisorIdToDelete(advisorId);
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!advisorIdToDelete) return;
+    
+    setLoading(true);
+    try {
+      await api.delete(`/api/advisors/${advisorIdToDelete}`);
+      toast.success('Xóa cố vấn học tập thành công');
+      fetchAdvisors();
+    } catch (err) {
+      console.error('Failed to delete advisor:', err);
+      toast.error('Lỗi khi xóa cố vấn học tập');
+    } finally {
+      setShowConfirmModal(false);
+      setAdvisorIdToDelete(null);
+      setLoading(false);
+    }
+  };
+
+  const debouncedSearch = useMemo(
+    () => debounce((value: string) => setSearchTerm(value), 300),
+    []
+  );
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    debouncedSearch(e.target.value);
+  };
+
+  const filteredAdvisors = useMemo(() => {
+    return advisors.filter(
+      (advisor) =>
+        (advisor.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (advisor.Faculty?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (advisor.phone?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+    );
+  }, [advisors, searchTerm]);
+
+  if (loading) return <Loading />;
+
+  const renderComponent = () => {
+    switch (activeComponent) {
+      case 'form':
+        return (
+          <AdvisorForm 
+            onAdvisorCreated={handleCreateAdvisor} 
+            setLoading={setLoading} 
+            onCancel={() => setActiveComponent('table')}
+          />
+        );
+      default:
+        return (
+          <AdvisorTable
+            advisors={filteredAdvisors}
+            faculties={faculties}
+            editingAdvisorId={editingAdvisorId}
+            editData={editData}
+            onDeleteAdvisor={handleDeleteClick}
+            onEditClick={handleEditClick}
+            onSaveEdit={handleSaveEdit}
+            onCancelEdit={handleCancelEdit}
+            onEditDataChange={setEditData}
+          />
+        );
+    }
+  };
+
+  return (
+    <div>
+      <h1 className="text-3xl font-bold mb-6">Quản lý cố vấn học tập</h1>
+
+      <ConfirmDeleteModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleConfirmDelete}
+      />
+
+      {activeComponent === 'table' ? (
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+          <input
+            type="text"
+            placeholder="Tìm theo tên cố vấn, khoa hoặc số điện thoại..."
+            onChange={handleSearchChange}
+            className="px-4 py-2 border border-gray-300 rounded w-full md:w-1/3"
+          />
+          <button
+            onClick={() => setActiveComponent('form')}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          >
+            + Thêm cố vấn học tập
+          </button>
+        </div>
+      ) : (
+        <div className='flex justify-end mb-6'>
+          <button
+            onClick={() => setActiveComponent('table')}
+            className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
+          >
+            Quay về danh sách
+          </button>
+        </div>
+      )}
+
+      <div className="mb-6">{renderComponent()}</div>
+    </div>
+  );
+} 

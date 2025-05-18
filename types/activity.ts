@@ -19,4 +19,9 @@ export interface Activity {
   semester_name?: string;
   start_year?: number;
   end_year?: number;
+  Campaign?: {
+    name: string;
+    semester_no: number;
+    academic_year: string;
+  };
 }

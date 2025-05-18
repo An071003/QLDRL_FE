@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Form, Input, Select, Button, Typography, notification } from 'antd';
 import api from '@/lib/api';
 import { MainLayout } from '@/components/layout';
-import { NotificationModal } from '@/components/NotificationModal';
-
+import { toast } from 'sonner';
 const { Title } = Typography;
 const { Option } = Select;
 
@@ -14,7 +13,6 @@ export default function RegisterPage() {
     const [form] = Form.useForm();
     const router = useRouter();
     const [roles, setRoles] = useState<{ id: number; name: string }[]>([]);
-    const [Notification, setNotification] = useState('');
 
     useEffect(() => {
         const fetchRoles = async () => {
@@ -33,17 +31,15 @@ export default function RegisterPage() {
     const handleSubmit = async (values: any) => {
         try {
             await api.post("/api/auth/register", values);
-            setNotification("Đăng ký thành công!");
+            toast.success("Đăng ký thành công!");
             router.push('/login');
         } catch (err) {
-            console.error(err);
-            notification.error({ message: "Đăng ký thất bại", description: "Vui lòng thử lại sau." });
+            toast.error("Đăng ký thất bại.");
         }
     };
 
     return (
         <MainLayout>
-            {Notification && <NotificationModal message={Notification} onClose={() => setNotification("")} />}
             <div className="max-w-md mx-auto mt-10 bg-white p-6 rounded shadow">
                 <Title level={2}>Đăng ký tài khoản</Title>
                 <Form

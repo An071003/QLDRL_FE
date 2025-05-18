@@ -4,7 +4,7 @@ import { StudentLayout } from "@/components/layout/student";
 import type { Activity } from "@/types/activity";
 import api from "@/lib/api";
 import { useEffect, useState } from "react";
-import { Tabs, Table, Button, message } from "antd";
+import { Tabs, Table, Button, message, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { TabsProps } from "antd";
 
@@ -17,8 +17,32 @@ export default function AssignActivitiesPage() {
     const [selectedToCancel, setSelectedToCancel] = useState<number[]>([]);
 
     const columns: ColumnsType<Activity> = [
-        { title: "Tên hoạt động", dataIndex: "name", key: "name" },
-        { title: "Phong trào", dataIndex: "campaign_name", key: "campaign_name" },
+        { 
+            title: "Tên hoạt động", 
+            dataIndex: "name", 
+            key: "name",
+            ellipsis: {
+                showTitle: false,
+            },
+            render: (name) => (
+                <Tooltip placement="topLeft" title={name}>
+                    <span>{name}</span>
+                </Tooltip>
+            )
+        },
+        { 
+            title: "Phong trào", 
+            dataIndex: ["Campaign", "name"], 
+            key: "campaign_name",
+            ellipsis: {
+                showTitle: false,
+            },
+            render: (text, record) => (
+                <Tooltip placement="topLeft" title={record.Campaign?.name}>
+                    <span>{record.Campaign?.name}</span>
+                </Tooltip>
+            )
+        },
         { title: "Điểm", dataIndex: "point", key: "point" },
     ];
 
@@ -30,7 +54,7 @@ export default function AssignActivitiesPage() {
     const fetchCurrentStudent = async () => {
         try {
             const res = await api.get("/api/auth/me");
-            const studentId = res.data.data?.studentId;
+            const studentId = res.data.data.user.Student.student_id;
             if (!studentId) throw new Error("Không tìm thấy mã sinh viên");
             setStudentId(studentId);
             fetchAvailableActivities(studentId);

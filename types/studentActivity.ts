@@ -12,6 +12,8 @@ export interface StudentActivity {
     status: 'ongoing' | 'expired';
     Campaign?: {
       name: string;
+      semester_no: number;
+      academic_year: string;
     };
   };
   participated: boolean;

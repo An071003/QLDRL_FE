@@ -84,7 +84,6 @@ export default function StudentActivitiesTable({
           </thead>
           <tbody>
             {filtered.map((s, index) => {
-              // Get student info from the appropriate location based on API response
               const studentId = s.Student?.student_id || s.student_id;
               const studentName = s.Student?.student_name || s.student_name;
               const className = s.Student?.Class?.name || s.Class?.name || "";

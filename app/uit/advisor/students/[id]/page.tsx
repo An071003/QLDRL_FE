@@ -1,56 +1,48 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useRef } from "react";
-import { useParams } from "next/navigation";
-import api from "@/lib/api";
-import Loading from "@/components/Loading";
-import ActivitiesStudentTable from "@/components/Table/ActivitiesStudentTable";
-import { StudentActivity } from "@/types/studentActivity";
-import { toast } from "sonner";
+import { useEffect, useState, useRef } from 'react';
+import { useParams } from 'next/navigation';
+import api from '@/lib/api';
+import Loading from '@/components/Loading';
+import { toast } from 'sonner';
+import ActivitiesStudentTable from '@/components/Table/ActivitiesStudentTable';
 
-export default function StudentActivitiesPage() {
+export default function AdvisorStudentActivitiesPage() {
   const params = useParams();
-  const studentId = params?.id as string;
-
+  const studentId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activities, setActivities] = useState<StudentActivity[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const tableRef = useRef<HTMLDivElement>(null);
-
-  const itemsPerPage = 20;
 
   useEffect(() => {
     const fetchActivities = async () => {
-      if (!studentId) return;
       setLoading(true);
       try {
         const res = await api.get(`/api/student-activities/${studentId}/all`);
-        if (Array.isArray(res.data.data)) {
-          setActivities(res.data.data);
-        } else if (res.data.studentActivity) {
-          setActivities([res.data.studentActivity]);
-        } else {
-          setActivities([]);
-        }
+        setActivities(res.data.studentActivity);
       } catch (err) {
-        toast.error("Không thể tải hoạt động sinh viên ❌");
-        setActivities([]);
+        toast.error('Không thể tải danh sách hoạt động của sinh viên');
       } finally {
         setLoading(false);
       }
     };
-    fetchActivities();
-  }, [studentId]);
 
-  const totalPages = Math.max(1, Math.ceil(activities.length / itemsPerPage));
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentActivities = activities.slice(indexOfFirstItem, indexOfLastItem);
+    if (studentId) {
+      fetchActivities();
+    }
+  }, [studentId]);
 
   const changePage = (page: number) => {
     setCurrentPage(page);
-    tableRef.current?.scrollIntoView({ behavior: "smooth" });
+    tableRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  const totalPages = Math.ceil(activities.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentActivities = activities.slice(indexOfFirstItem, indexOfLastItem);
 
   if (loading) return <Loading />;
 
@@ -100,4 +92,4 @@ export default function StudentActivitiesPage() {
       )}
     </div>
   );
-}
+} 
