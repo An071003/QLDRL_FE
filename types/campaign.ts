@@ -8,8 +8,6 @@ export interface Campaign {
     is_negative?: boolean;
     negativescore?: number;
     created_by?: number;
-    
-    // Keep backward compatibility with existing fields
     campaign_max_score?: number;
     criteria_name?: string;
     criteria_max_score?: number;

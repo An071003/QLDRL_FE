@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 interface Faculty {
   id: number;
   name: string;
+  faculty_abbr?: string;
   description?: string;
   created_at?: string;
   updated_at?: string;
@@ -71,32 +72,25 @@ export default function AdvisorFacultiesPage() {
 
   const sortedAndFilteredFaculties = useMemo(() => {
     if (!Array.isArray(faculties)) return [];
-    
+
     // Filter faculties
-    const filtered = faculties.filter(faculty => 
-      faculty.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      faculty.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    const filtered = faculties.filter(faculty =>
+            faculty.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||      faculty.faculty_abbr?.toLowerCase().includes(searchTerm.toLowerCase())
     );
-    
+
     // Sort faculties
     if (sortField) {
       return [...filtered].sort((a, b) => {
         let valueA: any;
         let valueB: any;
-        
+
         switch (sortField) {
-          case 'id':
-            valueA = a.id;
-            valueB = b.id;
-            return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
+          case 'faculty_abbr': valueA = a.faculty_abbr || ''; valueB = b.faculty_abbr || ''; break;
           case 'name':
             valueA = a.name || '';
             valueB = b.name || '';
             break;
-          case 'description':
-            valueA = a.description || '';
-            valueB = b.description || '';
-            break;
+          
           case 'class_count':
             valueA = a.class_count || 0;
             valueB = b.class_count || 0;
@@ -108,17 +102,17 @@ export default function AdvisorFacultiesPage() {
           default:
             return 0;
         }
-        
+
         if (typeof valueA === 'string' && typeof valueB === 'string') {
-          return sortDirection === 'asc' 
-            ? valueA.localeCompare(valueB) 
+          return sortDirection === 'asc'
+            ? valueA.localeCompare(valueB)
             : valueB.localeCompare(valueA);
         }
-        
+
         return 0;
       });
     }
-    
+
     return filtered;
   }, [faculties, searchTerm, sortField, sortDirection]);
 
@@ -140,86 +134,60 @@ export default function AdvisorFacultiesPage() {
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Quản lý khoa</h1>
-      
+
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
         <input
           type="text"
-          placeholder="Tìm theo tên khoa hoặc mô tả..."
+          placeholder="Tìm theo tên hoặc mã khoa..."
           onChange={handleSearchChange}
           className="px-4 py-2 border border-gray-300 rounded w-full md:w-1/3"
         />
       </div>
-      
+
       <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
-              <tr>
-                <th 
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
-                  onClick={() => handleSort('id')}
-                >
-                  Mã khoa {sortField === 'id' && (sortDirection === 'asc' ? '▲' : '▼')}
-                </th>
-                <th 
+              <tr>                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"                >                  STT                </th>                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => handleSort('faculty_abbr')}                >                  Mã khoa {sortField === 'faculty_abbr' && (sortDirection === 'asc' ? '▲' : '▼')}                </th>
+                <th
                   className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
                   onClick={() => handleSort('name')}
                 >
                   Tên khoa {sortField === 'name' && (sortDirection === 'asc' ? '▲' : '▼')}
                 </th>
-                <th 
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
-                  onClick={() => handleSort('description')}
-                >
-                  Mô tả {sortField === 'description' && (sortDirection === 'asc' ? '▲' : '▼')}
-                </th>
-                <th 
+                
+                {/* <th
                   className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
                   onClick={() => handleSort('class_count')}
                 >
                   Số lớp {sortField === 'class_count' && (sortDirection === 'asc' ? '▲' : '▼')}
                 </th>
-                <th 
+                <th
                   className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
                   onClick={() => handleSort('student_count')}
                 >
                   Số sinh viên {sortField === 'student_count' && (sortDirection === 'asc' ? '▲' : '▼')}
-                </th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                  Thao tác
-                </th>
+                </th> */}
+
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {paginatedFaculties.map((faculty) => (
-                <tr key={faculty.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 whitespace-nowrap">{faculty.id}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="max-w-xs truncate" title={faculty.name}>{faculty.name}</div>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="max-w-xs truncate" title={faculty.description}>{faculty.description || 'Không có mô tả'}</div>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">{faculty.class_count || 0}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">{faculty.student_count || 0}</td>
-                  <td className="px-4 py-3 text-center whitespace-nowrap">
-                    <button
-                      onClick={() => router.push(`/uit/advisor/faculties/${faculty.id}`)}
-                      className="bg-blue-500 hover:bg-blue-700 text-white text-sm py-1 px-3 rounded inline-flex items-center gap-1"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                      Xem lớp
-                    </button>
-                  </td>
-                </tr>
-              ))}
+            <tbody className="bg-white divide-y divide-gray-200">                {paginatedFaculties.map((faculty, index) => (<tr key={faculty.id} className="hover:bg-gray-50">                    <td className="px-4 py-3 whitespace-nowrap">{(currentPage - 1) * itemsPerPage + index + 1}</td>                    <td className="px-4 py-3 whitespace-nowrap">{faculty.faculty_abbr || `-`}</td>                    <td className="px-4 py-3 whitespace-nowrap">
+              <div className="max-w-xs truncate" title={faculty.name}>{faculty.name}</div>
+            </td>
+              
+              {/* <td className="px-4 py-3 whitespace-nowrap">
+                {faculty.class_count || 0}
+
+              </td>
+              <td className="px-4 py-3 whitespace-nowrap">
+                {faculty.student_count || 0}
+              </td> */}
+            </tr>
+            ))}
             </tbody>
           </table>
         </div>
-        
+
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="px-4 py-3 flex items-center justify-between border-t border-gray-200">
@@ -227,22 +195,20 @@ export default function AdvisorFacultiesPage() {
               <button
                 onClick={() => goToPage(currentPage - 1)}
                 disabled={currentPage === 1}
-                className={`relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-md ${
-                  currentPage === 1 
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                className={`relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-md ${currentPage === 1
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : 'bg-white text-gray-700 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 Trước
               </button>
               <button
                 onClick={() => goToPage(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className={`relative inline-flex items-center px-4 py-2 ml-3 text-sm font-medium rounded-md ${
-                  currentPage === totalPages
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                className={`relative inline-flex items-center px-4 py-2 ml-3 text-sm font-medium rounded-md ${currentPage === totalPages
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : 'bg-white text-gray-700 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 Sau
               </button>
@@ -262,37 +228,34 @@ export default function AdvisorFacultiesPage() {
                   <button
                     onClick={() => goToPage(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 text-sm font-medium ${
-                      currentPage === 1 
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                    className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 text-sm font-medium ${currentPage === 1
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                       : 'bg-white text-gray-500 hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     &laquo;
                   </button>
-                  
+
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                     <button
                       key={page}
                       onClick={() => goToPage(page)}
-                      className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium ${
-                        page === currentPage
+                      className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium ${page === currentPage
                         ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
                         : 'bg-white text-gray-500 hover:bg-gray-50'
-                      }`}
+                        }`}
                     >
                       {page}
                     </button>
                   ))}
-                  
+
                   <button
                     onClick={() => goToPage(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 text-sm font-medium ${
-                      currentPage === totalPages
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                    className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 text-sm font-medium ${currentPage === totalPages
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                       : 'bg-white text-gray-500 hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     &raquo;
                   </button>

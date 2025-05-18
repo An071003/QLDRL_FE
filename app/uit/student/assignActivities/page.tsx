@@ -4,7 +4,7 @@ import { StudentLayout } from "@/components/layout/student";
 import type { Activity } from "@/types/activity";
 import api from "@/lib/api";
 import { useEffect, useState } from "react";
-import { Tabs, Table, Button, message, Tooltip } from "antd";
+import { Tabs, Table, Button, message, Tooltip, Empty } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { TabsProps } from "antd";
 
@@ -15,6 +15,7 @@ export default function AssignActivitiesPage() {
     const [registeredActivities, setRegisteredActivities] = useState<Activity[]>([]);
     const [selectedToRegister, setSelectedToRegister] = useState<number[]>([]);
     const [selectedToCancel, setSelectedToCancel] = useState<number[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
 
     const columns: ColumnsType<Activity> = [
         { 
@@ -61,16 +62,21 @@ export default function AssignActivitiesPage() {
             fetchRegisteredActivities(studentId);
         } catch (err) {
             console.error("Không thể lấy thông tin sinh viên:", err);
+            setLoading(false);
         }
     };
 
 
     const fetchAvailableActivities = async (id: string) => {
+        setLoading(true);
         try {
             const res = await api.get(`/api/student-activities/${id}/available`);
             setAvailableActivities(res.data.data);
         } catch (err) {
             console.error("Lỗi khi lấy hoạt động chưa đăng ký:", err);
+            message.error("Không thể tải hoạt động khả dụng");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -82,6 +88,7 @@ export default function AssignActivitiesPage() {
             setRegisteredActivities(filtered);
         } catch (err) {
             console.error("Lỗi khi lấy hoạt động đã đăng ký:", err);
+            message.error("Không thể tải hoạt động đã đăng ký");
         }
     };
 
@@ -97,7 +104,6 @@ export default function AssignActivitiesPage() {
             fetchAvailableActivities(studentId);
             fetchRegisteredActivities(studentId);
         } catch (err) {
-            console.error("Lỗi khi đăng ký:", err);
             message.error("Lỗi khi đăng ký");
         }
     };
@@ -112,7 +118,6 @@ export default function AssignActivitiesPage() {
             fetchAvailableActivities(studentId);
             fetchRegisteredActivities(studentId);
         } catch (err) {
-            console.error("Lỗi khi hủy:", err);
             message.error("Lỗi khi hủy đăng ký");
         }
     };
@@ -123,21 +128,31 @@ export default function AssignActivitiesPage() {
             label: "Đăng ký",
             children: (
                 <>
-                    <Table
-                        rowKey="id"
-                        columns={columns}
-                        dataSource={availableActivities}
-                        rowSelection={{
-                            selectedRowKeys: selectedToRegister,
-                            onChange: (keys) => setSelectedToRegister(keys as number[]),
-                        }}
-                        pagination={false}
-                    />
-                    <div className="text-right mt-4">
-                        <Button type="primary" disabled={!selectedToRegister.length} onClick={handleRegister}>
-                            Đăng ký
-                        </Button>
-                    </div>
+                    {availableActivities.length > 0 ? (
+                        <>
+                            <Table
+                                rowKey="id"
+                                columns={columns}
+                                dataSource={availableActivities}
+                                rowSelection={{
+                                    selectedRowKeys: selectedToRegister,
+                                    onChange: (keys) => setSelectedToRegister(keys as number[]),
+                                }}
+                                pagination={false}
+                                loading={loading}
+                            />
+                            <div className="text-right mt-4">
+                                <Button type="primary" disabled={!selectedToRegister.length} onClick={handleRegister}>
+                                    Đăng ký
+                                </Button>
+                            </div>
+                        </>
+                    ) : (
+                        <Empty 
+                            description={loading ? "Đang tải..." : "Không có hoạt động nào khả dụng để đăng ký"} 
+                            className="py-12"
+                        />
+                    )}
                 </>
             ),
         },
@@ -146,21 +161,31 @@ export default function AssignActivitiesPage() {
             label: "Hủy",
             children: (
                 <>
-                    <Table
-                        rowKey="id"
-                        columns={columns}
-                        dataSource={registeredActivities}
-                        rowSelection={{
-                            selectedRowKeys: selectedToCancel,
-                            onChange: (keys) => setSelectedToCancel(keys as number[]),
-                        }}
-                        pagination={false}
-                    />
-                    <div className="text-right mt-4">
-                        <Button danger disabled={!selectedToCancel.length} onClick={handleCancel}>
-                            Hủy đăng ký
-                        </Button>
-                    </div>
+                    {registeredActivities.length > 0 ? (
+                        <>
+                            <Table
+                                rowKey="id"
+                                columns={columns}
+                                dataSource={registeredActivities}
+                                rowSelection={{
+                                    selectedRowKeys: selectedToCancel,
+                                    onChange: (keys) => setSelectedToCancel(keys as number[]),
+                                }}
+                                pagination={false}
+                                loading={loading}
+                            />
+                            <div className="text-right mt-4">
+                                <Button danger disabled={!selectedToCancel.length} onClick={handleCancel}>
+                                    Hủy đăng ký
+                                </Button>
+                            </div>
+                        </>
+                    ) : (
+                        <Empty 
+                            description={loading ? "Đang tải..." : "Bạn chưa đăng ký hoạt động nào"} 
+                            className="py-12"
+                        />
+                    )}
                 </>
             ),
         },

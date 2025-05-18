@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import ExcelJS from "exceljs";
 import { toast } from "sonner";
-import { UploadCloud, Download, Trash2, Check, X, RefreshCw, Plus, SquarePen } from "lucide-react";
+import { UploadCloud, Download, Trash, RefreshCw, Plus, SquarePen } from "lucide-react";
 import { Tooltip } from "antd";
 import Loading from "../Loading";
 import { Campaign } from "@/types/campaign";
@@ -663,15 +663,13 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
                               onClick={handleSaveEdit}
                               className="text-green-600 hover:text-green-800 flex items-center space-x-1"
                             >
-                              <Check size={16} />
-                              <span>Lưu</span>
+                              Lưu
                             </button>
                             <button
                               onClick={handleCancelEdit}
                               className="text-gray-500 hover:text-gray-700 flex items-center space-x-1"
                             >
-                              <X size={16} />
-                              <span>Hủy</span>
+                              Hủy
                             </button>
                           </>
                         ) : (
@@ -691,7 +689,7 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
                                 className="text-red-600 hover:text-red-800 flex items-center space-x-1"
                                 disabled={editingIndex !== null}
                               >
-                                <Trash2 size={20} />
+                                <Trash size={20} />
                               </button>
                             </Tooltip>
                           </>

@@ -9,17 +9,7 @@ import Loading from '@/components/Loading';
 import { toast } from 'sonner';
 import debounce from 'lodash.debounce';
 
-interface Activity {
-  id: number;
-  name: string;
-  point: number;
-  max_participants?: number;
-  number_students: number;
-  status: "ongoing" | "expired";
-  registration_start?: string;
-  registration_end?: string;
-  campaign_id: number;
-}
+interface Activity {  id: number;  name: string;  point: number;  max_participants?: number;  number_students: number;  status: "ongoing" | "expired";  registration_start?: string;  registration_end?: string;  campaign_id: number;  approver_id: number | null;}
 
 interface Campaign {
   id: number;
@@ -27,7 +17,6 @@ interface Campaign {
   max_score: number;
   semester_no: number;
   academic_year: string;
-  status: string;
   Criteria?: {
     id: number;
     name: string;
@@ -60,15 +49,24 @@ export default function AdvisorCampaignActivitiesPage() {
       const campaignRes = await api.get(`/api/campaigns/${campaignId}`);
       setCampaign(campaignRes.data.data.campaign);
       
-      // Fetch activities in this campaign
-      const activitiesRes = await api.get(`/api/campaigns/${campaignId}/activities`);
-      if (Array.isArray(activitiesRes.data.data)) {
-        setActivities(activitiesRes.data.data);
-      } else if (activitiesRes.data.data.activities) {
-        setActivities(activitiesRes.data.data.activities);
+      // Fetch all activities and filter by campaign_id
+      const activitiesRes = await api.get(`/api/activities`);
+      let allActivities;
+      
+      if (activitiesRes.data.data.activities) {
+        allActivities = activitiesRes.data.data.activities;
+      } else if (Array.isArray(activitiesRes.data.data)) {
+        allActivities = activitiesRes.data.data;
       } else {
-        setActivities([]);
+        allActivities = [];
       }
+      
+      // Filter activities by campaign_id
+      const campaignActivities = allActivities.filter((activity: Activity) => 
+        activity.campaign_id === parseInt(campaignId as string) && activity.approver_id !== null
+      );
+      
+      setActivities(campaignActivities);
     } catch (err) {
       console.error('Failed to fetch data:', err);
       toast.error('Không thể tải dữ liệu phong trào và hoạt động');
@@ -106,7 +104,7 @@ export default function AdvisorCampaignActivitiesPage() {
 
   const columns = [
     {
-      title: 'Mã',
+      title: 'STT',
       dataIndex: 'id',
       key: 'id',
       sorter: (a: Activity, b: Activity) => a.id - b.id,
@@ -176,7 +174,7 @@ export default function AdvisorCampaignActivitiesPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Hoạt động thuộc phong trào {campaign?.name}</h1>
+        <h1 className="text-3xl font-bold max-w-5xl">Hoạt động thuộc phong trào {campaign?.name}</h1>
         <button
           className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
           onClick={() => window.history.back()}>
@@ -202,14 +200,6 @@ export default function AdvisorCampaignActivitiesPage() {
             <div>
               <p className="text-gray-500">Học kỳ:</p>
               <p className="font-medium">Học kỳ {campaign.semester_no} - {campaign.academic_year}</p>
-            </div>
-            <div>
-              <p className="text-gray-500">Trạng thái:</p>
-              <p className="font-medium">
-                <Tag color={campaign.status === 'active' ? 'green' : 'gray'}>
-                  {campaign.status === 'active' ? 'Đang hoạt động' : 'Đã kết thúc'}
-                </Tag>
-              </p>
             </div>
           </div>
         </div>

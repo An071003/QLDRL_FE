@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Tooltip } from "antd";
-import { Check, Edit, Trash2, X, ReceiptText } from "lucide-react";
+import { Edit, Trash, ReceiptText } from "lucide-react";
 import { Class } from "@/types/class";
 import { Faculty } from "@/types/faculty";
 import api from "@/lib/api";
@@ -148,7 +148,7 @@ export default function ClassTable({
                           className="text-green-600 hover:text-green-800"
                           disabled={loading}
                         >
-                          <Check size={20} />
+                          Lưu
                         </button>
                       </Tooltip>
                       <Tooltip title="Hủy">
@@ -157,7 +157,7 @@ export default function ClassTable({
                           className="text-gray-600 hover:text-gray-800"
                           disabled={loading}
                         >
-                          <X size={20} />
+                          Hủy
                         </button>
                       </Tooltip>
                     </>
@@ -184,7 +184,7 @@ export default function ClassTable({
                           onClick={() => onDeleteClass(classItem.id)}
                           className="text-red-600 hover:text-red-800"
                         >
-                          <Trash2 size={20} />
+                          <Trash size={20} />
                         </button>
                       </Tooltip>
                     </>

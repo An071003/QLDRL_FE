@@ -8,20 +8,25 @@ import { Campaign } from "@/types/campaign";
 import ActivityForm from "@/components/form/ActivityForm";
 import ActivityImport from "@/components/Import/ActivityImport";
 import ActivityTable from "@/components/Table/ActivityTable";
+import PendingActivityTable from "@/components/Table/PendingActivityTable";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import Loading from "@/components/Loading";
+import { Tabs, Tab } from "@/components/Tabs";
+import { ArrowDownUp } from "lucide-react";
 
 export default function ActivityManagement() {
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [pendingActivities, setPendingActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeComponent, setActiveComponent] = useState<"form" | "import" | "table">("table");
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSemester, setSelectedSemester] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<string>("approved");
   
   // Lấy danh sách campaign_id đang được sử dụng trong activities
   const usedCampaignIds = Array.from(new Set(activities.map(a => a.campaign_id)));
@@ -51,7 +56,7 @@ export default function ActivityManagement() {
   const tableRef = useRef<HTMLDivElement>(null);
 
   // Hàm chung để tải dữ liệu
-  const loadData = async () => {
+  const fetchActivities = async () => {
     setLoading(true);
     try {
       // Tải campaigns trước
@@ -59,18 +64,18 @@ export default function ActivityManagement() {
       const campaignsData = campaignsRes.data.data.campaigns;
       setCampaigns(campaignsData);
       
-      // Sau đó tải activities và kết hợp với thông tin campaigns
+      // Sau đó tải toàn bộ activities
       const activitiesRes = await api.get("/api/activities");
-      let activitiesData;
+      let allActivities;
       
       if (activitiesRes.data.data.activities) {
-        activitiesData = activitiesRes.data.data.activities;
+        allActivities = activitiesRes.data.data.activities;
       } else {
-        activitiesData = activitiesRes.data.data;
+        allActivities = activitiesRes.data.data;
       }
       
       // Thêm thông tin campaign_name vào activities
-      activitiesData = activitiesData.map((activity: Partial<Activity>) => {
+      allActivities = allActivities.map((activity: Partial<Activity>) => {
         const campaign = campaignsData.find((c: Campaign) => c.id === activity.campaign_id);
         return {
           ...activity,
@@ -81,7 +86,12 @@ export default function ActivityManagement() {
         };
       });
       
-      setActivities(activitiesData);
+      // Phân loại activities thành đã duyệt và chưa duyệt
+      const approved = allActivities.filter((activity: Activity) => activity.approver_id !== null);
+      const pending = allActivities.filter((activity: Activity) => activity.approver_id === null);
+      
+      setActivities(approved);
+      setPendingActivities(pending);
     } catch (error) {
       console.error("Lỗi khi tải dữ liệu:", error);
       toast.error("Không thể tải dữ liệu. Vui lòng thử lại sau.");
@@ -91,7 +101,7 @@ export default function ActivityManagement() {
   };
 
   useEffect(() => {
-    loadData();
+    fetchActivities();
   }, []);
 
   const handleCreateActivity = async (newActivity: {
@@ -119,7 +129,7 @@ export default function ActivityManagement() {
     
     try {
       await api.post("/api/activities", newActivity);
-      await loadData();
+      await fetchActivities();
       setActiveComponent("table");
       toast.success("Thêm hoạt động thành công 🎉");
       return { success: true };
@@ -139,7 +149,7 @@ export default function ActivityManagement() {
     if (selectedId === null) return;
     try {
       await api.delete(`/api/activities/${selectedId}`);
-      await loadData();
+      await fetchActivities();
       toast.success("Xóa hoạt động thành công ✅");
     } catch (error) {
       console.error(error);
@@ -177,7 +187,7 @@ export default function ActivityManagement() {
     
     try {
       await api.put(`/api/activities/${id}`, updatedActivity);
-      await loadData();
+      await fetchActivities();
       toast.success("Cập nhật hoạt động thành công ✨");
     } catch (error) {
       console.error(error);
@@ -196,7 +206,7 @@ export default function ActivityManagement() {
   }[]) => {
     try {
       await api.post("/api/activities/import", importedActivities);
-      await loadData();
+      await fetchActivities();
       setActiveComponent("table");
       toast.success("Import hoạt động thành công 🚀");
       return { success: true };
@@ -241,6 +251,32 @@ export default function ActivityManagement() {
   const changePage = (page: number) => {
     setCurrentPage(page);
     tableRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // Handle approve activity
+  const handleApproveActivity = async (id: number) => {
+    try {
+      await api.put(`/api/activities/${id}/approve`);
+      toast.success("Phê duyệt hoạt động thành công");
+      fetchActivities();
+    } catch (error) {
+      console.error("Error approving activity:", error);
+      toast.error("Lỗi khi phê duyệt hoạt động");
+      throw error;
+    }
+  };
+
+  // Handle reject activity
+  const handleRejectActivity = async (id: number) => {
+    try {
+      await api.put(`/api/activities/${id}/reject`);
+      toast.success("Từ chối hoạt động thành công");
+      fetchActivities();
+    } catch (error) {
+      console.error("Error rejecting activity:", error);
+      toast.error("Lỗi khi từ chối hoạt động");
+      throw error;
+    }
   };
 
   const renderComponent = () => {
@@ -294,16 +330,46 @@ export default function ActivityManagement() {
               </div>
             </div>
 
-            <ActivityTable
-              currentcampaigns={campaigns}
-              activities={currentActivities}
-              onDeleteActivity={openDeleteModal}
-              onUpdateActivity={handleUpdateActivity}
-              onSortPoint={handleSortPoint}
-              sortOrder={sortOrder}
-            />
+            {/* Tabs for Approved vs Pending Activities */}
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <Tab value="approved" title="Đã phê duyệt">
+                <div className="mt-4">
+                  {filteredActivities.length > 0 ? (
+                    <ActivityTable
+                      currentcampaigns={campaigns}
+                      activities={currentActivities}
+                      onDeleteActivity={openDeleteModal}
+                      onUpdateActivity={handleUpdateActivity}
+                      onSortPoint={handleSortPoint}
+                      sortOrder={sortOrder}
+                    />
+                  ) : (
+                    <div className="bg-white p-6 rounded-lg shadow text-center">
+                      <p className="text-gray-500">Không có hoạt động nào đã được phê duyệt</p>
+                    </div>
+                  )}
+                </div>
+              </Tab>
+              <Tab value="pending" title={`Chờ phê duyệt (${pendingActivities.length})`}>
+                <div className="mt-4">
+                  {pendingActivities.length > 0 ? (
+                    <PendingActivityTable
+                      currentcampaigns={campaigns}
+                      activities={pendingActivities}
+                      onApproveActivity={handleApproveActivity}
+                      onRejectActivity={handleRejectActivity}
+                      onUpdateActivity={handleUpdateActivity}
+                    />
+                  ) : (
+                    <div className="bg-white p-6 rounded-lg shadow text-center">
+                      <p className="text-gray-500">Không có hoạt động nào đang chờ phê duyệt</p>
+                    </div>
+                  )}
+                </div>
+              </Tab>
+            </Tabs>
 
-            {filteredActivities.length > itemsPerPage && (
+            {filteredActivities.length > itemsPerPage && activeTab === "approved" && (
               <div className="flex justify-center mt-6 space-x-2">
                 <button
                   onClick={() => changePage(currentPage - 1)}

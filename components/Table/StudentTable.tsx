@@ -1,7 +1,7 @@
 "use client";
 
 import { Tooltip } from "antd";
-import { ReceiptText, Trash2, SquarePen } from "lucide-react";
+import { ReceiptText, Trash, SquarePen } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Student } from "@/types/student";
@@ -250,7 +250,7 @@ export default function StudentTable({
                         onClick={() => onDeleteStudent(student.student_id)}
                         className="text-red-600 hover:text-red-800"
                       >
-                        <Trash2 size={20} />
+                        <Trash size={20} />
                       </button>
                     </Tooltip>
                   </>

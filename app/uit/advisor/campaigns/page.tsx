@@ -5,16 +5,15 @@ import { toast } from "sonner";
 import api from "@/lib/api";
 import Loading from "@/components/Loading";
 import { useRouter } from 'next/navigation';
-import debounce from 'lodash.debounce';
 
 interface Campaign {
   id: number;
   name: string;
   max_score: number;
+  criteria_id: number;
   semester_no: number;
   academic_year: string;
   status: string;
-  activity_count?: number;
   Criteria?: {
     id: number;
     name: string;
@@ -99,10 +98,6 @@ export default function AdvisorCampaignManagement() {
           valueA = a.max_score || 0;
           valueB = b.max_score || 0;
           return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
-        case 'activity_count':
-          valueA = a.activity_count || 0;
-          valueB = b.activity_count || 0;
-          return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
         case 'semester':
           valueA = `${a.semester_no} ${a.academic_year}`;
           valueB = `${b.semester_no} ${b.academic_year}`;
@@ -163,7 +158,7 @@ export default function AdvisorCampaignManagement() {
                   className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
                   onClick={() => handleSort('id')}
                 >
-                  Mã {sortField === 'id' && (sortDirection === 'asc' ? '▲' : '▼')}
+                  STT {sortField === 'id' && (sortDirection === 'asc' ? '▲' : '▼')}
                 </th>
                 <th 
                   className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
@@ -190,12 +185,6 @@ export default function AdvisorCampaignManagement() {
                   Điểm tối đa {sortField === 'max_score' && (sortDirection === 'asc' ? '▲' : '▼')}
                 </th>
                 <th 
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
-                  onClick={() => handleSort('activity_count')}
-                >
-                  Số hoạt động {sortField === 'activity_count' && (sortDirection === 'asc' ? '▲' : '▼')}
-                </th>
-                <th 
                   className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
                 >
                   Trạng thái
@@ -219,7 +208,6 @@ export default function AdvisorCampaignManagement() {
                     Học kỳ {campaign.semester_no} - {campaign.academic_year}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">{campaign.max_score}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">{campaign.activity_count || 0}</td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <span className={`px-2 py-1 rounded inline-flex text-xs leading-5 font-semibold ${
                       campaign.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'

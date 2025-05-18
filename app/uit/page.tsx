@@ -32,7 +32,7 @@ export default function DashboardPage() {
     } else if (role === "student") {
       router.push("/uit/student");
     } else if (role === "advisor") {
-      router.push("/uit/advisor/students");
+      router.push("/uit/advisor/profile");
     } else {
       router.push("/login");
     }

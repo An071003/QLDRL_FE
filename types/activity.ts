@@ -24,4 +24,14 @@ export interface Activity {
     semester_no: number;
     academic_year: string;
   };
+  Creator?: {
+    id: number;
+    user_name: string;
+    email: string;
+  };
+  Approver?: {
+    id: number;
+    user_name: string;
+    email: string;
+  };
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from 'react';
-import { UploadCloud, Trash2, Check, X, RefreshCw, Plus, SquarePen, Download } from "lucide-react";
+import { UploadCloud, Trash, Check, X, RefreshCw, Plus, SquarePen, Download } from "lucide-react";
 import ExcelJS from 'exceljs';
 import { toast } from 'sonner';
 import { Tooltip } from 'antd';
@@ -587,15 +587,13 @@ export default function UserImport({
                               onClick={handleSaveEdit}
                               className="text-green-600 hover:text-green-800 flex items-center space-x-1"
                             >
-                              <Check size={16} />
-                              <span>Lưu</span>
+                              Lưu
                             </button>
                             <button
                               onClick={handleCancelEdit}
                               className="text-gray-500 hover:text-gray-700 flex items-center space-x-1"
                             >
-                              <X size={16} />
-                              <span>Hủy</span>
+                              Hủy
                             </button>
                           </>
                         ) : (
@@ -613,7 +611,7 @@ export default function UserImport({
                                 onClick={() => handleDeleteRow(index)}
                                 className="text-red-600 hover:text-red-800 flex items-center space-x-1"
                               >
-                                <Trash2 size={16} />
+                                <Trash size={16} />
                               </button>
                             </Tooltip>
                           </>
