@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Tooltip } from "antd";
-import { Check, Edit, Trash2, X } from "lucide-react";
+import { Check, Edit, Trash2, X, ReceiptText } from "lucide-react";
 import { Class } from "@/types/class";
 import { Faculty } from "@/types/faculty";
 import api from "@/lib/api";
@@ -19,6 +20,7 @@ export default function ClassTable({
   onEditClass,
   onDeleteClass,
 }: Props) {
+  const router = useRouter();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [editFacultyId, setEditFacultyId] = useState<number>(0);
@@ -46,6 +48,10 @@ export default function ClassTable({
     setEditName(classItem.name);
     setEditFacultyId(classItem.faculty_id);
     setEditCohort(classItem.cohort);
+  };
+
+  const handleViewDetail = (classId: number) => {
+    router.push(`/uit/admin/classes/${classId}`);
   };
 
   const handleSave = async (id: number) => {
@@ -157,6 +163,14 @@ export default function ClassTable({
                     </>
                   ) : (
                     <>
+                      <Tooltip title="Xem chi tiết">
+                        <button
+                          onClick={() => handleViewDetail(classItem.id)}
+                          className="text-green-600 hover:text-green-800"
+                        >
+                          <ReceiptText size={20} />
+                        </button>
+                      </Tooltip>
                       <Tooltip title="Chỉnh sửa lớp">
                         <button
                           onClick={() => handleEdit(classItem)}

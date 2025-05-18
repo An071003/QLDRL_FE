@@ -9,6 +9,7 @@ import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
 import { Advisor, Faculty } from '@/types/advisor';
 import AdvisorTable from '@/components/Table/AdvisorTable';
 import AdvisorForm from '@/components/form/AdvisorForm';
+import AdvisorImport from '@/components/Import/AdvisorImport';
 
 export default function AdvisorManagementPage() {
   const [advisors, setAdvisors] = useState<Advisor[]>([]);
@@ -18,17 +19,15 @@ export default function AdvisorManagementPage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [advisorIdToDelete, setAdvisorIdToDelete] = useState<number | null>(null);
   const [editingAdvisorId, setEditingAdvisorId] = useState<number | null>(null);
-  const [activeComponent, setActiveComponent] = useState<'table' | 'form'>('table');
+  const [activeComponent, setActiveComponent] = useState<'table' | 'form' | 'import'>('table');
   
   // Edit state for inline editing
   const [editData, setEditData] = useState<{
     name: string;
-    user_id: string;
     faculty_id: string;
     phone: string;
   }>({
     name: '',
-    user_id: '',
     faculty_id: '',
     phone: '',
   });
@@ -89,7 +88,6 @@ export default function AdvisorManagementPage() {
     setEditingAdvisorId(advisor.id);
     setEditData({
       name: advisor.name || '',
-      user_id: advisor.user_id?.toString() || '',
       faculty_id: advisor.faculty_id?.toString() || '',
       phone: advisor.phone || '',
     });
@@ -98,13 +96,10 @@ export default function AdvisorManagementPage() {
   const handleSaveEdit = async (id: number) => {
     setLoading(true);
     try {
-      const userId = editData.user_id ? parseInt(editData.user_id) : null;
-      
       await api.put(`/api/advisors/${id}`, {
         name: editData.name,
-        user_id: userId,
         faculty_id: editData.faculty_id ? parseInt(editData.faculty_id) : null,
-        phone: editData.phone || null
+        phone: editData.phone || null,
       });
       
       toast.success('Cập nhật cố vấn học tập thành công!');
@@ -145,6 +140,29 @@ export default function AdvisorManagementPage() {
     }
   };
 
+  const handleImportAdvisors = async (advisors: any[]): Promise<{ success: boolean }> => {
+    try {
+      const res = await api.post('/api/advisors/import', { advisors });
+      
+      if (res.data.status === 'success' || res.data.status === 'partial') {
+        const successMessage = res.data.status === 'success' 
+          ? 'Tất cả cố vấn đã được import thành công!' 
+          : res.data.message;
+        
+        toast.success(successMessage);
+        fetchAdvisors();
+        return { success: true };
+      } else {
+        toast.error(res.data.message || 'Lỗi khi import cố vấn');
+        return { success: false };
+      }
+    } catch (err: any) {
+      const errorMsg = err?.response?.data?.message || 'Lỗi khi import cố vấn học tập';
+      toast.error(errorMsg);
+      return { success: false };
+    }
+  };
+
   const debouncedSearch = useMemo(
     () => debounce((value: string) => setSearchTerm(value), 300),
     []
@@ -159,7 +177,9 @@ export default function AdvisorManagementPage() {
       (advisor) =>
         (advisor.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         (advisor.Faculty?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        (advisor.phone?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+        (advisor.phone?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (advisor.User?.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (advisor.User?.username?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     );
   }, [advisors, searchTerm]);
 
@@ -173,6 +193,13 @@ export default function AdvisorManagementPage() {
             onAdvisorCreated={handleCreateAdvisor} 
             setLoading={setLoading} 
             onCancel={() => setActiveComponent('table')}
+          />
+        );
+      case 'import':
+        return (
+          <AdvisorImport
+            onAdvisorsImported={handleImportAdvisors}
+            setLoadingManager={setLoading}
           />
         );
       default:
@@ -206,16 +233,24 @@ export default function AdvisorManagementPage() {
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
           <input
             type="text"
-            placeholder="Tìm theo tên cố vấn, khoa hoặc số điện thoại..."
+            placeholder="Tìm kiếm cố vấn học tập..."
             onChange={handleSearchChange}
             className="px-4 py-2 border border-gray-300 rounded w-full md:w-1/3"
           />
-          <button
-            onClick={() => setActiveComponent('form')}
-            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-          >
-            + Thêm cố vấn học tập
-          </button>
+          <div className="flex gap-4">
+            <button
+              onClick={() => setActiveComponent('form')}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              + Thêm cố vấn học tập
+            </button>
+            <button
+              onClick={() => setActiveComponent('import')}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              + Import cố vấn
+            </button>
+          </div>
         </div>
       ) : (
         <div className='flex justify-end mb-6'>

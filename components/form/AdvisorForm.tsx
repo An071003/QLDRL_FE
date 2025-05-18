@@ -13,14 +13,16 @@ export default function AdvisorForm({ onAdvisorCreated, setLoading, onCancel }: 
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [formData, setFormData] = useState<{
     name: string;
-    user_id: string;
     faculty_id: string;
     phone: string;
+    email: string;
+    username: string;
   }>({
     name: '',
-    user_id: '',
     faculty_id: '',
     phone: '',
+    email: '',
+    username: '',
   });
 
   useEffect(() => {
@@ -43,6 +45,17 @@ export default function AdvisorForm({ onAdvisorCreated, setLoading, onCancel }: 
     }
   };
 
+  const validatePhone = (phone: string): boolean => {
+    const phoneRegex = /^\d{10}$/;
+    return phoneRegex.test(phone);
+  };
+
+  const validateEmail = (email: string): boolean => {
+    if (!email) return true;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -56,15 +69,26 @@ export default function AdvisorForm({ onAdvisorCreated, setLoading, onCancel }: 
       return;
     }
 
+    if (formData.phone && !validatePhone(formData.phone)) {
+      toast.error('Số điện thoại phải có 10 chữ số');
+      return;
+    }
+
+    if (formData.email && !validateEmail(formData.email)) {
+      toast.error('Email không hợp lệ');
+      return;
+    }
+
     setLoading(true);
     try {
-      // Convert user_id to number or null
-      const userId = formData.user_id ? parseInt(formData.user_id) : null;
       const advisorData = {
         name: formData.name,
-        user_id: userId,
         faculty_id: parseInt(formData.faculty_id),
-        phone: formData.phone || null
+        phone: formData.phone || null,
+        user: {
+          email: formData.email || null,
+          username: formData.username || null
+        }
       };
       
       await onAdvisorCreated(advisorData);
@@ -79,9 +103,10 @@ export default function AdvisorForm({ onAdvisorCreated, setLoading, onCancel }: 
   const resetForm = () => {
     setFormData({
       name: '',
-      user_id: '',
       faculty_id: '',
       phone: '',
+      email: '',
+      username: '',
     });
   };
 
@@ -91,14 +116,6 @@ export default function AdvisorForm({ onAdvisorCreated, setLoading, onCancel }: 
         <h2 className="text-xl font-semibold">
           Thêm cố vấn học tập mới
         </h2>
-        {onCancel && (
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
-          >
-            Hủy
-          </button>
-        )}
       </div>
       
       <form onSubmit={handleSubmit}>
@@ -117,21 +134,30 @@ export default function AdvisorForm({ onAdvisorCreated, setLoading, onCancel }: 
         </div>
         
         <div className="mb-4">
-          <label htmlFor="user_id" className="block text-gray-700 font-medium mb-2">
-            ID Người dùng
+          <label htmlFor="username" className="block text-gray-700 font-medium mb-2">
+            Tên người dùng
           </label>
           <input
             type="text"
-            id="user_id"
-            value={formData.user_id}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (value === '' || /^\d+$/.test(value)) {
-                setFormData({ ...formData, user_id: value });
-              }
-            }}
+            id="username"
+            value={formData.username}
+            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
             className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Nhập ID người dùng (nếu có)"
+            placeholder="Nhập tên người dùng"
+          />
+        </div>
+        
+        <div className="mb-4">
+          <label htmlFor="email" className="block text-gray-700 font-medium mb-2">
+            Email
+          </label>
+          <input
+            type="email"
+            id="email"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Nhập địa chỉ email"
           />
         </div>
         
@@ -143,10 +169,17 @@ export default function AdvisorForm({ onAdvisorCreated, setLoading, onCancel }: 
             type="text"
             id="phone"
             value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value === '' || /^\d{0,10}$/.test(value)) {
+                setFormData({ ...formData, phone: value });
+              }
+            }}
             className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Nhập số điện thoại"
+            placeholder="Nhập số điện thoại (10 số)"
+            maxLength={10}
           />
+          <p className="text-xs text-gray-500 mt-1">Số điện thoại phải có đúng 10 chữ số</p>
         </div>
         
         <div className="mb-4">

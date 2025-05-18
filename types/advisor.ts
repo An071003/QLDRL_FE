@@ -1,6 +1,12 @@
 import { Faculty as FacultyType } from './faculty';
 import { Class as ClassType } from './class';
 
+export interface User {
+  id?: number;
+  email?: string;
+  username?: string;
+}
+
 export interface Advisor {
   id: number;
   name: string | null;
@@ -10,7 +16,9 @@ export interface Advisor {
   Faculty?: FacultyType & {
     faculty_name?: string;
   };
-  Class?: ClassType[];
+  Classes?: ClassType[];
+  Class?: ClassType[]; // For backward compatibility
+  User?: User;
   createdAt?: string;
   updatedAt?: string;
 }

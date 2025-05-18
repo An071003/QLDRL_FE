@@ -26,6 +26,7 @@ export default function StudentTable({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
+  const [editBirthdate, setEditBirthdate] = useState("");
   const [editStatus, setEditStatus] = useState<'none' | 'disciplined'>('none');
   const [editFacultyId, setEditFacultyId] = useState<string>("");
   const [editClassId, setEditClassId] = useState<string>("");
@@ -51,6 +52,15 @@ export default function StudentTable({
     setEditStatus(student.status);
     setEditFacultyId(student.faculty_id ? student.faculty_id.toString() : "");
     setEditClassId(student.class_id ? student.class_id.toString() : "");
+    
+    // Format the birthdate for the date input (YYYY-MM-DD)
+    if (student.birthdate) {
+      const date = new Date(student.birthdate);
+      const formattedDate = date.toISOString().split('T')[0];
+      setEditBirthdate(formattedDate);
+    } else {
+      setEditBirthdate("");
+    }
   };
 
   const handleCancel = () => {
@@ -71,6 +81,7 @@ export default function StudentTable({
     onUpdateStudent(id, {
       student_name: editName,
       phone: editPhone,
+      birthdate: editBirthdate || null,
       status: editStatus,
       faculty_id: editFacultyId ? parseInt(editFacultyId) : null,
       class_id: editClassId ? parseInt(editClassId) : null
@@ -89,6 +100,7 @@ export default function StudentTable({
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khoa</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lớp</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số điện thoại</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày sinh</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tổng DRL</th>
             <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Hành động</th>
@@ -163,6 +175,18 @@ export default function StudentTable({
                   />
                 ) : (
                   student.phone || "--"
+                )}
+              </td>
+              <td className="px-4 py-3 whitespace-nowrap">
+                {editingId === student.student_id ? (
+                  <input
+                    type="date"
+                    className="border px-2 py-1 rounded w-full"
+                    value={editBirthdate}
+                    onChange={(e) => setEditBirthdate(e.target.value)}
+                  />
+                ) : (
+                  student.birthdate ? new Date(student.birthdate).toLocaleDateString('vi-VN') : '--'
                 )}
               </td>
               <td className="px-4 py-3 whitespace-nowrap">

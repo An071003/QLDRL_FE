@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Tooltip } from "antd";
-import { Check, Edit, Trash2, X } from "lucide-react";
+import { Edit, ReceiptText, Trash } from "lucide-react";
 import { Faculty } from "@/types/faculty";
 
 interface Props {
@@ -16,6 +17,7 @@ export default function FacultyTable({
   onEditFaculty,
   onDeleteFaculty,
 }: Props) {
+  const router = useRouter();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editAbbr, setEditAbbr] = useState("");
   const [editName, setEditName] = useState("");
@@ -25,6 +27,10 @@ export default function FacultyTable({
     setEditingId(faculty.id);
     setEditAbbr(faculty.faculty_abbr);
     setEditName(faculty.name);
+  };
+
+  const handleViewDetail = (facultyId: number) => {
+    router.push(`/uit/admin/faculties/${facultyId}`);
   };
 
   const handleSave = async (id: number) => {
@@ -100,7 +106,7 @@ export default function FacultyTable({
                           className="text-green-600 hover:text-green-800"
                           disabled={loading}
                         >
-                          <Check size={20} />
+                          Lưu
                         </button>
                       </Tooltip>
                       <Tooltip title="Hủy">
@@ -109,12 +115,20 @@ export default function FacultyTable({
                           className="text-gray-600 hover:text-gray-800"
                           disabled={loading}
                         >
-                          <X size={20} />
+                          Hủy
                         </button>
                       </Tooltip>
                     </>
                   ) : (
                     <>
+                      <Tooltip title="Xem chi tiết">
+                        <button
+                          onClick={() => handleViewDetail(faculty.id)}
+                          className="text-green-600 hover:text-green-800"
+                        >
+                          <ReceiptText size={20} />
+                        </button>
+                      </Tooltip>
                       <Tooltip title="Chỉnh sửa khoa">
                         <button
                           onClick={() => handleEdit(faculty)}
@@ -128,7 +142,7 @@ export default function FacultyTable({
                           onClick={() => onDeleteFaculty(faculty.id)}
                           className="text-red-600 hover:text-red-800"
                         >
-                          <Trash2 size={20} />
+                          <Trash size={20} />
                         </button>
                       </Tooltip>
                     </>

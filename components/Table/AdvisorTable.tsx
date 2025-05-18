@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Advisor } from '@/types/advisor';
-import AdvisorClasses from '@/components/AdvisorClasses';
 import { ReceiptText, SquarePen, Trash } from 'lucide-react';
 import { Tooltip } from 'antd';
+import { toast } from 'sonner';
 
 interface AdvisorTableProps {
   advisors: Advisor[];
@@ -11,7 +11,6 @@ interface AdvisorTableProps {
   editingAdvisorId: number | null;
   editData: {
     name: string;
-    user_id: string;
     faculty_id: string;
     phone: string;
   };
@@ -37,6 +36,26 @@ export default function AdvisorTable({
 
   const handleViewDetail = (advisorId: number) => {
     router.push(`/uit/admin/advisors/${advisorId}`);
+  };
+
+  const validatePhoneInput = (value: string): boolean => {
+    return value === '' || /^\d{0,10}$/.test(value);
+  };
+
+  const validatePhone = (phone: string): boolean => {
+    if (!phone) return true;
+    const phoneRegex = /^\d{10}$/;
+    return phoneRegex.test(phone);
+  };
+
+
+  const handleSave = (id: number) => {
+    if (editData.phone && !validatePhone(editData.phone)) {
+      toast.error('Số điện thoại phải có 10 chữ số');
+      return;
+    }
+    
+    onSaveEdit(id);
   };
 
   return (
@@ -91,9 +110,15 @@ export default function AdvisorTable({
                     <input
                       type="text"
                       value={editData.phone}
-                      onChange={(e) => onEditDataChange({ ...editData, phone: e.target.value })}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (validatePhoneInput(value)) {
+                          onEditDataChange({ ...editData, phone: value });
+                        }
+                      }}
                       className="w-full px-2 py-1 border rounded-md"
                       placeholder="Nhập số điện thoại"
+                      maxLength={10}
                     />
                   ) : (
                     advisor.phone || ''
@@ -103,7 +128,7 @@ export default function AdvisorTable({
                   {editingAdvisorId === advisor.id ? (
                     <div className="flex justify-center space-x-3">
                       <button
-                        onClick={() => onSaveEdit(advisor.id)}
+                        onClick={() => handleSave(advisor.id)}
                         className="text-green-600 hover:text-green-900"
                       >
                         Lưu
@@ -117,7 +142,7 @@ export default function AdvisorTable({
                     </div>
                   ) : (
                     <div className="flex justify-center space-x-3">
-                      <Tooltip title="Xem danh sách sinh viên" placement="top">
+                      <Tooltip title="Xem chi tiết" placement="top">
                         <button
                           onClick={() => handleViewDetail(advisor.id)}
                           className="text-green-600 hover:text-green-900"

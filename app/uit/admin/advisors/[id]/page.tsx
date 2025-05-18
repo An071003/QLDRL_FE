@@ -26,7 +26,9 @@ export default function AdvisorDetailPage() {
         const res = await api.get(`/api/advisors/${advisorId}`);
         if (res.data.advisor) {
           setAdvisor(res.data.advisor);
-          if (res.data.advisor.Class && Array.isArray(res.data.advisor.Class)) {
+          if (res.data.advisor.Classes && Array.isArray(res.data.advisor.Classes)) {
+            setClasses(res.data.advisor.Classes);
+          } else if (res.data.advisor.Class && Array.isArray(res.data.advisor.Class)) {
             setClasses(res.data.advisor.Class);
           }
         } else {
@@ -71,12 +73,6 @@ export default function AdvisorDetailPage() {
       
       <div className="flex justify-end gap-4 mb-6">
         <button
-          className="px-4 py-2 cursor-pointer bg-blue-500 text-white rounded hover:bg-blue-700"
-          onClick={handleEditAdvisor}
-        >
-          Chỉnh sửa
-        </button>
-        <button
           className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
           onClick={() => router.push('/uit/admin/advisors')}
         >
@@ -90,6 +86,10 @@ export default function AdvisorDetailPage() {
           <div>
             <p className="text-gray-500 mb-1">Tên cố vấn</p>
             <p className="font-medium">{advisor.name || 'Chưa có tên'}</p>
+          </div>
+          <div>
+            <p className="text-gray-500 mb-1">Email</p>
+            <p className="font-medium">{advisor.User?.email || 'Chưa có'}</p>
           </div>
           <div>
             <p className="text-gray-500 mb-1">Số điện thoại</p>
