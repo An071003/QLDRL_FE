@@ -60,8 +60,6 @@ export default function AdvisorForm({ onAdvisorCreated, setLoading, onCancel }: 
     try {
       // Convert user_id to number or null
       const userId = formData.user_id ? parseInt(formData.user_id) : null;
-      
-      // Create data object for API
       const advisorData = {
         name: formData.name,
         user_id: userId,
@@ -69,10 +67,7 @@ export default function AdvisorForm({ onAdvisorCreated, setLoading, onCancel }: 
         phone: formData.phone || null
       };
       
-      // Call the parent function to handle the API call
       await onAdvisorCreated(advisorData);
-      
-      // Reset form
       resetForm();
     } catch (err: any) {
       console.error('Error in form submission:', err);
