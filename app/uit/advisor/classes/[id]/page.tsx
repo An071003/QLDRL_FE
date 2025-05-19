@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Table, Space, Button, Tag, Tooltip } from 'antd';
-import { EyeOutlined } from '@ant-design/icons';
+import { Table, Space, Button, Tag, Tooltip, Modal } from 'antd';
+import { EyeOutlined, CrownOutlined, StopOutlined } from '@ant-design/icons';
 import api from '@/lib/api';
 import Loading from '@/components/Loading';
 import { toast } from 'sonner';
+// @ts-expect-error Missing types for lodash.debounce
 import debounce from 'lodash.debounce';
 
 interface Student {
@@ -23,13 +24,22 @@ interface Class {
   name: string;
   cohort: string;
   faculty_id: number;
+  class_leader_id?: string | null;
   Faculty?: {
     id: number;
     name: string;
   };
 }
 
-type TableRecord = Record<string, any>;
+type TableRecord = Record<string, unknown>;
+
+type ApiError = {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+};
 
 export default function AdvisorClassStudentsPage() {
   const params = useParams();
@@ -37,9 +47,13 @@ export default function AdvisorClassStudentsPage() {
   const classId = Array.isArray(params.id) ? params.id[0] : params.id;
   
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
   const [classData, setClassData] = useState<Class | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [modalVisible, setModalVisible] = useState(false);
+  const [currentStudent, setCurrentStudent] = useState<Student | null>(null);
+  const [isSettingLeader, setIsSettingLeader] = useState(false);
 
   useEffect(() => {
     if (classId) {
@@ -93,6 +107,48 @@ export default function AdvisorClassStudentsPage() {
     router.push(`/uit/advisor/students/${studentId}`);
   };
 
+  const showSetLeaderModal = (student: Student, isSettingAction: boolean) => {
+    setCurrentStudent(student);
+    setIsSettingLeader(isSettingAction);
+    setModalVisible(true);
+  };
+
+  const handleSetClassLeader = async () => {
+    if (!currentStudent || !classId) return;
+    
+    setActionLoading(true);
+    try {
+      const action = isSettingLeader ? 'set' : 'unset';
+      const response = await api.post(`/api/classes/${classId}/set-class-leader`, {
+        studentId: currentStudent.student_id,
+        action
+      });
+
+      if (response.data.status === 'success') {
+        toast.success(response.data.message);
+        
+        // Update local state to reflect changes
+        if (isSettingLeader) {
+          setClassData(prev => prev ? { ...prev, class_leader_id: currentStudent.student_id } : prev);
+        } else {
+          setClassData(prev => prev ? { ...prev, class_leader_id: null } : prev);
+        }
+        
+        // Refresh the data
+        await fetchClassAndStudents();
+      } else {
+        toast.error(response.data.message || 'Không thể cập nhật lớp trưởng');
+      }
+    } catch (error) {
+      console.error('Error setting class leader:', error);
+      const apiError = error as ApiError;
+      toast.error(apiError.response?.data?.message || 'Lỗi khi cập nhật lớp trưởng');
+    } finally {
+      setActionLoading(false);
+      setModalVisible(false);
+    }
+  };
+
   const columns = [
     {
       title: 'Mã số sinh viên',
@@ -105,10 +161,17 @@ export default function AdvisorClassStudentsPage() {
       dataIndex: 'student_name',
       key: 'student_name',
       sorter: (a: Student, b: Student) => (a.student_name || '').localeCompare(b.student_name || ''),
-      render: (text: string) => (
-        <Tooltip title={text}>
-          <div className="max-w-xs truncate">{text}</div>
-        </Tooltip>
+      render: (text: string, record: Student) => (
+        <div className="flex items-center">
+          {classData?.class_leader_id === record.student_id && (
+            <Tag color="gold" className="mr-2">
+              <CrownOutlined /> Lớp trưởng
+            </Tag>
+          )}
+          <Tooltip title={text}>
+            <div className="max-w-xs truncate">{text}</div>
+          </Tooltip>
+        </div>
       ),
     },
     {
@@ -152,6 +215,25 @@ export default function AdvisorClassStudentsPage() {
           >
             Xem hoạt động
           </Button>
+          
+          {classData?.class_leader_id === record.student_id ? (
+            <Button
+              type="default"
+              danger
+              icon={<StopOutlined />}
+              onClick={() => showSetLeaderModal(record, false)}
+            >
+              Bỏ lớp trưởng
+            </Button>
+          ) : (
+            <Button
+              type="default"
+              icon={<CrownOutlined />}
+              onClick={() => showSetLeaderModal(record, true)}
+            >
+              Thiết lập làm lớp trưởng
+            </Button>
+          )}
         </Space>
       ),
     },
@@ -185,6 +267,19 @@ export default function AdvisorClassStudentsPage() {
               <p className="text-gray-500">Khoa:</p>
               <p className="font-medium">{classData.Faculty?.name || 'N/A'}</p>
             </div>
+            {classData.class_leader_id && (
+              <div>
+                <p className="text-gray-500">Lớp trưởng:</p>
+                <p className="font-medium">
+                  <span className="inline-flex items-center">
+                    <span className="mr-1 text-yellow-800 bg-yellow-100 px-2 py-1 rounded text-xs">
+                      <CrownOutlined className="mr-1" /> Lớp trưởng
+                    </span>
+                    {students.find(s => s.student_id === classData.class_leader_id)?.student_name || classData.class_leader_id}
+                  </span>
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -207,6 +302,28 @@ export default function AdvisorClassStudentsPage() {
           locale={{ emptyText: 'Không có sinh viên nào trong lớp này' }}
         />
       </div>
+
+      <Modal
+        title={isSettingLeader ? "Thiết lập lớp trưởng" : "Bỏ lớp trưởng"}
+        open={modalVisible}
+        onOk={handleSetClassLeader}
+        onCancel={() => setModalVisible(false)}
+        confirmLoading={actionLoading}
+        okText={isSettingLeader ? "Thiết lập" : "Bỏ vai trò"}
+        cancelText="Hủy"
+      >
+        <p>
+          {isSettingLeader 
+            ? `Bạn có chắc chắn muốn thiết lập sinh viên "${currentStudent?.student_name}" làm lớp trưởng không?`
+            : `Bạn có chắc chắn muốn bỏ vai trò lớp trưởng của sinh viên "${currentStudent?.student_name}" không?`
+          }
+        </p>
+        {isSettingLeader && classData?.class_leader_id && (
+          <p className="text-yellow-600 mt-2">
+            Lưu ý: Sinh viên đang là lớp trưởng hiện tại sẽ trở lại vai trò sinh viên thông thường.
+          </p>
+        )}
+      </Modal>
     </div>
   );
 } 

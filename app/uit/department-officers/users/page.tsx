@@ -37,9 +37,9 @@ export default function UserManagement() {
     setLoading(true);
     try {
       const rolesRes = await api.get('/api/roles');
-      // Chỉ hiển thị các vai trò mà cán bộ khoa được phép thêm (sinh viên hoặc quy định của trường)
+      // Hiển thị các vai trò: sinh viên, cố vấn, cán bộ khoa, lớp trưởng
       const allowedRoles = rolesRes.data.roles.filter(
-        (role: { name: string }) => ['student'].includes(role.name.toLowerCase())
+        (role: { name: string }) => ['student', 'advisor', 'department-officer', 'classleader'].includes(role.name.toLowerCase())
       );
       setRoles(allowedRoles);
     } catch (err: any) {
@@ -116,11 +116,13 @@ export default function UserManagement() {
         const email = String(user?.email || '').toLowerCase();
         const search = searchTerm.toLowerCase();
         
-        // Chỉ hiện thị sinh viên cho cán bộ khoa
-        const isStudent = user?.Role?.name?.toLowerCase() === 'student';
+        // Hiển thị sinh viên, cố vấn học tập, cán bộ khoa và lớp trưởng
+        const roleName = user?.Role?.name?.toLowerCase() || '';
+        const allowedRoles = ['student', 'advisor', 'departmentofficer', 'classleader'];
+        const hasAllowedRole = allowedRoles.includes(roleName);
 
         return (
-          isStudent &&
+          hasAllowedRole &&
           (userName.includes(search) || email.includes(search)) &&
           (roleFilter === '' || user?.Role?.name === roleFilter)
         );
@@ -154,12 +156,26 @@ export default function UserManagement() {
 
       {activeComponent === 'table' && (
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-          <input
-            type="text"
-            placeholder="Tìm kiếm theo tên hoặc email..."
-            onChange={handleSearchChange}
-            className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/3"
-          />
+          <div className="flex w-full md:w-2/3 gap-4">
+            <input
+              type="text"
+              placeholder="Tìm kiếm theo tên hoặc email..."
+              onChange={handleSearchChange}
+              className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-2/3"
+            />
+            
+            <select
+              className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/3"
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+            >
+              <option value="">Tất cả vai trò</option>
+              <option value="student">Sinh viên</option>
+              <option value="advisor">Cố vấn học tập</option>
+              <option value="department-officer">Cán bộ khoa</option>
+              <option value="classleader">Lớp trưởng</option>
+            </select>
+          </div>
 
           <div className="flex gap-4">
             <button

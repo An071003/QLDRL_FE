@@ -1,6 +1,6 @@
 "use client";
 
-import { StudentLayout } from "@/components/layout/student";
+import { ClassLeaderLayout } from "@/components/layout/classleader";
 import type { Activity } from "@/types/activity";
 import api from "@/lib/api";
 import { useEffect, useState } from "react";
@@ -193,12 +193,12 @@ export default function AssignActivitiesPage() {
         },
     ];
     return (
-        <StudentLayout>
+        <ClassLeaderLayout>
             <div className="p-4">
                 <h1 className="text-xl font-semibold mb-4">Đăng ký tham gia hoạt động</h1>
                 <Tabs items={tabItems} />
             </div>
-        </StudentLayout>
+        </ClassLeaderLayout>
     );
 }
 

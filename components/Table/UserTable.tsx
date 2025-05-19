@@ -16,6 +16,7 @@ export default function UserTable({ users, onDeleteUser }: UserTableProps) {
     advisor: 'bg-green-100 text-green-800',
     departmentofficer: 'bg-orange-100 text-orange-800',
     student: 'bg-blue-100 text-blue-800',
+    classleader: 'bg-yellow-100 text-yellow-800',
   };
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -43,9 +44,7 @@ export default function UserTable({ users, onDeleteUser }: UserTableProps) {
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {users.map((user, index) => {
-            const isStudent = user.Role?.name === 'student';
-            return (
+          {users.map((user, index) => (
               <tr key={user.id}>
                 <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{user.user_name}</td>
@@ -70,8 +69,7 @@ export default function UserTable({ users, onDeleteUser }: UserTableProps) {
                   </Tooltip>
                 </td>
               </tr>
-            );
-          })}
+            ))}
         </tbody>
       </table>
     </div>
