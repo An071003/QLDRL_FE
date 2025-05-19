@@ -51,7 +51,7 @@ export default function AdvisorForm({ onAdvisorCreated, setLoading, onCancel }: 
   };
 
   const validateEmail = (email: string): boolean => {
-    if (!email) return true;
+    if (!email) return false;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
@@ -69,12 +69,22 @@ export default function AdvisorForm({ onAdvisorCreated, setLoading, onCancel }: 
       return;
     }
 
+    if (!formData.username.trim()) {
+      toast.error('Vui lòng nhập tên người dùng');
+      return;
+    }
+
+    if (!formData.email.trim()) {
+      toast.error('Vui lòng nhập địa chỉ email');
+      return;
+    }
+
     if (formData.phone && !validatePhone(formData.phone)) {
       toast.error('Số điện thoại phải có 10 chữ số');
       return;
     }
 
-    if (formData.email && !validateEmail(formData.email)) {
+    if (!validateEmail(formData.email)) {
       toast.error('Email không hợp lệ');
       return;
     }
@@ -135,7 +145,7 @@ export default function AdvisorForm({ onAdvisorCreated, setLoading, onCancel }: 
         
         <div className="mb-4">
           <label htmlFor="username" className="block text-gray-700 font-medium mb-2">
-            Tên người dùng
+            Tên người dùng <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -144,12 +154,13 @@ export default function AdvisorForm({ onAdvisorCreated, setLoading, onCancel }: 
             onChange={(e) => setFormData({ ...formData, username: e.target.value })}
             className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Nhập tên người dùng"
+            required
           />
         </div>
         
         <div className="mb-4">
           <label htmlFor="email" className="block text-gray-700 font-medium mb-2">
-            Email
+            Email <span className="text-red-500">*</span>
           </label>
           <input
             type="email"
@@ -158,6 +169,7 @@ export default function AdvisorForm({ onAdvisorCreated, setLoading, onCancel }: 
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Nhập địa chỉ email"
+            required
           />
         </div>
         
