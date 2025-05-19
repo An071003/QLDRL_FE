@@ -35,6 +35,10 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
 
+    if (pathname.startsWith("/uit/department-officers") && role !== "departmentofficer") {
+      return NextResponse.redirect(new URL("/unauthorized", request.url));
+    }
+
     return NextResponse.next();
   } catch (error) {
     console.error('Error verifying JWT:', error);

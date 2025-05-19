@@ -12,11 +12,11 @@ import { jwtVerify } from 'jose';
 import ActivityForm from "@/components/form/ActivityForm";
 import ActivityImport from "@/components/Import/ActivityImport";
 
-export default function AdvisorActivityManagement() {
+export default function DPOActivityManagement() {
   const router = useRouter();
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [createdPendingActivities, setCreatedPendingActivities] = useState<Activity[]>([]);
+  const [pendingActivities, setPendingActivities] = useState<Activity[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -83,7 +83,7 @@ export default function AdvisorActivityManagement() {
         pendingData = createdPendingRes.data.data || [];
       }
       
-      setCreatedPendingActivities(pendingData);
+      setPendingActivities(pendingData);
     } catch (error) {
       toast.error("Không thể tải dữ liệu");
       console.error(error);
@@ -199,8 +199,8 @@ export default function AdvisorActivityManagement() {
     // Apply sorting
     if (sortField) {
       return [...filtered].sort((a, b) => {
-        let valueA: any;
-        let valueB: any;
+        let valueA: string | number;
+        let valueB: string | number;
 
         switch (sortField) {
           case 'id':
@@ -245,7 +245,7 @@ export default function AdvisorActivityManagement() {
   // Create a similar function for pending activities
   const sortedAndFilteredPendingActivities = useMemo(() => {
     // Filter by search term and semester
-    const filtered = createdPendingActivities
+    const filtered = pendingActivities
       .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()))
       .filter((activity) => {
         if (selectedSemester === "all") return true;
@@ -304,7 +304,7 @@ export default function AdvisorActivityManagement() {
     }
 
     return filtered;
-  }, [createdPendingActivities, campaigns, searchTerm, selectedSemester, sortField, sortDirection]);
+  }, [pendingActivities, campaigns, searchTerm, selectedSemester, sortField, sortDirection]);
 
   const totalPages = Math.ceil(
     activeTab === "approved" 
@@ -461,7 +461,7 @@ export default function AdvisorActivityManagement() {
                               </td>
                               <td className="px-4 py-3 text-center whitespace-nowrap">
                                 <button
-                                  onClick={() => router.push(`/uit/advisor/activities/${activity.id}`)}
+                                  onClick={() => router.push(`/uit/department-officers/activities/${activity.id}`)}
                                   className="bg-blue-500 hover:bg-blue-700 text-white text-sm py-1 px-3 rounded inline-flex items-center gap-1"
                                 >
                                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -630,7 +630,7 @@ export default function AdvisorActivityManagement() {
                                 </td>
                                 <td className="px-4 py-3 text-center whitespace-nowrap">
                                   <button
-                                    onClick={() => router.push(`/uit/advisor/activities/${activity.id}`)}
+                                    onClick={() => router.push(`/uit/department-officers/activities/${activity.id}`)}
                                     className="bg-blue-500 hover:bg-blue-700 text-white text-sm py-1 px-3 rounded inline-flex items-center gap-1"
                                   >
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

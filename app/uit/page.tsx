@@ -33,6 +33,8 @@ export default function DashboardPage() {
       router.push("/uit/student");
     } else if (role === "advisor") {
       router.push("/uit/advisor/profile");
+    } else if (role === "departmentofficer") {
+      router.push("/uit/department-officers/profile");
     } else {
       router.push("/login");
     }
