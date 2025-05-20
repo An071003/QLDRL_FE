@@ -179,7 +179,7 @@ export default function AdvisorManagementPage() {
         (advisor.Faculty?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         (advisor.phone?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         (advisor.User?.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        (advisor.User?.username?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+        (advisor.User?.user_name?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     );
   }, [advisors, searchTerm]);
 

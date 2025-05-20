@@ -245,22 +245,21 @@ export default function ClassImport({ onClassesImported, setLoadingManager }: Cl
       worksheet.addRow({
         name: 'CNTT01',
         faculty_abbr: 'CNTT',
-        cohort: 'K15',
+        cohort: '2020',
       });
       
       worksheet.addRow({
         name: 'KTPM02',
         faculty_abbr: 'KTPM',
-        cohort: 'K16',
+        cohort: '2021',
       });
       
       worksheet.addRow({
         name: 'HTTT03',
         faculty_abbr: 'HTTT',
-        cohort: 'K17',
+        cohort: '2022',
       });
-      
-      // Style the header row
+
       worksheet.getRow(1).font = { bold: true, color: { argb: 'FF000000' } };
       worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFCCCCCC' } };
       
@@ -474,7 +473,7 @@ export default function ClassImport({ onClassesImported, setLoadingManager }: Cl
                                 onClick={() => handleDeleteRow(index)}
                                 className="text-red-600 hover:text-red-800 flex items-center space-x-1"
                               >
-                                <Trash size={16} />
+                                <Trash size={20} />
                               </button>
                             </Tooltip>
                           </>

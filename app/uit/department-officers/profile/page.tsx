@@ -34,12 +34,10 @@ export default function DepartmentOfficerProfilePage() {
         }
 
         setUserData(userRes.data.data.user);
-        console.log("User data:", userRes.data.data.user);
 
         // Fetch department officer details with the user ID
         const officerRes = await api.get(`/api/department-officers/user/${userRes.data.data.user.id}`);
         if (officerRes.data?.departmentOfficer) {
-          console.log("Officer data:", officerRes.data.departmentOfficer);
           setDepartmentOfficer(officerRes.data.departmentOfficer);
         } else {
           toast.error("Không tìm thấy thông tin cán bộ khoa");

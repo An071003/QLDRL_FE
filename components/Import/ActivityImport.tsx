@@ -429,6 +429,13 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
     }
   };
 
+  // Add this helper function to truncate text
+  const truncateText = (text: string | undefined, maxLength: number = 30) => {
+    if (!text) return '-';
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
+
   if (loading) return <Loading />;
 
   return (
@@ -540,9 +547,11 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
                           )}
                         </>
                       ) : (
-                        <span className={nameError && showErrors ? "text-red-700 font-semibold border-b-2 border-red-500" : ""}>
-                          {activity.name || "-"}
-                        </span>
+                        <Tooltip title={activity.name || "-"} placement="topLeft">
+                          <span className={nameError && showErrors ? "text-red-700 font-semibold border-b-2 border-red-500" : ""}>
+                            {truncateText(activity.name, 30)}
+                          </span>
+                        </Tooltip>
                       )}
                     </td>
                     <td className={`px-6 py-4 ${showErrors && campaignIdError ? 'bg-red-100' : ''}`}>
@@ -563,9 +572,11 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
                           )}
                         </>
                       ) : (
-                        <span className={campaignIdError && showErrors ? "text-red-700 font-semibold border-b-2 border-red-500" : ""}>
-                          {activity.campaign_name || "-"}
-                        </span>
+                        <Tooltip title={activity.campaign_name || "-"} placement="topLeft">
+                          <span className={campaignIdError && showErrors ? "text-red-700 font-semibold border-b-2 border-red-500" : ""}>
+                            {truncateText(activity.campaign_name, 25)}
+                          </span>
+                        </Tooltip>
                       )}
                     </td>
                     <td className={`px-6 py-4 ${showErrors && pointError ? 'bg-red-100' : ''}`}>

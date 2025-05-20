@@ -33,8 +33,8 @@ export default function RegisterPage() {
             await api.post("/api/auth/register", values);
             toast.success("Đăng ký thành công!");
             router.push('/login');
-        } catch (err) {
-            toast.error("Đăng ký thất bại.");
+        } catch (err: any) {
+            toast.error(err.response.data.message || "Đăng ký thất bại.");
         }
     };
 

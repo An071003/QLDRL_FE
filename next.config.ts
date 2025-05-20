@@ -4,6 +4,7 @@ const nextConfig = {
   reactStrictMode: true,
   experimental: {
     serverActions: {},
+    turbo: false, 
   },
 };
 

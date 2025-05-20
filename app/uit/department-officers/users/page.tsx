@@ -28,7 +28,7 @@ export default function UserManagement() {
       setUsers(usersRes.data.data.users);
     } catch (err: any) {
       toast.error('Lỗi tải dữ liệu người dùng');
-    } finally{
+    } finally {
       setLoading(false);
     }
   };
@@ -37,18 +37,17 @@ export default function UserManagement() {
     setLoading(true);
     try {
       const rolesRes = await api.get('/api/roles');
-      // Chỉ hiển thị các vai trò mà cán bộ khoa được phép thêm (sinh viên hoặc quy định của trường)
       const allowedRoles = rolesRes.data.roles.filter(
-        (role: { name: string }) => ['student'].includes(role.name.toLowerCase())
+        (role: { name: string }) => ['student', 'departmentofficer', 'classleader', 'advisor'].includes(role.name.toLowerCase())
       );
       setRoles(allowedRoles);
     } catch (err: any) {
       toast.error('Lỗi tải dữ liệu vai trò');
-    } finally{
+    } finally {
       setLoading(false);
     }
   };
-  
+
   useEffect(() => {
     fetchUsers();
     fetchRoles();
@@ -115,9 +114,8 @@ export default function UserManagement() {
         const userName = String(user?.user_name || '').toLowerCase();
         const email = String(user?.email || '').toLowerCase();
         const search = searchTerm.toLowerCase();
-        
-        // Chỉ hiện thị sinh viên cho cán bộ khoa
-        const isStudent = user?.Role?.name?.toLowerCase() === 'student';
+
+        const isStudent = user?.Role?.name?.toLowerCase() === 'student' || user?.Role?.name?.toLowerCase() === 'departmentofficer' || user?.Role?.name?.toLowerCase() === 'classleader' || user?.Role?.name?.toLowerCase() === 'advisor';
 
         return (
           isStudent &&

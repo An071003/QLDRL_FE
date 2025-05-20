@@ -21,7 +21,7 @@ export default function LoginPage() {
       await api.post("/api/auth/login", values);
       router.push("/uit");
     } catch (err: any) {
-      toast.error(err.message || "Đăng nhập không thành công.");
+      toast.error(err.response.data.message || "Đăng nhập không thành công.");
       setLoading(false);
     }
   };

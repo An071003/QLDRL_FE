@@ -7,7 +7,6 @@ import Loading from '@/components/Loading';
 import { toast } from 'sonner';
 import { Table, Tag, Input } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-// @ts-expect-error Missing types for lodash.debounce
 import debounce from 'lodash.debounce';
 import { Activity } from "@/types/activity";
 

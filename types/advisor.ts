@@ -4,7 +4,7 @@ import { Class as ClassType } from './class';
 export interface User {
   id?: number;
   email?: string;
-  username?: string;
+  user_name?: string;
 }
 
 export interface Advisor {

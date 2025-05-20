@@ -7,17 +7,17 @@ import { toast } from "sonner";
 import { Advisor } from "@/types/advisor";
 import { Class } from "@/types/class";
 import AdvisorClasses from "@/components/AdvisorClasses";
+import { useRouter } from "next/navigation";
 
 export default function AdvisorProfilePage() {
   const [loading, setLoading] = useState(true);
   const [advisor, setAdvisor] = useState<Advisor | null>(null);
   const [classes, setClasses] = useState<Class[]>([]);
-
+  const router = useRouter();
   useEffect(() => {
     const fetchAdvisorProfile = async () => {
       setLoading(true);
       try {
-        // Fetch current user info
         const userRes = await api.get('/api/auth/me');
         if (!userRes.data?.data?.user?.id) {
           toast.error("Không thể lấy thông tin người dùng");
@@ -49,6 +49,9 @@ export default function AdvisorProfilePage() {
     fetchAdvisorProfile();
   }, []);
 
+  const handleViewDetail = (classId: number) => {
+    router.push(`/uit/advisor/classes/${classId}`);
+  };
 
   if (loading) return <Loading />;
 
@@ -94,7 +97,7 @@ export default function AdvisorProfilePage() {
         <h2 className="text-xl font-semibold mb-4">Danh sách lớp phụ trách</h2>
         <div className="rounded-md overflow-hidden">
           {classes.length > 0 ? (
-            <AdvisorClasses classes={classes} />
+            <AdvisorClasses classes={classes} handleViewDetail={handleViewDetail} />
           ) : (
             <p className="text-gray-500 text-center py-4">Chưa được phân công lớp nào</p>
           )}

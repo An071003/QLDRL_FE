@@ -300,12 +300,12 @@ export default function StudentActivitiesImport({ onImport }: Props) {
       
       // Add some sample data
       worksheet.addRow({
-        mssv: '21520000',
+        mssv: '	21521001',
         note: 'Mẫu - Xóa dòng này và thêm sinh viên thật',
       });
       
       worksheet.addRow({
-        mssv: '21520001',
+        mssv: '	21521002',
         note: 'Mẫu - Mã số sinh viên phải là 8 chữ số',
       });
       
@@ -490,7 +490,7 @@ export default function StudentActivitiesImport({ onImport }: Props) {
                                 className="text-red-600 hover:text-red-800 flex items-center space-x-1"
                                 disabled={editingIndex !== null}
                               >
-                                <Trash size={16} />
+                                <Trash size={20} />
                               </button>
                             </Tooltip>
                           </>
