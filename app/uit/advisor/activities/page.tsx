@@ -11,6 +11,7 @@ import { Campaign } from "@/types/campaign";
 import { jwtVerify } from 'jose';
 import ActivityForm from "@/components/form/ActivityForm";
 import ActivityImport from "@/components/Import/ActivityImport";
+import { Tooltip } from "antd";
 
 export default function AdvisorActivityManagement() {
   const router = useRouter();
@@ -72,8 +73,7 @@ export default function AdvisorActivityManagement() {
 
       const approved = allActivities.filter((activity: Activity) => activity.approver_id !== null);
       setActivities(approved);
-      
-      // Get activities created by current user that are pending approval
+
       const createdPendingRes = await api.get("/api/activities/created-pending");
       let pendingData;
       
@@ -217,6 +217,12 @@ export default function AdvisorActivityManagement() {
             valueA = campaignA?.name || '';
             valueB = campaignB?.name || '';
             break;
+          case 'semester':
+            const campaignASem = campaigns.find(c => c.id === a.campaign_id);
+            const campaignBSem = campaigns.find(c => c.id === b.campaign_id);
+            valueA = campaignASem ? `${campaignASem.semester_no}_${campaignASem.academic_year}` : '';
+            valueB = campaignBSem ? `${campaignBSem.semester_no}_${campaignBSem.academic_year}` : '';
+            break;
           case 'point':
             valueA = a.point || 0;
             valueB = b.point || 0;
@@ -224,6 +230,10 @@ export default function AdvisorActivityManagement() {
           case 'number_students':
             valueA = a.number_students || 0;
             valueB = b.number_students || 0;
+            return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
+          case 'max_participants':
+            valueA = a.max_participants || 0;
+            valueB = b.max_participants || 0;
             return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
           default:
             return 0;
@@ -335,7 +345,6 @@ export default function AdvisorActivityManagement() {
     );
   }
 
-  // Render the appropriate component based on activeComponent
   const renderMainContent = () => {
     switch (activeComponent) {
       case "form":
@@ -408,9 +417,10 @@ export default function AdvisorActivityManagement() {
                             Phong trào {sortField === 'campaign' && (sortDirection === 'asc' ? '▲' : '▼')}
                           </th>
                           <th
-                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
+                            onClick={() => handleSort('semester')}
                           >
-                            Học kỳ
+                            Học kỳ {sortField === 'semester' && (sortDirection === 'asc' ? '▲' : '▼')}
                           </th>
                           <th
                             className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
@@ -419,10 +429,21 @@ export default function AdvisorActivityManagement() {
                             Điểm {sortField === 'point' && (sortDirection === 'asc' ? '▲' : '▼')}
                           </th>
                           <th
-                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
+                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer min-w-[120px]"
                             onClick={() => handleSort('number_students')}
                           >
-                            Số sinh viên {sortField === 'number_students' && (sortDirection === 'asc' ? '▲' : '▼')}
+                            SL đăng ký {sortField === 'number_students' && (sortDirection === 'asc' ? '▲' : '▼')}
+                          </th>
+                          <th
+                            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase cursor-pointer min-w-[120px]"
+                            onClick={() => handleSort('max_participants')}
+                          >
+                            SL tối đa {sortField === 'max_participants' && (sortDirection === 'asc' ? '▲' : '▼')}
+                          </th>
+                          <th
+                            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
+                          >
+                            Thời gian đăng ký
                           </th>
                           <th
                             className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
@@ -443,16 +464,39 @@ export default function AdvisorActivityManagement() {
                             <tr key={activity.id} className="hover:bg-gray-50">
                               <td className="px-4 py-3 whitespace-nowrap">{(currentPage - 1) * itemsPerPage + index + 1}</td>
                               <td className="px-4 py-3 whitespace-nowrap">
-                                <div className="max-w-xs truncate" title={activity.name}>{activity.name}</div>
+                                <Tooltip title={activity.name} placement="topLeft">
+                                  <div className="max-w-[200px] overflow-hidden text-ellipsis">
+                                    {activity.name}
+                                  </div>
+                                </Tooltip>
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap">
-                                {campaign?.name || 'N/A'}
+                                <Tooltip 
+                                  title={campaigns.find(campaign => campaign.id === activity.campaign_id)?.name || 
+                                  activity.campaign_name || 
+                                  "Không xác định"} 
+                                  placement="topLeft"
+                                >
+                                  <div className="max-w-[200px] overflow-hidden text-ellipsis">
+                                    {campaigns.find(campaign => campaign.id === activity.campaign_id)?.name || 
+                                    activity.campaign_name || 
+                                    "Không xác định"}
+                                  </div>
+                                </Tooltip>
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap">
                                 {campaign ? `Học kỳ ${campaign.semester_no} - ${campaign.academic_year}` : 'N/A'}
                               </td>
-                              <td className="px-4 py-3 whitespace-nowrap">{activity.point}</td>
-                              <td className="px-4 py-3 whitespace-nowrap">{activity.number_students || 0}</td>
+                              <td className="px-4 py-3 whitespace-nowrap min-w-[80px]">{activity.point}</td>
+                              <td className="px-4 py-3 whitespace-nowrap text-center min-w-[120px]">{activity.number_students || 0}</td>
+                              <td className="px-4 py-3 text-center whitespace-nowrap min-w-[120px]">
+                                {activity.max_participants || "Không giới hạn"}
+                              </td>
+                              <td className="px-4 py-3 text-center whitespace-nowrap">
+                                {activity.registration_start && activity.registration_end 
+                                  ? `${new Date(activity.registration_start).toLocaleDateString('vi-VN')} - ${new Date(activity.registration_end).toLocaleDateString('vi-VN')}`
+                                  : "Không có thông tin"}
+                              </td>
                               <td className="px-4 py-3 whitespace-nowrap">
                                 <span className={`px-2 py-1 rounded inline-flex text-xs leading-5 font-semibold ${activity.status === 'ongoing' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                                   }`}>
@@ -589,10 +633,21 @@ export default function AdvisorActivityManagement() {
                             Điểm {sortField === 'point' && (sortDirection === 'asc' ? '▲' : '▼')}
                           </th>
                           <th
-                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
+                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer min-w-[120px]"
                             onClick={() => handleSort('number_students')}
                           >
-                            Số sinh viên {sortField === 'number_students' && (sortDirection === 'asc' ? '▲' : '▼')}
+                            SL đăng ký {sortField === 'number_students' && (sortDirection === 'asc' ? '▲' : '▼')}
+                            </th>
+                          <th
+                            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase cursor-pointer min-w-[120px]"
+                            onClick={() => handleSort('max_participants')}
+                          >
+                              SL tối đa
+                            </th>
+                          <th
+                            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
+                          >
+                              Thời gian đăng ký
                             </th>
                           <th
                             className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
@@ -622,7 +677,15 @@ export default function AdvisorActivityManagement() {
                                   {campaign ? `Học kỳ ${campaign.semester_no} - ${campaign.academic_year}` : 'N/A'}
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap">{activity.point}</td>
-                              <td className="px-4 py-3 whitespace-nowrap">{activity.number_students || 0}</td>
+                              <td className="px-4 py-3 whitespace-nowrap text-center min-w-[120px]">{activity.number_students || 0}</td>
+                                <td className="px-4 py-3 text-center whitespace-nowrap min-w-[120px]">
+                                  {activity.max_participants || "Không giới hạn"}
+                                </td>
+                                <td className="px-4 py-3 text-center whitespace-nowrap">
+                                  {activity.registration_start && activity.registration_end 
+                                    ? `${new Date(activity.registration_start).toLocaleDateString('vi-VN')} - ${new Date(activity.registration_end).toLocaleDateString('vi-VN')}`
+                                    : "Không có thông tin"}
+                                </td>
                                 <td className="px-4 py-3 whitespace-nowrap">
                                   <span className="px-2 py-1 rounded inline-flex text-xs leading-5 font-semibold bg-yellow-100 text-yellow-800">
                                   Chờ phê duyệt

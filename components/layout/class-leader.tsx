@@ -1,11 +1,11 @@
 import Link from 'next/link';
-import StudentDropdown from "@/components/students/StudentDropdown";
+import ClassleaderDropdown from "@/components/class-leader/ClassleaderDropdown";
 
 export const metadata = {
-  title: 'Trang dành cho sinh viên',
+  title: 'Trang dành cho lớp trưởngtrưởng',
 };
 
-export function StudentLayout({ children }: { children: React.ReactNode }) {
+export function ClassleaderLayout({ children }: { children: React.ReactNode }) {
   return (
     <div>
       <header className="flex items-center justify-between py-4 px-6 border-b bg-[#0b3c65] border-blue-900 text-white">
@@ -37,7 +37,7 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
           <img src="/house-user-solid.svg" alt="Home" className="w-8 h-8" />
         </Link>
         <div className="ml-4 mt-1.5">
-          <StudentDropdown />
+          <ClassleaderDropdown />
         </div>
 
       </nav>

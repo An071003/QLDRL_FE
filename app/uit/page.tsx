@@ -35,6 +35,8 @@ export default function DashboardPage() {
       router.push("/uit/advisor/profile");
     } else if (role === "departmentofficer") {
       router.push("/uit/department-officers/profile");
+    } else if (role === "classleader") {
+      router.push("/uit/class-leader");
     } else {
       router.push("/login");
     }
