@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Table, Space, Button, Tag, Tooltip } from 'antd';
-import { EyeOutlined } from '@ant-design/icons';
+import { Table, Space, Button, Tag, Tooltip, Select, message } from 'antd';
+import { EyeOutlined, EditOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import api from '@/lib/api';
 import Loading from '@/components/Loading';
 import { toast } from 'sonner';
@@ -23,6 +23,7 @@ interface Class {
   name: string;
   cohort: string;
   faculty_id: number;
+  class_leader_id?: string;
   Faculty?: {
     id: number;
     name: string;
@@ -37,15 +38,24 @@ export default function AdvisorClassStudentsPage() {
   const classId = Array.isArray(params.id) ? params.id[0] : params.id;
   
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [classData, setClassData] = useState<Class | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedLeaderId, setSelectedLeaderId] = useState<string>('');
 
   useEffect(() => {
     if (classId) {
       fetchClassAndStudents();
     }
   }, [classId]);
+
+  useEffect(() => {
+    if (classData?.class_leader_id) {
+      setSelectedLeaderId(classData.class_leader_id);
+    }
+  }, [classData?.class_leader_id]);
 
   const fetchClassAndStudents = async () => {
     setLoading(true);
@@ -68,6 +78,37 @@ export default function AdvisorClassStudentsPage() {
       toast.error('Không thể tải dữ liệu lớp và sinh viên');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveClassLeader = async () => {
+    if (!selectedLeaderId) {
+      toast.error('Vui lòng chọn lớp trưởng');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await api.put(`/api/classes/${classId}`, {
+        class_leader_id: selectedLeaderId
+      });
+      toast.success('Cập nhật lớp trưởng thành công');
+      setEditing(false);
+      fetchClassAndStudents(); // Refresh data
+    } catch (err) {
+      console.error('Failed to update class leader:', err);
+      toast.error('Cập nhật lớp trưởng thất bại');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditing(false);
+    if (classData?.class_leader_id) {
+      setSelectedLeaderId(classData.class_leader_id);
+    } else {
+      setSelectedLeaderId('');
     }
   };
 
@@ -105,10 +146,15 @@ export default function AdvisorClassStudentsPage() {
       dataIndex: 'student_name',
       key: 'student_name',
       sorter: (a: Student, b: Student) => (a.student_name || '').localeCompare(b.student_name || ''),
-      render: (text: string) => (
-        <Tooltip title={text}>
-          <div className="max-w-xs truncate">{text}</div>
-        </Tooltip>
+      render: (text: string, record: Student) => (
+        <div className="flex items-center gap-2">
+          <Tooltip title={text}>
+            <div className="max-w-xs truncate">{text}</div>
+          </Tooltip>
+          {record.student_id === classData?.class_leader_id && (
+            <Tag color="blue">Lớp trưởng</Tag>
+          )}
+        </div>
       ),
     },
     {
@@ -184,6 +230,56 @@ export default function AdvisorClassStudentsPage() {
             <div>
               <p className="text-gray-500">Khoa:</p>
               <p className="font-medium">{classData.Faculty?.name || 'N/A'}</p>
+            </div>
+          </div>
+          
+          <div className="mt-4 border-t pt-4">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-gray-500 mb-2">Lớp trưởng:</p>
+                {editing ? (
+                  <div className="flex items-center gap-4">
+                    <Select
+                      className="w-full"
+                      value={selectedLeaderId || undefined}
+                      onChange={setSelectedLeaderId}
+                      placeholder="Chọn lớp trưởng"
+                      options={students.map(student => ({
+                        value: student.student_id,
+                        label: `${student.student_name} (${student.student_id})`
+                      }))}
+                    />
+                    <Button
+                      type="primary"
+                      icon={<CheckOutlined />}
+                      onClick={handleSaveClassLeader}
+                      loading={saving}
+                    >
+                      Lưu
+                    </Button>
+                    <Button
+                      icon={<CloseOutlined />}
+                      onClick={handleCancelEdit}
+                      disabled={saving}
+                    >
+                      Hủy
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-4">
+                    <p className="font-medium">
+                      {students.find(s => s.student_id === classData.class_leader_id)?.student_name || 'Chưa có lớp trưởng'}
+                    </p>
+                    <Button
+                      type="primary"
+                      icon={<EditOutlined />}
+                      onClick={() => setEditing(true)}
+                    >
+                      Chỉnh sửa
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

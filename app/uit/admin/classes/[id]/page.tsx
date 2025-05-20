@@ -48,12 +48,12 @@ export default function ClassDetailPage() {
     if (!classId) return;
     setLoading(true);
     try {
-      // Fetch class details with students and advisor
+      // Fetch class details with students
       const classRes = await api.get(`/api/classes/${classId}/details`);
       if (classRes.data?.data) {
         const classDetail = classRes.data.data;
         
-        // Fetch basic class data
+        // Fetch basic class data which includes faculty info
         const basicClassRes = await api.get(`/api/classes/${classId}`);
         if (basicClassRes.data?.data?.class) {
           const basicClassData = basicClassRes.data.data.class;
@@ -65,17 +65,12 @@ export default function ClassDetailPage() {
             class_leader_id: basicClassData.class_leader_id || '',
             advisor_id: basicClassData.advisor_id?.toString() || '',
           });
-          
-          // Get faculty data if needed
-          if (basicClassData.faculty_id) {
-            const facultyRes = await api.get(`/api/faculties/${basicClassData.faculty_id}`);
-            if (facultyRes.data?.data?.faculty) {
-              setFaculty(facultyRes.data.data.faculty);
-            }
+
+          if (basicClassData.Faculty) {
+            setFaculty(basicClassData.Faculty);
           }
         }
         
-        // Set students and advisor from detailed data
         setStudents(classDetail.students || []);
         setAdvisor(classDetail.advisor || null);
       } else {
@@ -100,7 +95,6 @@ export default function ClassDetailPage() {
         setFacultyAdvisors([]);
       }
     } catch (err) {
-      console.error('Failed to fetch faculty advisors:', err);
       toast.error('Không thể tải danh sách cố vấn học tập của khoa');
       setFacultyAdvisors([]);
     }
