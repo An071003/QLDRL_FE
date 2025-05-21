@@ -23,6 +23,8 @@ export default function RoleManagement() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: number; type: 'role' | 'permission' } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [actionFilter, setActionFilter] = useState('');
+  const [uniqueActions, setUniqueActions] = useState<string[]>([]);
 
   const fetchRoles = async () => {
     setLoading(true);
@@ -41,6 +43,12 @@ export default function RoleManagement() {
     try {
       const response = await api.get('/api/permissions');
       setPermissions(response.data.permissions);
+      // Extract unique action values for filtering
+      const actionsSet = new Set<string>();
+      response.data.permissions.forEach((p: Permission) => {
+        if (p.action) actionsSet.add(p.action as string);
+      });
+      setUniqueActions(Array.from(actionsSet));
     } catch (err: any) {
       toast.error('Lỗi tải dữ liệu quyền hạn');
     } finally {
@@ -86,6 +94,12 @@ export default function RoleManagement() {
       const res = await api.post('/api/permissions', newPermission);
       const createdPermission = res.data.permission;
       setPermissions(prev => [...prev, createdPermission]);
+      
+      // Update unique actions if a new action is added
+      if (!uniqueActions.includes(newPermission.action)) {
+        setUniqueActions(prev => [...prev, newPermission.action]);
+      }
+      
       setActiveComponent('permissionTable');
       return { success: true, message: 'Tạo quyền hạn thành công!' };
     } catch (err: any) {
@@ -134,6 +148,10 @@ export default function RoleManagement() {
     debouncedSearch(e.target.value);
   };
 
+  const handleActionFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setActionFilter(e.target.value);
+  };
+
   const filteredRoles = useMemo(
     () =>
       roles.filter((role) => {
@@ -150,9 +168,14 @@ export default function RoleManagement() {
         const permissionName = String(permission?.name || '').toLowerCase();
         const permissionAction = String(permission?.action || '').toLowerCase();
         const search = searchTerm.toLowerCase();
-        return permissionName.includes(search) || permissionAction.includes(search);
+        
+        // Apply both search term and action filter
+        const matchesSearch = permissionName.includes(search) || permissionAction.includes(search);
+        const matchesAction = !actionFilter || permission.action === actionFilter;
+        
+        return matchesSearch && matchesAction;
       }),
-    [permissions, searchTerm]
+    [permissions, searchTerm, actionFilter]
   );
 
   const renderComponent = () => {
@@ -187,12 +210,29 @@ export default function RoleManagement() {
 
       <div className="mb-6">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-          <input
-            type="text"
-            placeholder="Tìm kiếm theo tên..."
-            onChange={handleSearchChange}
-            className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/3"
-          />
+          <div className="w-full md:w-2/3 flex flex-col md:flex-row gap-2">
+            <input
+              type="text"
+              placeholder="Tìm kiếm theo tên..."
+              onChange={handleSearchChange}
+              className="px-4 py-2 border border-gray-300 rounded-md w-full"
+            />
+            
+            {activeComponent === 'permissionTable' && (
+              <select
+                value={actionFilter}
+                onChange={handleActionFilterChange}
+                className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/3"
+              >
+                <option value="">Tất cả Action</option>
+                {uniqueActions.map((action, index) => (
+                  <option key={index} value={action}>
+                    {action}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
 
           <div className="flex gap-2">
             {/* Switch between role and permission management */}

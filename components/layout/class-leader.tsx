@@ -33,7 +33,7 @@ export function ClassleaderLayout({ children }: { children: React.ReactNode }) {
       </header>
 
       <nav className="flex items-center p-2 bg-[#0a3a60]">
-        <Link href="/uit/student" className="flex items-center space-x-2">
+        <Link href="/uit/class-leader" className="flex items-center space-x-2">
           <img src="/house-user-solid.svg" alt="Home" className="w-8 h-8" />
         </Link>
         <div className="ml-4 mt-1.5">

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -8,15 +7,8 @@ import { ApexOptions } from 'apexcharts';
 
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
-export default function DPODashboard() {
-  const [stats, setStats] = useState({
-    totalStudents: 0,
-    activeCampaigns: 0,
-    totalActivities: 0,
-  });
-
-  const [loading, setLoading] = useState(true);
-
+// Separate component for all charts
+const DashboardCharts = () => {
   const classificationChartOptions: ApexOptions = {
     chart: { type: 'pie' as const },
     labels: ['Xuất sắc', 'Tốt', 'Khá', 'Trung bình', 'Yếu'],
@@ -73,34 +65,8 @@ export default function DPODashboard() {
     data: [65, 68, 72, 75, 78, 75, 74, 77, 80, 82, 85, 87]
   }];
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-96">
-        <div className="animate-pulse text-2xl text-gray-500">Đang tải dữ liệu...</div>
-      </div>
-    );
-  }
-
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-8">Bảng điều khiển</h1>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        {[
-          { label: 'Tổng sinh viên', value: stats.totalStudents, color: 'green' },
-          { label: 'Phong trào đang hoạt động', value: stats.activeCampaigns, color: 'yellow' },
-          { label: 'Tổng hoạt động', value: stats.totalActivities, color: 'purple' },
-        ].map((item, index) => (
-          <motion.div 
-            key={index} 
-            whileHover={{ scale: 1.05 }}
-            className={`bg-${item.color}-100 p-6 rounded-2xl shadow-lg`}
-          >
-            <h2 className={`text-lg font-medium text-${item.color}-800`}>{item.label}</h2>
-            <p className="text-3xl font-bold">{item.value}</p>
-          </motion.div>
-        ))}
-      </div>
-
+    <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <motion.div 
           whileHover={{ scale: 1.02 }}
@@ -141,6 +107,70 @@ export default function DPODashboard() {
           height={350}
         />
       </motion.div>
+    </>
+  );
+};
+
+export default function DPODashboard() {
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    activeCampaigns: 0,
+    totalActivities: 0,
+  });
+
+  const [loading, setLoading] = useState(true);
+  const [showCharts, setShowCharts] = useState(false);
+
+  useEffect(() => {
+    // Simulate loading data
+    setTimeout(() => {
+      setStats({
+        totalStudents: 1250,
+        activeCampaigns: 8,
+        totalActivities: 24
+      });
+      setLoading(false);
+    }, 1000);
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <div className="animate-pulse text-2xl text-gray-500">Đang tải dữ liệu...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <h1 className="text-3xl font-bold mb-8">Bảng điều khiển</h1>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        {[
+          { label: 'Tổng sinh viên', value: stats.totalStudents, color: 'green' },
+          { label: 'Phong trào đang hoạt động', value: stats.activeCampaigns, color: 'yellow' },
+          { label: 'Tổng hoạt động', value: stats.totalActivities, color: 'purple' },
+        ].map((item, index) => (
+          <motion.div 
+            key={index} 
+            whileHover={{ scale: 1.05 }}
+            className={`bg-${item.color}-100 p-6 rounded-2xl shadow-lg`}
+          >
+            <h2 className={`text-lg font-medium text-${item.color}-800`}>{item.label}</h2>
+            <p className="text-3xl font-bold">{item.value}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="flex justify-center mb-8">
+        <button
+          onClick={() => setShowCharts(!showCharts)}
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        >
+          {showCharts ? 'Ẩn biểu đồ' : 'Hiển thị biểu đồ'}
+        </button>
+      </div>
+
+      {showCharts && <DashboardCharts />}
     </div>
   );
 } 
