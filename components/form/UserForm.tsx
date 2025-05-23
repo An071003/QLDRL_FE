@@ -1,11 +1,11 @@
 'use client';
 
 import { NewUser } from "@/types/user";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import { toast } from "sonner";
 import { useData } from "@/lib/contexts/DataContext";
 
-export default function UserForm({
+const UserForm = memo(function UserForm({
   onUserCreated,
   setLoading,
   roles
@@ -26,46 +26,49 @@ export default function UserForm({
     role_id: '',
   });
 
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      const { name, value } = e.target;
+      setNewUser({
+        ...newUser,
+        [name]: ['role_id'].includes(name) 
+          ? (value === "" ? "" : Number(value)) 
+          : value,
+      });
+    },
+    [newUser]
+  );
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setNewUser({
-      ...newUser,
-      [name]: ['role_id'].includes(name) 
-        ? (value === "" ? "" : Number(value)) 
-        : value,
-    });
-  };
+  const handleCreateUser = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      setLoading(true);
 
-  const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+      const userForCreation = {
+        ...newUser,
+        role_id: newUser.role_id === "" ? 0 : Number(newUser.role_id),
+      };
 
-    const userForCreation = {
-      ...newUser,
-      role_id: newUser.role_id === "" ? 0 : Number(newUser.role_id),
-    };
-
-    try {
-      const result = await onUserCreated(userForCreation);
-      if (result.success) {
-        setNewUser({ 
-          user_name: '', 
-          email: '', 
-          role_id: '',
-        });
-        toast.success("Tạo người dùng thành công");
-      } else {
+      try {
+        const result = await onUserCreated(userForCreation);
+        if (result.success) {
+          setNewUser({ 
+            user_name: '', 
+            email: '', 
+            role_id: '',
+          });
+          toast.success("Tạo người dùng thành công");
+        } else {
+          toast.error("Lỗi tạo người dùng");
+        }
+      } catch (error) {
         toast.error("Lỗi tạo người dùng");
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      toast.error("Lỗi tạo người dùng");
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [newUser, onUserCreated, setLoading]
+  );
 
   return (
     <div className="bg-white p-6 rounded-lg shadow mb-6">
@@ -123,4 +126,6 @@ export default function UserForm({
       </form>
     </div>
   );
-}
+});
+
+export default UserForm;

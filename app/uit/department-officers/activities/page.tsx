@@ -11,6 +11,7 @@ import { Campaign } from "@/types/campaign";
 import { jwtVerify } from 'jose';
 import ActivityForm from "@/components/form/ActivityForm";
 import ActivityImport from "@/components/Import/ActivityImport";
+import ActivityTable from "@/components/activities/ActivityTable";
 
 export default function DPOActivityManagement() {
   const router = useRouter();
@@ -26,7 +27,8 @@ export default function DPOActivityManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState<string>("approved");
   const [activeComponent, setActiveComponent] = useState<"form" | "import" | "table">("table");
-  const itemsPerPage = 10; const tableRef = useRef<HTMLDivElement>(null);
+  const itemsPerPage = 10;
+  const tableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function verifyToken() {
@@ -60,29 +62,13 @@ export default function DPOActivityManagement() {
       const campaignsData = campaignsRes.data.data.campaigns || campaignsRes.data.data || [];
       setCampaigns(campaignsData);
       
-      // Get all activities
       const activitiesRes = await api.get("/api/activities");
-      let allActivities;
-
-      if (activitiesRes.data.data.activities) {
-        allActivities = activitiesRes.data.data.activities;
-      } else {
-        allActivities = activitiesRes.data.data || [];
-      }
-
+      let allActivities = activitiesRes.data.data.activities || activitiesRes.data.data || [];
       const approved = allActivities.filter((activity: Activity) => activity.approver_id !== null);
       setActivities(approved);
       
-      // Get activities created by current user that are pending approval
       const createdPendingRes = await api.get("/api/activities/created-pending");
-      let pendingData;
-      
-      if (createdPendingRes.data.data.activities) {
-        pendingData = createdPendingRes.data.data.activities;
-      } else {
-        pendingData = createdPendingRes.data.data || [];
-      }
-      
+      let pendingData = createdPendingRes.data.data.activities || createdPendingRes.data.data || [];
       setPendingActivities(pendingData);
     } catch (error) {
       toast.error("Không thể tải dữ liệu");
@@ -180,27 +166,21 @@ export default function DPOActivityManagement() {
   }, [campaigns]);
 
   const sortedAndFilteredActivities = useMemo(() => {
-    // Filter by search term and semester
     const filtered = activities
       .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()))
       .filter((activity) => {
         if (selectedSemester === "all") return true;
-
-        // Find campaign for the activity
         const campaign = campaigns.find(c => c.id === activity.campaign_id);
         if (!campaign) return false;
-
-        // Check if campaign matches selected semester
         const [semester_no, academic_year] = selectedSemester.split("_");
         return campaign.semester_no?.toString() === semester_no &&
           campaign.academic_year?.toString() === academic_year;
       });
 
-    // Apply sorting
     if (sortField) {
       return [...filtered].sort((a, b) => {
-        let valueA: string | number;
-        let valueB: string | number;
+        let valueA: any;
+        let valueB: any;
 
         switch (sortField) {
           case 'id':
@@ -220,10 +200,6 @@ export default function DPOActivityManagement() {
           case 'point':
             valueA = a.point || 0;
             valueB = b.point || 0;
-            return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
-          case 'number_students':
-            valueA = a.number_students || 0;
-            valueB = b.number_students || 0;
             return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
           default:
             return 0;
@@ -242,29 +218,22 @@ export default function DPOActivityManagement() {
     return filtered;
   }, [activities, campaigns, searchTerm, selectedSemester, sortField, sortDirection]);
 
-  // Create a similar function for pending activities
   const sortedAndFilteredPendingActivities = useMemo(() => {
-    // Filter by search term and semester
     const filtered = pendingActivities
       .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()))
       .filter((activity) => {
         if (selectedSemester === "all") return true;
-
-        // Find campaign for the activity
         const campaign = campaigns.find(c => c.id === activity.campaign_id);
         if (!campaign) return false;
-
-        // Check if campaign matches selected semester
         const [semester_no, academic_year] = selectedSemester.split("_");
         return campaign.semester_no?.toString() === semester_no &&
           campaign.academic_year?.toString() === academic_year;
       });
 
-    // Apply sorting
     if (sortField) {
       return [...filtered].sort((a, b) => {
-        let valueA: string | number;
-        let valueB: string | number;
+        let valueA: any;
+        let valueB: any;
 
         switch (sortField) {
           case 'id':
@@ -285,10 +254,6 @@ export default function DPOActivityManagement() {
             valueA = a.point || 0;
             valueB = b.point || 0;
             return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
-          case 'number_students':
-            valueA = a.number_students || 0;
-            valueB = b.number_students || 0;
-            return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
           default:
             return 0;
         }
@@ -306,36 +271,14 @@ export default function DPOActivityManagement() {
     return filtered;
   }, [pendingActivities, campaigns, searchTerm, selectedSemester, sortField, sortDirection]);
 
-  const totalPages = Math.ceil(
-    activeTab === "approved" 
-      ? sortedAndFilteredActivities.length / itemsPerPage
-      : sortedAndFilteredPendingActivities.length / itemsPerPage
-  );
-  
-  const paginatedActivities = activeTab === "approved"
-    ? sortedAndFilteredActivities.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-      )
-    : sortedAndFilteredPendingActivities.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const goToPage = (page: number) => {
-    if (page > 0 && page <= totalPages) {
-      setCurrentPage(page);
-      tableRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
+  const handleViewDetails = (id: number) => {
+    router.push(`/uit/department-officers/activities/${id}`);
   };
 
   if (loading) {
-    return (
-      <Loading />
-    );
+    return <Loading />;
   }
 
-  // Render the appropriate component based on activeComponent
   const renderMainContent = () => {
     switch (activeComponent) {
       case "form":
@@ -387,360 +330,30 @@ export default function DPOActivityManagement() {
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <Tab value="approved" title="Đã phê duyệt">
-                <div className="mt-4 bg-white rounded-lg shadow overflow-hidden mb-6">
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                            STT
-                          </th>
-                          <th
-                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
-                            onClick={() => handleSort('name')}
-                          >
-                            Tên hoạt động {sortField === 'name' && (sortDirection === 'asc' ? '▲' : '▼')}
-                          </th>
-                          <th
-                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
-                            onClick={() => handleSort('campaign')}
-                          >
-                            Phong trào {sortField === 'campaign' && (sortDirection === 'asc' ? '▲' : '▼')}
-                          </th>
-                          <th
-                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
-                          >
-                            Học kỳ
-                          </th>
-                          <th
-                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
-                            onClick={() => handleSort('point')}
-                          >
-                            Điểm {sortField === 'point' && (sortDirection === 'asc' ? '▲' : '▼')}
-                          </th>
-                          <th
-                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
-                            onClick={() => handleSort('number_students')}
-                          >
-                            Số sinh viên {sortField === 'number_students' && (sortDirection === 'asc' ? '▲' : '▼')}
-                          </th>
-                          <th
-                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
-                          >
-                            Trạng thái
-                          </th>
-                          <th
-                            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
-                          >
-                            Thao tác
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {paginatedActivities.map((activity, index) => {
-                          const campaign = campaigns.find(c => c.id === activity.campaign_id);
-                          return (
-                            <tr key={activity.id} className="hover:bg-gray-50">
-                              <td className="px-4 py-3 whitespace-nowrap">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                              <td className="px-4 py-3 whitespace-nowrap">
-                                <div className="max-w-xs truncate" title={activity.name}>{activity.name}</div>
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap">
-                                {campaign?.name || 'N/A'}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap">
-                                {campaign ? `Học kỳ ${campaign.semester_no} - ${campaign.academic_year}` : 'N/A'}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap">{activity.point}</td>
-                              <td className="px-4 py-3 whitespace-nowrap">{activity.number_students || 0}</td>
-                              <td className="px-4 py-3 whitespace-nowrap">
-                                <span className={`px-2 py-1 rounded inline-flex text-xs leading-5 font-semibold ${activity.status === 'ongoing' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                                  }`}>
-                                  {activity.status === 'ongoing' ? 'Đang diễn ra' : 'Đã kết thúc'}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 text-center whitespace-nowrap">
-                                <button
-                                  onClick={() => router.push(`/uit/department-officers/activities/${activity.id}`)}
-                                  className="bg-blue-500 hover:bg-blue-700 text-white text-sm py-1 px-3 rounded inline-flex items-center gap-1"
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                                    <circle cx="12" cy="12" r="3" />
-                                  </svg>
-                                  Xem chi tiết
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Pagination */}
-                  {totalPages > 1 && (
-                    <div className="px-4 py-3 flex items-center justify-between border-t border-gray-200">
-                      <div className="flex-1 flex justify-between sm:hidden">
-                        <button
-                          onClick={() => goToPage(currentPage - 1)}
-                          disabled={currentPage === 1}
-                          className={`relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-md ${currentPage === 1
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-white text-gray-700 hover:bg-gray-50'
-                            }`}
-                        >
-                          Trước
-                        </button>
-                        <button
-                          onClick={() => goToPage(currentPage + 1)}
-                          disabled={currentPage === totalPages}
-                          className={`relative inline-flex items-center px-4 py-2 ml-3 text-sm font-medium rounded-md ${currentPage === totalPages
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-white text-gray-700 hover:bg-gray-50'
-                            }`}
-                        >
-                          Sau
-                        </button>
-                      </div>
-                      <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                        <div>
-                          <p className="text-sm text-gray-700">
-                            Hiển thị <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> đến{' '}
-                            <span className="font-medium">
-                              {Math.min(currentPage * itemsPerPage, sortedAndFilteredActivities.length)}
-                            </span>{' '}
-                            trong tổng số <span className="font-medium">{sortedAndFilteredActivities.length}</span> hoạt động
-                          </p>
-                        </div>
-                        <div>
-                          <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                            <button
-                              onClick={() => goToPage(currentPage - 1)}
-                              disabled={currentPage === 1}
-                              className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 text-sm font-medium ${currentPage === 1
-                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                : 'bg-white text-gray-500 hover:bg-gray-50'
-                                }`}
-                            >
-                              &laquo;
-                            </button>
-
-                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                              <button
-                                key={page}
-                                onClick={() => goToPage(page)}
-                                className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium ${page === currentPage
-                                  ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                  : 'bg-white text-gray-500 hover:bg-gray-50'
-                                  }`}
-                              >
-                                {page}
-                              </button>
-                            ))}
-
-                            <button
-                              onClick={() => goToPage(currentPage + 1)}
-                              disabled={currentPage === totalPages}
-                              className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 text-sm font-medium ${currentPage === totalPages
-                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                : 'bg-white text-gray-500 hover:bg-gray-50'
-                                }`}
-                            >
-                              &raquo;
-                            </button>
-                          </nav>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <ActivityTable
+                  activities={sortedAndFilteredActivities}
+                  campaigns={campaigns}
+                  currentPage={currentPage}
+                  itemsPerPage={itemsPerPage}
+                  sortField={sortField}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
+                  onPageChange={setCurrentPage}
+                  onViewDetails={handleViewDetails}
+                />
               </Tab>
               <Tab value="pending" title="Chờ phê duyệt">
-                <div className="mt-4 bg-white rounded-lg shadow overflow-hidden mb-6">
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                              STT
-                            </th>
-                          <th
-                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
-                            onClick={() => handleSort('name')}
-                          >
-                            Tên hoạt động {sortField === 'name' && (sortDirection === 'asc' ? '▲' : '▼')}
-                            </th>
-                          <th
-                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
-                            onClick={() => handleSort('campaign')}
-                          >
-                            Phong trào {sortField === 'campaign' && (sortDirection === 'asc' ? '▲' : '▼')}
-                            </th>
-                          <th
-                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
-                          >
-                              Học kỳ
-                            </th>
-                          <th
-                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
-                            onClick={() => handleSort('point')}
-                          >
-                            Điểm {sortField === 'point' && (sortDirection === 'asc' ? '▲' : '▼')}
-                          </th>
-                          <th
-                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
-                            onClick={() => handleSort('number_students')}
-                          >
-                            Số sinh viên {sortField === 'number_students' && (sortDirection === 'asc' ? '▲' : '▼')}
-                            </th>
-                          <th
-                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
-                          >
-                              Trạng thái
-                            </th>
-                          <th
-                            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
-                          >
-                              Thao tác
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                        {paginatedActivities.map((activity, index) => {
-                            const campaign = campaigns.find(c => c.id === activity.campaign_id);
-                            return (
-                              <tr key={activity.id} className="hover:bg-gray-50">
-                              <td className="px-4 py-3 whitespace-nowrap">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                                <td className="px-4 py-3 whitespace-nowrap">
-                                  <div className="max-w-xs truncate" title={activity.name}>{activity.name}</div>
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap">
-                                  {campaign?.name || 'N/A'}
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap">
-                                  {campaign ? `Học kỳ ${campaign.semester_no} - ${campaign.academic_year}` : 'N/A'}
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap">{activity.point}</td>
-                              <td className="px-4 py-3 whitespace-nowrap">{activity.number_students || 0}</td>
-                                <td className="px-4 py-3 whitespace-nowrap">
-                                  <span className="px-2 py-1 rounded inline-flex text-xs leading-5 font-semibold bg-yellow-100 text-yellow-800">
-                                  Chờ phê duyệt
-                                  </span>
-                                </td>
-                                <td className="px-4 py-3 text-center whitespace-nowrap">
-                                  <button
-                                    onClick={() => router.push(`/uit/department-officers/activities/${activity.id}`)}
-                                    className="bg-blue-500 hover:bg-blue-700 text-white text-sm py-1 px-3 rounded inline-flex items-center gap-1"
-                                  >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                                      <circle cx="12" cy="12" r="3" />
-                                    </svg>
-                                    Xem chi tiết
-                                  </button>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-
-                  {/* Pagination */}
-                  {totalPages > 1 && (
-                    <div className="px-4 py-3 flex items-center justify-between border-t border-gray-200">
-                      <div className="flex-1 flex justify-between sm:hidden">
-                        <button
-                          onClick={() => goToPage(currentPage - 1)}
-                          disabled={currentPage === 1}
-                          className={`relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-md ${currentPage === 1
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-white text-gray-700 hover:bg-gray-50'}`}
-                        >
-                          Trước
-                        </button>
-                        <button
-                          onClick={() => goToPage(currentPage + 1)}
-                          disabled={currentPage === totalPages}
-                          className={`relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-md ${currentPage === totalPages
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-white text-gray-700 hover:bg-gray-50'}`}
-                        >
-                          Sau
-                        </button>
-                      </div>
-                      <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                        <div>
-                          <p className="text-sm text-gray-700">
-                            Hiển thị <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> đến{" "}
-                            <span className="font-medium">
-                              {Math.min(currentPage * itemsPerPage, (activeTab === "approved" ? sortedAndFilteredActivities.length : sortedAndFilteredPendingActivities.length))}
-                            </span>{" "}
-                            trong tổng số{" "}
-                            <span className="font-medium">{activeTab === "approved" ? sortedAndFilteredActivities.length : sortedAndFilteredPendingActivities.length}</span> kết quả
-                          </p>
-                        </div>
-                        <div>
-                          <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                            <button
-                              onClick={() => goToPage(1)}
-                              disabled={currentPage === 1}
-                              className={`relative inline-flex items-center px-2 py-2 rounded-l-md text-sm font-medium ${currentPage === 1
-                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                : 'bg-white text-gray-500 hover:bg-gray-50'}`}
-                            >
-                              Đầu
-                            </button>
-                            <button
-                              onClick={() => goToPage(currentPage - 1)}
-                              disabled={currentPage === 1}
-                              className={`relative inline-flex items-center px-2 py-2 text-sm font-medium ${currentPage === 1
-                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                : 'bg-white text-gray-500 hover:bg-gray-50'}`}
-                            >
-                              &lt;
-                            </button>
-                            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                              const pageToShow = totalPages <= 5
-                                ? i + 1
-                                : Math.min(Math.max(currentPage - 2 + i, 1), totalPages);
-                              return (
-                                <button
-                                  key={pageToShow}
-                                  onClick={() => goToPage(pageToShow)}
-                                  className={`relative inline-flex items-center px-4 py-2 text-sm font-medium ${currentPage === pageToShow
-                                    ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'}`}
-                                >
-                                  {pageToShow}
-                                </button>
-                              );
-                            })}
-                            <button
-                              onClick={() => goToPage(currentPage + 1)}
-                              disabled={currentPage === totalPages}
-                              className={`relative inline-flex items-center px-2 py-2 text-sm font-medium ${currentPage === totalPages
-                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                : 'bg-white text-gray-500 hover:bg-gray-50'}`}
-                            >
-                              &gt;
-                            </button>
-                            <button
-                              onClick={() => goToPage(totalPages)}
-                              disabled={currentPage === totalPages}
-                              className={`relative inline-flex items-center px-2 py-2 rounded-r-md text-sm font-medium ${currentPage === totalPages
-                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                : 'bg-white text-gray-500 hover:bg-gray-50'}`}
-                            >
-                              Cuối
-                            </button>
-                          </nav>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <ActivityTable
+                  activities={sortedAndFilteredPendingActivities}
+                  campaigns={campaigns}
+                  currentPage={currentPage}
+                  itemsPerPage={itemsPerPage}
+                  sortField={sortField}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
+                  onPageChange={setCurrentPage}
+                  onViewDetails={handleViewDetails}
+                />
               </Tab>
             </Tabs>
           </>

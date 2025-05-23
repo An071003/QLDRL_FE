@@ -211,10 +211,10 @@ export default function RoleManagement() {
       <div className="mb-6">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
           <div className="w-full md:w-2/3 flex flex-col md:flex-row gap-2">
-            <input
-              type="text"
-              placeholder="Tìm kiếm theo tên..."
-              onChange={handleSearchChange}
+          <input
+            type="text"
+            placeholder="Tìm kiếm theo tên..."
+            onChange={handleSearchChange}
               className="px-4 py-2 border border-gray-300 rounded-md w-full"
             />
             
@@ -222,7 +222,7 @@ export default function RoleManagement() {
               <select
                 value={actionFilter}
                 onChange={handleActionFilterChange}
-                className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/3"
+            className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/3"
               >
                 <option value="">Tất cả Action</option>
                 {uniqueActions.map((action, index) => (

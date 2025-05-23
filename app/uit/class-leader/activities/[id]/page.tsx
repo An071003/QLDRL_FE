@@ -93,15 +93,12 @@ export default function ClassleaderActivityStudentsPage() {
         return;
       }
 
-      // Get classleader details with managed classes
       const classleaderRes = await api.get(`/api/students/user/${userRes.data.data.user.id}`);
       if (classleaderRes.data?.student) {
         const classes = classleaderRes.data.student.Classes || classleaderRes.data.student.Class || [];
-        console.log("Managed classes:", classes);
         setManagedClasses(classes);
       }
     } catch (err) {
-      console.error("Failed to fetch managed classes:", err);
       toast.error("Không thể tải danh sách lớp phụ trách");
     }
   };
@@ -144,8 +141,8 @@ export default function ClassleaderActivityStudentsPage() {
                     if (classRes.data.data && classRes.data.data.class) {
                       className = classRes.data.data.class.name;
                     }
-                  } catch (classError) {
-                    console.error(`Error fetching class for student ${student.student_id}:`, classError);
+                  } catch (classError : any) {
+                    toast.error(`Lỗi tải sinh viên trong lớp ${student.student_id}:`, classError);
                   }
                 }
                 
@@ -157,8 +154,8 @@ export default function ClassleaderActivityStudentsPage() {
               }
             }
             return student;
-          } catch (error) {
-            console.error(`Error fetching details for student ${student.student_id}:`, error);
+          } catch (error : any) {
+            toast.error(`Lỗi tải thông tin sinh viên ${student.student_id}:`, error);
             return student;
           }
         })
@@ -166,7 +163,6 @@ export default function ClassleaderActivityStudentsPage() {
       
       setStudents(enhancedStudents);
     } catch (error) {
-      console.error("Error loading activity data:", error);
       toast.error("Không thể tải dữ liệu hoạt động ❌");
     } finally {
       setLoading(false);
@@ -179,21 +175,17 @@ export default function ClassleaderActivityStudentsPage() {
     try {
       const res = await api.get(`/api/student-activities/${activityId}/not-participated`);
       const allStudents = res.data.data.students || [];
-      console.log("All available students:", allStudents);
       
       // Filter students to only include those from managed classes
       // Ensure managedClasses is an array
       const managedClassArray = Array.isArray(managedClasses) ? managedClasses : [managedClasses].filter(Boolean);
       const managedClassNames = managedClassArray.map(c => c.name);
-      console.log("Managed class names:", managedClassNames);
       
       const filteredStudents = allStudents.filter((student: StudentActivity) => {
         const isInManagedClass = student.class && managedClassNames.includes(student.class);
-        console.log(`Student ${student.student_id} in managed class:`, isInManagedClass);
         return isInManagedClass;
       });
       
-      console.log("Filtered students:", filteredStudents);
       setAvailableStudents(filteredStudents);
     } catch (error) {
       console.error("Error fetching available students:", error);

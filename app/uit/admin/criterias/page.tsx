@@ -10,10 +10,12 @@ import CriteriaTable from "@/components/Table/CriteriaTable";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import Loading from "@/components/Loading";
 import axios from "axios";
+import { useData } from "@/lib/contexts/DataContext";
 
 export default function CriteriaManagement() {
+  const { criteria: contextCriteria, loading: dataLoading, refreshData } = useData();
   const [criterias, setCriterias] = useState<Criteria[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [activeComponent, setActiveComponent] = useState<'form' | 'import' | 'table'>("table");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -24,27 +26,14 @@ export default function CriteriaManagement() {
   const itemsPerPage = 20;
   const tableRef = useRef<HTMLDivElement>(null);
 
-  const fetchCriterias = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get("/api/criteria");
-      setCriterias(res.data.data.criteria);
-    } catch (err) {
-      console.error(err);
-      toast.error("Không thể tải danh sách tiêu chí ❌");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchCriterias();
-  }, []);
+    setCriterias(contextCriteria || []);
+  }, [contextCriteria]);
 
   const handleCreateCriteria = async (newCriteria: { name: string; max_score: number }) => {
     try {
       await api.post("/api/criteria", newCriteria);
-      await fetchCriterias();
+      await refreshData();
       setActiveComponent("table");
       toast.success("Thêm tiêu chí thành công 🎉");
 
@@ -65,7 +54,7 @@ export default function CriteriaManagement() {
     if (selectedId === null) return;
     try {
       await api.delete(`/api/criteria/${selectedId}`);
-      await fetchCriterias();
+      await refreshData();
       toast.success("Xóa tiêu chí thành công ✅");
     } catch (error: unknown) {
       console.error(error);
@@ -79,7 +68,7 @@ export default function CriteriaManagement() {
   const handleUpdateCriteria = async (id: number, updatedCriteria: { name: string; max_score: number }) => {
     try {
       await api.put(`/api/criteria/${id}`, updatedCriteria);
-      await fetchCriterias();
+      await refreshData();
       toast.success("Cập nhật tiêu chí thành công ✨");
     } catch (error: unknown) {
       console.error(error);
@@ -97,7 +86,7 @@ export default function CriteriaManagement() {
       const response = await api.post("/api/criteria/import", importedCriterias);
       console.log("Import response:", response.data);
       
-      await fetchCriterias();
+      await refreshData();
       setActiveComponent("table");
       
       if (response.data.status === "partial") {
@@ -223,7 +212,7 @@ export default function CriteriaManagement() {
     }
   };
 
-  if (loading) {
+  if (dataLoading) {
     return (
       <Loading />
     );

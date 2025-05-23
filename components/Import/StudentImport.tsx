@@ -6,6 +6,7 @@ import ExcelJS from 'exceljs';
 import { toast } from 'sonner';
 import { Tooltip } from 'antd';
 import { useData } from '@/lib/contexts/DataContext';
+import Loading from '../Loading';
 
 export default function StudentImport({
   onStudentsImported,
@@ -350,10 +351,7 @@ export default function StudentImport({
 
   if (dataLoading) {
     return (
-      <div className="text-center py-10">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-        <p className="mt-4 text-gray-600">Đang tải dữ liệu khoa và lớp...</p>
-      </div>
+      <Loading />
     );
   }
 

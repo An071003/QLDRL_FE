@@ -1,14 +1,15 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import Loading from '@/components/Loading';
 import { toast } from 'sonner';
-import { Table, Tag, Input } from 'antd';
+import { Table, Tag, Input, Button, Modal, Checkbox } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import debounce from 'lodash.debounce';
 import { Activity } from "@/types/activity";
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
 
 interface StudentActivity {
   id: number;
@@ -21,13 +22,26 @@ interface StudentActivity {
 
 export default function DPOActivityStudentsPage() {
   const params = useParams();
+  const router = useRouter();
   const activityId = Array.isArray(params.id) ? params.id[0] : params.id;
   const [students, setStudents] = useState<StudentActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [activity, setActivity] = useState<Activity | null>(null);
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [canEdit, setCanEdit] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
+  
+  // Modal states for registering new students
+  const [registerModalVisible, setRegisterModalVisible] = useState(false);
+  const [availableStudents, setAvailableStudents] = useState<StudentActivity[]>([]);
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+  const [loadingAvailableStudents, setLoadingAvailableStudents] = useState(false);
+  const [searchStudent, setSearchStudent] = useState("");
+  
+  // Confirm modal for removing students
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [studentIdToDelete, setStudentIdToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -44,15 +58,28 @@ export default function DPOActivityStudentsPage() {
         throw new Error('Invalid activity data response');
       }
       
-      // Log activity data to check Campaign information
-      console.log('Activity data:', activityRes.data.data.activity);
+      const activityData = activityRes.data.data.activity;
+      console.log('Activity data:', activityData);
       
-      setActivity(activityRes.data.data.activity);
+      setActivity(activityData);
+      
+      // Xác định nếu có thể chỉnh sửa
+      if (activityData.status === 'ongoing' && activityData.approver_id !== null) {
+        const currentDate = new Date();
+        const registrationStart = activityData.registration_start ? new Date(activityData.registration_start) : null;
+        const registrationEnd = activityData.registration_end ? new Date(activityData.registration_end) : null;
+        
+        if (registrationStart && registrationEnd && 
+            currentDate >= registrationStart && 
+            currentDate <= registrationEnd) {
+          setCanEdit(true);
+        }
+      }
 
       // Only fetch students if the activity exists
-      if (activityRes.data.data.activity.approver_id !== null) {
+      if (activityData.approver_id !== null) {
         try {
-          const studentsRes = await api.get(`/api/activities/${activityId}/students`);
+          const studentsRes = await api.get(`/api/student-activities/${activityId}`);
           setStudents(studentsRes.data.data.students || []);
         } catch (err) {
           console.error('Failed to fetch students:', err);
@@ -122,8 +149,139 @@ export default function DPOActivityStudentsPage() {
         { text: 'Chưa tham gia', value: false }
       ],
       onFilter: (value, record) => record.participated === !!value
+    },
+    {
+      title: 'Thao tác',
+      key: 'actions',
+      render: (_, record) => (
+        <div className="flex space-x-2">
+          <Button 
+            type="primary" 
+            size="small" 
+            onClick={() => handleToggleParticipated(record.student_id, !record.participated)}
+          >
+            {record.participated ? 'Đánh dấu chưa tham gia' : 'Đánh dấu đã tham gia'}
+          </Button>
+          <Button 
+            danger
+            size="small" 
+            onClick={() => handleRemoveStudent(record.student_id)}
+          >
+            Xóa
+          </Button>
+        </div>
+      )
     }
   ];
+
+  // Fetch students not registered for this activity
+  const fetchAvailableStudents = async () => {
+    setLoadingAvailableStudents(true);
+    try {
+      const res = await api.get(`/api/student-activities/${activityId}/not-participated`);
+      const allStudents = res.data.data.students || [];
+      setAvailableStudents(allStudents);
+    } catch (error) {
+      console.error("Error fetching available students:", error);
+      toast.error("Không thể tải danh sách sinh viên có thể đăng ký ❌");
+    } finally {
+      setLoadingAvailableStudents(false);
+    }
+  };
+  
+  // Open register modal
+  const openRegisterModal = () => {
+    if (!canEdit) {
+      const now = new Date();
+      const registrationStart = activity?.registration_start ? new Date(activity.registration_start) : null;
+      
+      if (registrationStart && now < registrationStart) {
+        toast.error("Chưa đến thời gian đăng ký");
+      } else {
+        toast.error("Thời gian đăng ký đã kết thúc");
+      }
+      return;
+    }
+
+    fetchAvailableStudents();
+    setRegisterModalVisible(true);
+  };
+  
+  // Handle student selection
+  const toggleStudentSelection = (studentId: string) => {
+    if (selectedStudents.includes(studentId)) {
+      setSelectedStudents(selectedStudents.filter(id => id !== studentId));
+    } else {
+      setSelectedStudents([...selectedStudents, studentId]);
+    }
+  };
+  
+  // Register selected students
+  const handleRegisterStudents = async () => {
+    if (selectedStudents.length === 0) {
+      toast.warning("Vui lòng chọn ít nhất một sinh viên");
+      return;
+    }
+
+    if (!canEdit) {
+      toast.error("Thời gian đăng ký không hợp lệ");
+      setRegisterModalVisible(false);
+      return;
+    }
+    
+    try {
+      await api.post(`/api/student-activities/${activityId}/students`, { 
+        studentIds: selectedStudents 
+      });
+      
+      setRegisterModalVisible(false);
+      setSelectedStudents([]);
+      toast.success("Đăng ký sinh viên thành công 🎉");
+      await fetchData(); // Refresh the list
+    } catch (error: any) {
+      console.error("Error registering students:", error);
+      const errorMessage = error.response?.data?.message || "Đăng ký sinh viên thất bại ❌";
+      toast.error(errorMessage);
+    }
+  };
+  
+  // Handle removing a student from activity
+  const handleRemoveStudent = (studentId: string) => {
+    setStudentIdToDelete(studentId);
+    setConfirmDeleteOpen(true);
+  };
+  
+  // Confirm removal of student
+  const confirmRemoveStudent = async () => {
+    if (!studentIdToDelete) return;
+    
+    try {
+      await api.delete(`/api/student-activities/${activityId}/students/${studentIdToDelete}`);
+      toast.success("Xóa sinh viên khỏi hoạt động thành công");
+      await fetchData(); // Refresh the list
+    } catch (error) {
+      console.error("Error removing student:", error);
+      toast.error("Xóa sinh viên thất bại");
+    } finally {
+      setConfirmDeleteOpen(false);
+      setStudentIdToDelete(null);
+    }
+  };
+  
+  // Handle toggling participated status
+  const handleToggleParticipated = async (studentId: string, participated: boolean) => {
+    try {
+      await api.patch(`/api/student-activities/${activityId}`, {
+        studentId,
+        participated,
+      });
+      toast.success("Cập nhật trạng thái thành công");
+      await fetchData(); // Refresh the list
+    } catch (error) {
+      console.error("Error updating participation status:", error);
+      toast.error("Cập nhật trạng thái thất bại");
+    }
+  };
 
   if (loading) return <Loading />;
 
@@ -199,14 +357,26 @@ export default function DPOActivityStudentsPage() {
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Danh sách sinh viên tham gia</h2>
         <div className="flex gap-4">
-          {activity?.approver_id === null && (
+          {activity?.approver_id === null ? (
             <div className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded">
               Hoạt động đang chờ phê duyệt
+            </div>
+          ) : canEdit ? (
+            <button
+              className="px-4 py-2 cursor-pointer bg-green-600 text-white rounded hover:bg-green-700"
+              onClick={openRegisterModal}>
+              Đăng ký sinh viên
+            </button>
+          ) : (
+            <div className="px-4 py-2 bg-gray-100 text-gray-800 rounded">
+              {new Date() < new Date(activity?.registration_start || '') 
+                ? "Chưa đến thời gian đăng ký" 
+                : "Thời gian đăng ký đã kết thúc"}
             </div>
           )}
           <button
             className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
-            onClick={() => window.history.back()}>
+            onClick={() => router.push('/uit/department-officers/activities')}>
             Quay về danh sách
           </button>
         </div>
@@ -243,6 +413,92 @@ export default function DPOActivityStudentsPage() {
               locale={{ emptyText: 'Không có sinh viên nào' }}
             />
           </div>
+
+          {/* Modal for registering students */}
+          <Modal
+            title="Đăng ký sinh viên tham gia hoạt động"
+            open={registerModalVisible}
+            onCancel={() => setRegisterModalVisible(false)}
+            footer={[
+              <Button key="cancel" onClick={() => setRegisterModalVisible(false)}>
+                Hủy
+              </Button>,
+              <Button 
+                key="register" 
+                type="primary" 
+                onClick={handleRegisterStudents}
+                disabled={selectedStudents.length === 0}
+              >
+                Đăng ký {selectedStudents.length > 0 ? `(${selectedStudents.length})` : ''}
+              </Button>
+            ]}
+            width={800}
+          >
+            {loadingAvailableStudents ? (
+              <Loading />
+            ) : (
+              <>
+                <Input.Search
+                  placeholder="Tìm kiếm sinh viên..."
+                  onChange={(e) => setSearchStudent(e.target.value)}
+                  className="mb-4"
+                />
+                
+                <div className="max-h-96 overflow-y-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Chọn</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">MSSV</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Họ tên</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Lớp</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {availableStudents.filter(s => 
+                        s.student_id?.toLowerCase().includes(searchStudent.toLowerCase()) || 
+                        s.student_name?.toLowerCase().includes(searchStudent.toLowerCase()) ||
+                        s.class?.toLowerCase().includes(searchStudent.toLowerCase())
+                      ).length > 0 ? (
+                        availableStudents.filter(s => 
+                          s.student_id?.toLowerCase().includes(searchStudent.toLowerCase()) || 
+                          s.student_name?.toLowerCase().includes(searchStudent.toLowerCase()) ||
+                          s.class?.toLowerCase().includes(searchStudent.toLowerCase())
+                        ).map((student) => (
+                          <tr key={student.student_id} className="hover:bg-gray-50">
+                            <td className="px-3 py-2">
+                              <Checkbox 
+                                checked={selectedStudents.includes(student.student_id)} 
+                                onChange={() => toggleStudentSelection(student.student_id)}
+                              />
+                            </td>
+                            <td className="px-3 py-2">{student.student_id}</td>
+                            <td className="px-3 py-2">{student.student_name}</td>
+                            <td className="px-3 py-2">{student.class}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} className="text-center py-4">
+                            {searchStudent 
+                              ? 'Không tìm thấy sinh viên phù hợp' 
+                              : 'Không có sinh viên nào có thể đăng ký'}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </Modal>
+          
+          {/* Confirmation modal for deleting students */}
+          <ConfirmDeleteModal
+            isOpen={confirmDeleteOpen}
+            onClose={() => setConfirmDeleteOpen(false)}
+            onConfirm={confirmRemoveStudent}
+          />
         </>
       )}
     </div>

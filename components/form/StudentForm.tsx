@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import api from '@/lib/api';
+import { useState } from 'react';
 import { toast } from 'sonner';
+import { useData } from '@/lib/contexts/DataContext';
+import Loading from '../Loading';
 
 export default function StudentForm({
   onStudentCreated,
@@ -21,34 +22,7 @@ export default function StudentForm({
     class_id: '',
   });
   
-  const [faculties, setFaculties] = useState<Array<{id: number, faculty_abbr: string, name: string}>>([]);
-  const [classes, setClasses] = useState<Array<{id: number, name: string, faculty_id: number}>>([]);
-  const [filteredClasses, setFilteredClasses] = useState<Array<{id: number, name: string, faculty_id: number}>>([]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [facultiesRes, classesRes] = await Promise.all([
-          api.get('/api/faculties'),
-          api.get('/api/classes')
-        ]);
-        setFaculties(facultiesRes.data.data.faculties);
-        setClasses(classesRes.data.data.classes);
-      } catch (err) {
-        toast.error('Không thể tải dữ liệu');
-      }
-    };
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    if (formData.faculty_id) {
-      const filtered = classes.filter(c => c.faculty_id === parseInt(formData.faculty_id));
-      setFilteredClasses(filtered);
-    } else {
-      setFilteredClasses([]);
-    }
-  }, [formData.faculty_id, classes]);
+  const { faculties, classes, loading: dataLoading, getFilteredClasses } = useData();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -111,6 +85,12 @@ export default function StudentForm({
     });
     setLoading(false);
   };
+
+  if (dataLoading) {
+    return (
+      <Loading />
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow space-y-4">
@@ -187,7 +167,7 @@ export default function StudentForm({
           disabled={!formData.faculty_id}
         >
           <option value="">Chọn lớp</option>
-          {filteredClasses.map(cls => (
+          {formData.faculty_id && getFilteredClasses(parseInt(formData.faculty_id)).map(cls => (
             <option key={cls.id} value={cls.id}>
               {cls.name}
             </option>

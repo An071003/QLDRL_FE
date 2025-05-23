@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback, useMemo, memo } from 'react';
 import { UploadCloud, Trash, Check, X, RefreshCw, Plus, SquarePen, Download } from "lucide-react";
 import ExcelJS from 'exceljs';
 import { toast } from 'sonner';
 import { Tooltip } from 'antd';
 
-export default function UserImport({
+const UserImport = memo(function UserImport({
   onUsersImported,
   setLoadingManager,
   roles
@@ -26,20 +26,20 @@ export default function UserImport({
   const [originalUserBeforeEdit, setOriginalUserBeforeEdit] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const isValidEmail = (email: string) => {
+  const isValidEmail = useCallback((email: string) => {
     if (!email || typeof email !== 'string') return false;
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
+  }, []);
 
-  const validateUser = (user: any) => {
+  const validateUser = useCallback((user: any) => {
     return {
       emailError: !isValidEmail(user.email),
       roleError: !user.role || !roles.some(r => r.name === user.role),
       nameError: !user.user_name || user.user_name.trim() === '',
     };
-  };
+  }, [isValidEmail, roles]);
 
-  const processExcelFile = async (file: File) => {
+  const processExcelFile = useCallback(async (file: File) => {
     if (!file) return;
 
     setLoading(true);
@@ -100,31 +100,30 @@ export default function UserImport({
     } finally {
       setLoading(false);
     }
-  };
+  }, [roles]);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     await processExcelFile(file);
-
     resetFileInput();
-  };
+  }, [processExcelFile]);
 
-  const resetFileInput = () => {
+  const resetFileInput = useCallback(() => {
     setFileKey(Date.now().toString());
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-  };
+  }, []);
 
-  const handleReselect = () => {
+  const handleReselect = useCallback(() => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
-  };
+  }, []);
 
-  const handleAddRow = () => {
+  const handleAddRow = useCallback(() => {
     setPreviewUsers(prev => [
       ...prev,
       {
@@ -138,9 +137,9 @@ export default function UserImport({
 
     setEditingIndex(previewUsers.length);
     setEditErrors({});
-  };
+  }, [previewUsers.length]);
 
-  const handleUserChange = (index: number, key: string, value: string) => {
+  const handleUserChange = useCallback((index: number, key: string, value: string) => {
     setPreviewUsers(prev => {
       const updated = [...prev];
       
@@ -154,19 +153,19 @@ export default function UserImport({
       return updated;
     });
     setEditErrors(prev => ({ ...prev, [key]: false }));
-  };
+  }, [roles]);
 
-  const handleDeleteRow = (index: number) => {
+  const handleDeleteRow = useCallback((index: number) => {
     setPreviewUsers(prev => prev.filter((_, i) => i !== index));
-  };
+  }, []);
 
-  const handleEditRow = (index: number) => {
+  const handleEditRow = useCallback((index: number) => {
     setOriginalUserBeforeEdit(JSON.parse(JSON.stringify(previewUsers[index])));
     setEditingIndex(index);
     setEditErrors({});
-  };
+  }, [previewUsers]);
 
-  const handleCancelEdit = () => {
+  const handleCancelEdit = useCallback(() => {
     if (editingIndex !== null && originalUserBeforeEdit) {
       setPreviewUsers(prev => {
         const updated = [...prev];
@@ -178,9 +177,9 @@ export default function UserImport({
     setEditingIndex(null);
     setEditErrors({});
     setOriginalUserBeforeEdit(null);
-  };
+  }, [editingIndex, originalUserBeforeEdit]);
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = useCallback(() => {
     if (editingIndex === null) return;
 
     const user = previewUsers[editingIndex];
@@ -198,9 +197,9 @@ export default function UserImport({
     setEditingIndex(null);
     setEditErrors({});
     setOriginalUserBeforeEdit(null);
-  };
+  }, [editingIndex, previewUsers, validateUser]);
 
-  const handleImport = async () => {
+  const handleImport = useCallback(async () => {
     setShowErrors(true);
 
     const invalidUsers = previewUsers.filter(user => {
@@ -239,22 +238,22 @@ export default function UserImport({
     } finally {
       setLoadingManager(false);
     }
-  };
+  }, [previewUsers, validateUser, onUsersImported, resetFileInput, setLoadingManager]);
 
-  const renderEmail = (email: any, isError: boolean) => {
+  const renderEmail = useCallback((email: any, isError: boolean) => {
     if (!email || typeof email !== 'string' || isError) {
       return "-";
     }
     return email;
-  };
-
-  const roleColors: Record<string, string> = {
+  }, []);
+  
+  const roleColors = useMemo(() => ({
     admin: 'bg-purple-100 text-purple-800',
     advisor: 'bg-green-100 text-green-800',
-    departmentofficer: 'bg-orange-100 text-orange-800',
     student: 'bg-blue-100 text-blue-800',
-    class_leader: 'bg-yellow-100 text-yellow-800',
-  };
+    departmentofficer: 'bg-yellow-100 text-yellow-800',
+    classleader: 'bg-red-100 text-red-800',
+  }), []);
 
   // Function to generate and download a sample Excel template
   const downloadSampleTemplate = async () => {
@@ -528,4 +527,6 @@ export default function UserImport({
       )}
     </div>
   );
-}
+});
+
+export default UserImport;

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Faculty } from '@/types/advisor';
-import api from '@/lib/api';
 import { toast } from 'sonner';
+import { useData } from '@/lib/contexts/DataContext';
+import Loading from '@/components/Loading';
 
 interface AdvisorFormProps {
   onAdvisorCreated: (advisor: any) => Promise<void>;
@@ -10,7 +10,7 @@ interface AdvisorFormProps {
 }
 
 export default function AdvisorForm({ onAdvisorCreated, setLoading, onCancel }: AdvisorFormProps) {
-  const [faculties, setFaculties] = useState<Faculty[]>([]);
+  const { faculties, loading: dataLoading } = useData();
   const [formData, setFormData] = useState<{
     name: string;
     faculty_id: string;
@@ -24,26 +24,6 @@ export default function AdvisorForm({ onAdvisorCreated, setLoading, onCancel }: 
     email: '',
     username: '',
   });
-
-  useEffect(() => {
-    fetchFaculties();
-  }, []);
-
-  const fetchFaculties = async () => {
-    try {
-      const res = await api.get('/api/faculties');
-      if (Array.isArray(res.data.data)) {
-        setFaculties(res.data.data);
-      } else if (res.data.data.faculties) {
-        setFaculties(res.data.data.faculties);
-      } else {
-        setFaculties([]);
-      }
-    } catch (err) {
-      console.error('Failed to fetch faculties:', err);
-      toast.error('Không thể tải danh sách khoa');
-    }
-  };
 
   const validatePhone = (phone: string): boolean => {
     const phoneRegex = /^\d{10}$/;
@@ -119,6 +99,10 @@ export default function AdvisorForm({ onAdvisorCreated, setLoading, onCancel }: 
       username: '',
     });
   };
+
+  if (dataLoading) {
+    return <Loading />;
+  }
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">

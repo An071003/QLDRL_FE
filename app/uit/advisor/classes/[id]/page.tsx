@@ -60,7 +60,6 @@ export default function AdvisorClassStudentsPage() {
   const fetchClassAndStudents = async () => {
     setLoading(true);
     try {
-      // Fetch class details
       const classRes = await api.get(`/api/classes/${classId}`);
       setClassData(classRes.data.data.class);
       

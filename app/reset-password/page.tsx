@@ -6,6 +6,14 @@ import api from "@/lib/api";
 import { MainLayout } from "@/components/layout";
 import { toast } from "sonner";
 
+type ErrorWithResponse = Error & {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+};
+
 const ResetPasswordPage = () => {
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -38,8 +46,9 @@ const ResetPasswordPage = () => {
       await api.post("/api/auth/send-otp", { email });
       setIsCounting(true);
       setCountdown(120);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Lỗi khi gửi mã xác thực");
+    } catch (error: unknown) {
+      const err = error as ErrorWithResponse;
+      toast.error(err.response?.data?.message || "Lỗi khi gửi mã xác thực");
     }
   };
 
@@ -48,8 +57,9 @@ const ResetPasswordPage = () => {
       const response = await api.post("/api/auth/reset-password", { email, otp, newPassword });
       toast.success(response.data.message || "Cập nhật mật khẩu thành công");
       router.push("/login");
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Lỗi khi cập nhật mật khẩu");
+    } catch (error: unknown) {
+      const err = error as ErrorWithResponse;
+      toast.error(err.response?.data?.message || "Lỗi khi cập nhật mật khẩu");
     }
   };
 

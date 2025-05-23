@@ -9,6 +9,21 @@ import { toast } from 'sonner';
 const { Title } = Typography;
 const { Option } = Select;
 
+interface RegisterFormValues {
+    user_name: string;
+    email: string;
+    password: string;
+    role_id: number;
+}
+
+type ErrorWithResponse = Error & {
+    response?: {
+        data?: {
+            message?: string;
+        };
+    };
+};
+
 export default function RegisterPage() {
     const [form] = Form.useForm();
     const router = useRouter();
@@ -28,13 +43,14 @@ export default function RegisterPage() {
         fetchRoles();
     }, []);
 
-    const handleSubmit = async (values: any) => {
+    const handleSubmit = async (values: RegisterFormValues) => {
         try {
             await api.post("/api/auth/register", values);
             toast.success("Đăng ký thành công!");
             router.push('/login');
-        } catch (err: any) {
-            toast.error(err.response.data.message || "Đăng ký thất bại.");
+        } catch (error: unknown) {
+            const err = error as ErrorWithResponse;
+            toast.error(err.response?.data?.message || "Đăng ký thất bại.");
         }
     };
 

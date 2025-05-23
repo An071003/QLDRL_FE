@@ -7,8 +7,12 @@ import { MainLayout } from "@/components/layout/main";
 import { Button, Input, Form, Typography, Space } from "antd";
 import Link from "next/link";
 import { toast } from "sonner";
-
 const { Title } = Typography;
+
+interface LoginFormValues {
+  user_name: string;
+  password: string;
+}
 
 export default function LoginPage() {
   const router = useRouter();

@@ -45,7 +45,6 @@ export default function ActivityStudentManagement() {
     try {
       const res = await api.get(`/api/student-activities/${activityId}`);
       const fetchedStudents = res.data.data.students;
-      console.log(res.data.data.students);
       setStudents(fetchedStudents);
     } catch (err) {
       toast.error("Không thể tải danh sách sinh viên tham gia ❌");
@@ -69,13 +68,20 @@ export default function ActivityStudentManagement() {
         ...activity,
         campaign
       });
-      
-      // Kiểm tra xem activity này có đang diễn ra không
+
       if (activity.status === "ongoing") {
-        setCanEdit(true);
+        const currentDate = new Date();
+        const registrationStart = activity.registration_start ? new Date(activity.registration_start) : null;
+        const registrationEnd = activity.registration_end ? new Date(activity.registration_end) : null;
+
+        if (registrationStart && registrationEnd && 
+            currentDate >= registrationStart && 
+            currentDate <= registrationEnd) {
+          setCanEdit(true);
+        }
       }
-    } catch (error) {
-      console.error("Không thể tải thông tin hoạt động:", error);
+    } catch (error: any) {
+      toast.error("Không thể tải thông tin hoạt động:", error);
     }
   };
   

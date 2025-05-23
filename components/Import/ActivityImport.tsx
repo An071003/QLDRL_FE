@@ -49,6 +49,15 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
     const registrationEndError = !activity.registration_end;
     const dateOrderError = new Date(activity.registration_start) > new Date(activity.registration_end);
 
+    // Check if positive points exceed campaign max_score
+    let pointExceedsCampaignError = false;
+    if (activity.point > 0 && !pointError && !campaignIdError) {
+      const campaign = currentcampaigns.find(c => c.id === activity.campaign_id);
+      if (campaign && activity.point > campaign.max_score) {
+        pointExceedsCampaignError = true;
+      }
+    }
+
     return {
       nameError,
       campaignIdError,
@@ -56,7 +65,8 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
       maxParticipantsError,
       registrationStartError,
       registrationEndError,
-      dateOrderError
+      dateOrderError,
+      pointExceedsCampaignError
     };
   };
 
@@ -296,17 +306,23 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
     if (editingIndex === null) return;
 
     const activity = previewActivities[editingIndex];
-    const { nameError, campaignIdError, pointError, maxParticipantsError, registrationStartError, registrationEndError, dateOrderError } = validateActivity(activity);
+    const { nameError, campaignIdError, pointError, maxParticipantsError, registrationStartError, registrationEndError, dateOrderError, pointExceedsCampaignError } = validateActivity(activity);
 
-    if (nameError || campaignIdError || pointError || maxParticipantsError || registrationStartError || registrationEndError || dateOrderError) {
+    if (nameError || campaignIdError || pointError || maxParticipantsError || registrationStartError || registrationEndError || dateOrderError || pointExceedsCampaignError) {
       setEditErrors({
         name: nameError,
         campaign_id: campaignIdError,
-        point: pointError,
+        point: pointError || pointExceedsCampaignError,
         max_participants: maxParticipantsError,
         registration_start: registrationStartError || dateOrderError,
         registration_end: registrationEndError || dateOrderError
       });
+      
+      if (pointExceedsCampaignError) {
+        const campaign = currentcampaigns.find(c => c.id === activity.campaign_id);
+        toast.error(`Điểm hoạt động không được lớn hơn điểm tối đa (${campaign?.max_score}) của phong trào.`);
+      }
+      
       return;
     }
 
@@ -318,13 +334,25 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
   const handleImport = async () => {
     setShowErrors(true);
 
-    const invalidActivities = previewActivities.filter(activity => {
-      const { nameError, campaignIdError, pointError, maxParticipantsError, registrationStartError, registrationEndError, dateOrderError } = validateActivity(activity);
-      return nameError || campaignIdError || pointError || maxParticipantsError || registrationStartError || registrationEndError || dateOrderError;
-    });
+    const invalidActivities = previewActivities.map((activity, index) => {
+      const validation = validateActivity(activity);
+      const hasError = validation.nameError || validation.campaignIdError || validation.pointError || 
+                    validation.maxParticipantsError || validation.registrationStartError || 
+                    validation.registrationEndError || validation.dateOrderError || validation.pointExceedsCampaignError;
+      
+      return { activity, index, hasError, validation };
+    }).filter(item => item.hasError);
+    
+    // Check for point exceeds campaign max_score errors specifically
+    const pointExceedsCampaignErrors = invalidActivities.filter(item => item.validation.pointExceedsCampaignError);
+    
+    if (pointExceedsCampaignErrors.length > 0) {
+      toast.error("Import thất bại. Vui lòng kiểm tra điểm hoạt động không vượt quá điểm tối đa của phong trào.");
+      return;
+    }
 
     if (invalidActivities.length > 0) {
-      toast.error(`Có ${invalidActivities.length} hoạt động chứa lỗi. Vui lòng kiểm tra các ô màu đỏ và sửa trước khi import.`);
+      toast.error("Import thất bại. Vui lòng kiểm tra lại dữ liệu.");
       return;
     }
 
@@ -346,7 +374,7 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
         resetFileInput();
         toast.success("Import hoạt động thành công!");
       } else {
-        toast.error("Import thất bại. Vui lòng kiểm tra lại dữ liệu.");
+        toast.error("Toàn bộ hoạt động đã tồn tại");
       }
     } catch (error) {
       console.error("Import error:", error);
@@ -527,8 +555,8 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {previewActivities.map((activity, index) => {
-                const { nameError, campaignIdError, pointError, maxParticipantsError, registrationStartError, registrationEndError, dateOrderError } = validateActivity(activity);
-                const hasError = nameError || campaignIdError || pointError || maxParticipantsError || registrationStartError || registrationEndError || dateOrderError;
+                const { nameError, campaignIdError, pointError, maxParticipantsError, registrationStartError, registrationEndError, dateOrderError, pointExceedsCampaignError } = validateActivity(activity);
+                const hasError = nameError || campaignIdError || pointError || maxParticipantsError || registrationStartError || registrationEndError || dateOrderError || pointExceedsCampaignError;
                 const isEditing = editingIndex === index;
 
                 return (
@@ -564,7 +592,7 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
                           >
                             <option value="">-- Chọn phong trào --</option>
                             {currentcampaigns.map(campaign => (
-                              <option key={campaign.id} value={campaign.id}>{campaign.name}</option>
+                              <option key={campaign.id} value={campaign.id}>{campaign.name} (Tối đa: {campaign.max_score})</option>
                             ))}
                           </select>
                           {((showErrors && campaignIdError) || editErrors.campaign_id) && (
@@ -579,26 +607,36 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
                         </Tooltip>
                       )}
                     </td>
-                    <td className={`px-6 py-4 ${showErrors && pointError ? 'bg-red-100' : ''}`}>
+                    <td className={`px-6 py-4 ${showErrors && (pointError || pointExceedsCampaignError) ? 'bg-red-100' : ''}`}>
                       {isEditing ? (
                         <>
                           <input
                             type="number"
                             value={activity.point}
                             onChange={(e) => handleActivityChange(index, 'point', e.target.value)}
-                            className={`w-full border rounded px-2 py-1 ${(showErrors && pointError) || editErrors.point ? 'border-red-600 bg-red-50' : ''}`}
+                            className={`w-full border rounded px-2 py-1 ${(showErrors && (pointError || pointExceedsCampaignError)) || editErrors.point ? 'border-red-600 bg-red-50' : ''}`}
                             step="any"
                             min={-100}
                             max={100}
                           />
-                          {((showErrors && pointError) || editErrors.point) && (
+                          {((showErrors && pointError) || editErrors.point && !pointExceedsCampaignError) && (
                             <p className="text-xs text-red-600 font-medium mt-1">Điểm không hợp lệ</p>
+                          )}
+                          {((showErrors && pointExceedsCampaignError) || (editErrors.point && pointExceedsCampaignError)) && (
+                            <p className="text-xs text-red-600 font-medium mt-1">
+                              Điểm tối đa ({currentcampaigns.find(c => c.id === activity.campaign_id)?.max_score})
+                            </p>
                           )}
                         </>
                       ) : (
-                        <span className={`${pointError && showErrors ? "text-red-700 font-semibold border-b-2 border-red-500" : ""} ${activity.point < 0 ? "text-red-600 font-medium" : activity.point > 0 ? "text-green-600 font-medium" : ""
+                        <span className={`${(pointError || pointExceedsCampaignError) && showErrors ? "text-red-700 font-semibold border-b-2 border-red-500" : ""} ${activity.point < 0 ? "text-red-600 font-medium" : activity.point > 0 ? "text-green-600 font-medium" : ""
                           }`}>
                           {activity.point < 0 ? `${activity.point} (điểm trừ)` : activity.point}
+                          {showErrors && pointExceedsCampaignError && (
+                            <span className="block text-xs text-red-600 font-medium mt-1">
+                              Vượt quá điểm tối đa {currentcampaigns.find(c => c.id === activity.campaign_id)?.max_score}
+                            </span>
+                          )}
                         </span>
                       )}
                     </td>

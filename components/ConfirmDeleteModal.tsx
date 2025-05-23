@@ -1,12 +1,18 @@
 "use client";
 
+import { memo } from "react";
+
 interface ConfirmDeleteModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
 }
 
-export default function ConfirmDeleteModal({ isOpen, onClose, onConfirm }: ConfirmDeleteModalProps) {
+const ConfirmDeleteModal = memo(function ConfirmDeleteModal({ 
+  isOpen, 
+  onClose, 
+  onConfirm 
+}: ConfirmDeleteModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -31,4 +37,6 @@ export default function ConfirmDeleteModal({ isOpen, onClose, onConfirm }: Confi
       </div>
     </div>
   );
-}
+});
+
+export default ConfirmDeleteModal;
