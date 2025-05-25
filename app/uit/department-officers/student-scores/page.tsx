@@ -9,7 +9,6 @@ import ScoreList from '@/components/studentscore/ScoreList';
 import FacultyStats from '@/components/studentscore/FacultyStats';
 import ClassStats from '@/components/studentscore/ClassStats';
 import CohortStats from '@/components/studentscore/CohortStats';
-import PieChart from '@/components/studentscore/PieChart';
 
 const { Option } = Select;
 
@@ -73,7 +72,7 @@ export default function StudentScoresPage() {
   const [scoreDistribution, setScoreDistribution] = useState<ScoreDistribution[] | null>(null);
   const [facultyStats, setFacultyStats] = useState<FacultyStats[] | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(10);
+  const [pageSize, setPageSize] = useState<number>(9999);
   const [classStats, setClassStats] = useState([]);
   const [selectedClass, setSelectedClass] = useState('all');
 
@@ -327,8 +326,6 @@ export default function StudentScoresPage() {
       children: <ScoreList 
         scores={scores} 
         faculties={faculties} 
-        page={currentPage} 
-        limit={pageSize}
         selectedSemester={selectedSemester}
       />,
     },

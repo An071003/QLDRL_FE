@@ -335,6 +335,7 @@ export default function DPOActivityManagement() {
                   campaigns={campaigns}
                   currentPage={currentPage}
                   itemsPerPage={itemsPerPage}
+                  totalItems={sortedAndFilteredActivities.length}
                   sortField={sortField}
                   sortDirection={sortDirection}
                   onSort={handleSort}
@@ -348,11 +349,13 @@ export default function DPOActivityManagement() {
                   campaigns={campaigns}
                   currentPage={currentPage}
                   itemsPerPage={itemsPerPage}
+                  totalItems={sortedAndFilteredPendingActivities.length}
                   sortField={sortField}
                   sortDirection={sortDirection}
                   onSort={handleSort}
                   onPageChange={setCurrentPage}
                   onViewDetails={handleViewDetails}
+                  isPending={true}
                 />
               </Tab>
             </Tabs>

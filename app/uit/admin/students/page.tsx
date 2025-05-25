@@ -121,6 +121,7 @@ export default function StudentManagementPage() {
           students={filteredStudents}
           onDeleteStudent={handleDeleteClick}
           onUpdateStudent={handleUpdateStudent}
+          role="admin"
         />
     }
   };

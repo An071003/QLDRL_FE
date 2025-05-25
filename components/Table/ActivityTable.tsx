@@ -143,15 +143,12 @@ export default function ActivityTable({
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STT</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên hoạt động</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên phong trào</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[300px]">Tên hoạt động</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[300px]">Tên phong trào</th>
               <th onClick={onSortPoint} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
                 Điểm {sortOrder === "asc" ? "▲" : "▼"}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">SL đăng ký</th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">SL tối đa</th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian đăng ký</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">Hành động</th>
             </tr>
           </thead>
@@ -170,7 +167,7 @@ export default function ActivityTable({
                     />
                   ) : (
                     <Tooltip title={activity.name} placement="topLeft">
-                      <div className="max-w-[200px] overflow-hidden text-ellipsis">
+                      <div className="max-w-[320px] overflow-hidden text-ellipsis">
                         {activity.name}
                       </div>
                     </Tooltip>
@@ -198,7 +195,7 @@ export default function ActivityTable({
                       "Không xác định"} 
                       placement="topLeft"
                     >
-                      <div className="max-w-[200px] overflow-hidden text-ellipsis">
+                      <div className="max-w-[320px] overflow-hidden text-ellipsis">
                         {campaigns.find(campaign => campaign.id === activity.campaign_id)?.name || 
                         activity.campaign_name || 
                         "Không xác định"}
@@ -248,41 +245,6 @@ export default function ActivityTable({
                     "Đang diễn ra"
                   ) : (
                     "Đã kết thúc"
-                  )}
-                </td>
-                <td className="px-6 py-4 text-center whitespace-nowrap">
-                  {activity.number_students}
-                </td>
-                <td className="px-6 py-4 text-center whitespace-nowrap">
-                  {editingId === activity.id ? (
-                    <input
-                      type="number"
-                      className="border px-2 py-1 rounded w-30"
-                      value={editMaxParticipants}
-                      onChange={(e) => setEditMaxParticipants(Number(e.target.value))}
-                    />
-                  ) : activity.max_participants || "Không giới hạn"}
-                </td>
-                <td className="px-6 py-4 text-center whitespace-nowrap">
-                  {editingId === activity.id ? (
-                    <div className="flex flex-col space-y-2">
-                      <input
-                        type="date"
-                        className="border px-2 py-1 rounded w-full"
-                        value={editRegistrationStart}
-                        onChange={(e) => setEditRegistrationStart(e.target.value)}
-                      />
-                      <input
-                        type="date"
-                        className="border px-2 py-1 rounded w-full"
-                        value={editRegistrationEnd}
-                        onChange={(e) => setEditRegistrationEnd(e.target.value)}
-                      />
-                    </div>
-                  ) : (
-                    activity.registration_start && activity.registration_end 
-                       ? `${new Date(activity.registration_start).toLocaleDateString('vi-VN')} - ${new Date(activity.registration_end).toLocaleDateString('vi-VN')}`
-                      : "Không có thông tin"
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-md font-medium">

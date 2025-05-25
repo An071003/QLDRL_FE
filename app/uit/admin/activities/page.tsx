@@ -11,6 +11,7 @@ import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import Loading from "@/components/Loading";
 import { Tabs, Tab } from "@/components/Tabs";
 import { useData } from "@/lib/contexts/DataContext";
+import { Activity } from "@/types/activity";
 
 export default function ActivityManagement() {
   const { activities: contextActivities, pendingActivities: contextPendingActivities, campaigns: contextCampaigns, loading: dataLoading, refreshActivities } = useData();
@@ -293,7 +294,7 @@ export default function ActivityManagement() {
                   {filteredActivities.length > 0 ? (
                     <ActivityTable
                       currentcampaigns={contextCampaigns}
-                      activities={currentActivities}
+                      activities={currentActivities as Activity[]}
                       onDeleteActivity={openDeleteModal}
                       onUpdateActivity={handleUpdateActivity}
                       onSortPoint={handleSortPoint}
@@ -311,7 +312,7 @@ export default function ActivityManagement() {
                   {contextPendingActivities.length > 0 ? (
                     <PendingActivityTable
                       currentcampaigns={contextCampaigns}
-                      activities={contextPendingActivities}
+                      activities={contextPendingActivities as Activity[]}
                       onApproveActivity={handleApproveActivity}
                       onRejectActivity={handleRejectActivity}
                       onUpdateActivity={handleUpdateActivity}

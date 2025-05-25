@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import api from "@/lib/api";
 import Loading from "@/components/Loading";
 import { useRouter } from 'next/navigation';
+import { Tooltip } from "antd";
 
 interface Campaign {
   id: number;
@@ -196,9 +197,19 @@ export default function DPOCampaignManagement() {
                 <tr key={campaign.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 whitespace-nowrap">{campaign.id}</td>
                   <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="max-w-xs truncate" title={campaign.name}>{campaign.name}</div>
+                    <Tooltip title={campaign.name} placement="topLeft">
+                      <div className="max-w-[200px] overflow-hidden text-ellipsis">
+                        {campaign.name}
+                      </div>
+                    </Tooltip>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap">{campaign.Criteria?.name || 'N/A'}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <Tooltip title={campaign.Criteria?.name || 'N/A'} placement="topLeft">
+                      <div className="max-w-[200px] overflow-hidden text-ellipsis">
+                        {campaign.Criteria?.name || 'N/A'}
+                      </div>
+                    </Tooltip>
+                  </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     Học kỳ {campaign.semester_no} - {campaign.academic_year}
                   </td>
