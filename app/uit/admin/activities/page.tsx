@@ -1,10 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { toast } from "sonner";
 import api from "@/lib/api";
-import { Activity } from "@/types/activity";
-import { Campaign } from "@/types/campaign";
 import ActivityForm from "@/components/form/ActivityForm";
 import ActivityImport from "@/components/Import/ActivityImport";
 import ActivityTable from "@/components/Table/ActivityTable";
@@ -12,31 +10,32 @@ import PendingActivityTable from "@/components/Table/PendingActivityTable";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import Loading from "@/components/Loading";
 import { Tabs, Tab } from "@/components/Tabs";
-import { ArrowDownUp } from "lucide-react";
+import { useData } from "@/lib/contexts/DataContext";
 
 export default function ActivityManagement() {
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [pendingActivities, setPendingActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { activities: contextActivities, pendingActivities: contextPendingActivities, campaigns: contextCampaigns, loading: dataLoading, refreshActivities } = useData();
   const [activeComponent, setActiveComponent] = useState<"form" | "import" | "table">("table");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSemester, setSelectedSemester] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<string>("approved");
   
-  // Lấy danh sách campaign_id đang được sử dụng trong activities
-  const usedCampaignIds = Array.from(new Set(activities.map(a => a.campaign_id)));
+  const itemsPerPage = 20;
+  const tableRef = useRef<HTMLDivElement>(null);
 
-  // Tạo options cho bộ lọc học kỳ từ các campaign có activity
-  const semesterOptions = (() => {
+  // Tính toán usedCampaignIds từ contextActivities
+  const usedCampaignIds = useMemo(() => {
+    return Array.from(new Set(contextActivities.map(a => a.campaign_id)));
+  }, [contextActivities]);
+
+  const semesterOptions = useMemo(() => {
     const options: {label: string, value: string}[] = [];
     const added = new Set<string>();
     
-    campaigns.filter(campaign => usedCampaignIds.includes(campaign.id)).forEach(campaign => {
+    contextCampaigns.filter(campaign => usedCampaignIds.includes(campaign.id)).forEach(campaign => {
       if (campaign.semester_no && campaign.academic_year) {
         const nextYear = campaign.academic_year + 1;
         const semesterLabel = campaign.semester_no === 3 
@@ -50,59 +49,43 @@ export default function ActivityManagement() {
       }
     });
     return options;
-  })();
+  }, [contextCampaigns, usedCampaignIds]);
 
-  const itemsPerPage = 20;
-  const tableRef = useRef<HTMLDivElement>(null);
-
-  // Hàm chung để tải dữ liệu
-  const fetchActivities = async () => {
-    setLoading(true);
-    try {
-      // Tải campaigns trước
-      const campaignsRes = await api.get("/api/campaigns");
-      const campaignsData = campaignsRes.data.data.campaigns;
-      setCampaigns(campaignsData);
-      
-      // Sau đó tải toàn bộ activities
-      const activitiesRes = await api.get("/api/activities");
-      let allActivities;
-      
-      if (activitiesRes.data.data.activities) {
-        allActivities = activitiesRes.data.data.activities;
-      } else {
-        allActivities = activitiesRes.data.data;
-      }
-      
-      // Thêm thông tin campaign_name vào activities
-      allActivities = allActivities.map((activity: Partial<Activity>) => {
-        const campaign = campaignsData.find((c: Campaign) => c.id === activity.campaign_id);
-        return {
-          ...activity,
-          campaign_name: campaign ? campaign.name : "Không xác định",
-          // Thêm thông tin học kỳ từ campaign
-          semester_no: campaign?.semester_no,
-          academic_year: campaign?.academic_year
-        };
+  // Tính toán filteredActivities từ contextActivities
+  const filteredActivities = useMemo(() => {
+    return contextActivities
+      .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()))
+      .filter((activity) => {
+        if (selectedSemester === "all") return true;
+        
+        const campaign = contextCampaigns.find(c => c.id === activity.campaign_id);
+        if (!campaign) return false;
+        
+        const [semester_no, academic_year] = selectedSemester.split("_");
+        return campaign.semester_no?.toString() === semester_no && 
+               campaign.academic_year?.toString() === academic_year;
+      })
+      .sort((a, b) => {
+        if (sortOrder === "asc") {
+          return a.point - b.point;
+        } else {
+          return b.point - a.point;
+        }
       });
-      
-      // Phân loại activities thành đã duyệt và chưa duyệt
-      const approved = allActivities.filter((activity: Activity) => activity.approver_id !== null);
-      const pending = allActivities.filter((activity: Activity) => activity.approver_id === null);
-      
-      setActivities(approved);
-      setPendingActivities(pending);
-    } catch (error) {
-      console.error("Lỗi khi tải dữ liệu:", error);
-      toast.error("Không thể tải dữ liệu. Vui lòng thử lại sau.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [contextActivities, searchTerm, selectedSemester, sortOrder, contextCampaigns]);
 
-  useEffect(() => {
-    fetchActivities();
-  }, []);
+  // Tính toán currentActivities và totalPages từ filteredActivities
+  const { currentActivities, totalPages } = useMemo(() => {
+    const total = Math.ceil(filteredActivities.length / itemsPerPage);
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const current = filteredActivities.slice(indexOfFirstItem, indexOfLastItem);
+    
+    return {
+      currentActivities: current,
+      totalPages: total
+    };
+  }, [filteredActivities, currentPage]);
 
   const handleCreateActivity = async (newActivity: {
     name: string;
@@ -112,7 +95,7 @@ export default function ActivityManagement() {
     registration_start?: string;
     registration_end?: string;
   }) => {
-    const campaign = campaigns.find(c => c.id === newActivity.campaign_id);
+    const campaign = contextCampaigns.find(c => c.id === newActivity.campaign_id);
     if (campaign && newActivity.point > (campaign?.max_score || 0)) {
       toast.error(`Điểm hoạt động không được lớn hơn điểm tối đa (${campaign.max_score}) của phong trào.`);
       return { success: false };
@@ -129,7 +112,7 @@ export default function ActivityManagement() {
     
     try {
       await api.post("/api/activities", newActivity);
-      await fetchActivities();
+      await refreshActivities();
       setActiveComponent("table");
       toast.success("Thêm hoạt động thành công 🎉");
       return { success: true };
@@ -149,7 +132,7 @@ export default function ActivityManagement() {
     if (selectedId === null) return;
     try {
       await api.delete(`/api/activities/${selectedId}`);
-      await fetchActivities();
+      await refreshActivities();
       toast.success("Xóa hoạt động thành công ✅");
     } catch (error) {
       console.error(error);
@@ -173,7 +156,7 @@ export default function ActivityManagement() {
       registration_end?: string;
     }
   ) => {
-    const campaign = campaigns.find(c => c.id === updatedActivity.campaign_id);
+    const campaign = contextCampaigns.find(c => c.id === updatedActivity.campaign_id);
     if (campaign && updatedActivity.point > (campaign?.max_score || 0)) {
       toast.error(`Điểm hoạt động không được lớn hơn điểm tối đa (${campaign.max_score}) của phong trào.`);
       return;
@@ -187,7 +170,7 @@ export default function ActivityManagement() {
     
     try {
       await api.put(`/api/activities/${id}`, updatedActivity);
-      await fetchActivities();
+      await refreshActivities();
       toast.success("Cập nhật hoạt động thành công ✨");
     } catch (error) {
       console.error(error);
@@ -206,7 +189,7 @@ export default function ActivityManagement() {
   }[]) => {
     try {
       await api.post("/api/activities/import", importedActivities);
-      await fetchActivities();
+      await refreshActivities();
       setActiveComponent("table");
       toast.success("Import hoạt động thành công 🚀");
       return { success: true };
@@ -221,33 +204,6 @@ export default function ActivityManagement() {
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
   };
 
-  const filteredActivities = activities
-    .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()))
-    .filter((activity) => {
-      if (selectedSemester === "all") return true;
-      
-      // Tìm campaign tương ứng với hoạt động
-      const campaign = campaigns.find(c => c.id === activity.campaign_id);
-      if (!campaign) return false;
-      
-      // Kiểm tra xem campaign có match với semester đã chọn không
-      const [semester_no, academic_year] = selectedSemester.split("_");
-      return campaign.semester_no?.toString() === semester_no && 
-             campaign.academic_year?.toString() === academic_year;
-    })
-    .sort((a, b) => {
-      if (sortOrder === "asc") {
-        return a.point - b.point;
-      } else {
-        return b.point - a.point;
-      }
-    });
-
-  const totalPages = Math.ceil(filteredActivities.length / itemsPerPage);
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentActivities = filteredActivities.slice(indexOfFirstItem, indexOfLastItem);
-
   const changePage = (page: number) => {
     setCurrentPage(page);
     tableRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -258,7 +214,7 @@ export default function ActivityManagement() {
     try {
       await api.put(`/api/activities/${id}/approve`);
       toast.success("Phê duyệt hoạt động thành công");
-      fetchActivities();
+      await refreshActivities();
     } catch (error) {
       console.error("Error approving activity:", error);
       toast.error("Lỗi khi phê duyệt hoạt động");
@@ -271,7 +227,7 @@ export default function ActivityManagement() {
     try {
       await api.put(`/api/activities/${id}/reject`);
       toast.success("Từ chối hoạt động thành công");
-      fetchActivities();
+      await refreshActivities();
     } catch (error) {
       console.error("Error rejecting activity:", error);
       toast.error("Lỗi khi từ chối hoạt động");
@@ -282,9 +238,9 @@ export default function ActivityManagement() {
   const renderComponent = () => {
     switch (activeComponent) {
       case "form":
-        return <ActivityForm currentcampaigns={campaigns} onActivityCreated={handleCreateActivity} />;
+        return <ActivityForm currentcampaigns={contextCampaigns} onActivityCreated={handleCreateActivity} />;
       case "import":
-        return <ActivityImport onActivitiesImported={handleActivitiesImported} currentcampaigns={campaigns} />;
+        return <ActivityImport onActivitiesImported={handleActivitiesImported} currentcampaigns={contextCampaigns} />;
       default:
         return (
           <>
@@ -336,7 +292,7 @@ export default function ActivityManagement() {
                 <div className="mt-4">
                   {filteredActivities.length > 0 ? (
                     <ActivityTable
-                      currentcampaigns={campaigns}
+                      currentcampaigns={contextCampaigns}
                       activities={currentActivities}
                       onDeleteActivity={openDeleteModal}
                       onUpdateActivity={handleUpdateActivity}
@@ -350,12 +306,12 @@ export default function ActivityManagement() {
                   )}
                 </div>
               </Tab>
-              <Tab value="pending" title={`Chờ phê duyệt (${pendingActivities.length})`}>
+              <Tab value="pending" title={`Chờ phê duyệt (${contextPendingActivities.length})`}>
                 <div className="mt-4">
-                  {pendingActivities.length > 0 ? (
+                  {contextPendingActivities.length > 0 ? (
                     <PendingActivityTable
-                      currentcampaigns={campaigns}
-                      activities={pendingActivities}
+                      currentcampaigns={contextCampaigns}
+                      activities={contextPendingActivities}
                       onApproveActivity={handleApproveActivity}
                       onRejectActivity={handleRejectActivity}
                       onUpdateActivity={handleUpdateActivity}
@@ -402,7 +358,7 @@ export default function ActivityManagement() {
     }
   };
 
-  if (loading) {
+  if (dataLoading) {
     return (
       <Loading />
     );

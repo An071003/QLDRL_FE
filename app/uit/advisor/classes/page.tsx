@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import Loading from '@/components/Loading';
 import { toast } from 'sonner';
@@ -20,7 +19,6 @@ interface Class {
 }
 
 export default function AdvisorClassesPage() {
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [classes, setClasses] = useState<Class[]>([]);
   const [searchTerm, setSearchTerm] = useState('');

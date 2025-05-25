@@ -421,7 +421,7 @@ export default function FacultyImport({ onFacultiesImported, setLoadingManager }
                                 onClick={() => handleDeleteRow(index)}
                                 className="text-red-600 hover:text-red-800 flex items-center space-x-1"
                               >
-                                <Trash size={16} />
+                                <Trash size={20} />
                               </button>
                             </Tooltip>
                           </>

@@ -298,7 +298,7 @@ export default function DepartmentOfficerImport({
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'Import_department_officers.xlsx';
+      a.download = 'department_officers_import_template.xlsx';
       a.click();
       window.URL.revokeObjectURL(url);
       toast.success('Tải xuống mẫu thành công!');

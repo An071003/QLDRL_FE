@@ -4,16 +4,20 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { MainLayout } from "@/components/layout";
-import { NotificationModal } from "@/components/NotificationModal";
 import { toast } from "sonner";
+
+type ErrorWithResponse = Error & {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+};
 
 const ResetPasswordPage = () => {
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [notification, setNotification] = useState("");
-  const [successNotification, setSuccessNotification] = useState(false);
-
   const [countdown, setCountdown] = useState(0);
   const [isCounting, setIsCounting] = useState(false);
 
@@ -42,25 +46,25 @@ const ResetPasswordPage = () => {
       await api.post("/api/auth/send-otp", { email });
       setIsCounting(true);
       setCountdown(120);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Lỗi khi gửi mã xác thực");
+    } catch (error: unknown) {
+      const err = error as ErrorWithResponse;
+      toast.error(err.response?.data?.message || "Lỗi khi gửi mã xác thực");
     }
   };
 
   const handleResetPassword = async () => {
     try {
       const response = await api.post("/api/auth/reset-password", { email, otp, newPassword });
-      setNotification(response.data.message);
-      setSuccessNotification(true);
+      toast.success(response.data.message || "Cập nhật mật khẩu thành công");
       router.push("/login");
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Lỗi khi cập nhật mật khẩu");
+    } catch (error: unknown) {
+      const err = error as ErrorWithResponse;
+      toast.error(err.response?.data?.message || "Lỗi khi cập nhật mật khẩu");
     }
   };
 
   return (
     <MainLayout>
-      {notification && <NotificationModal message={notification} onClose={() => setNotification("")} />}
       <div className="min-h-px flex justify-center bg-gray-50 py-12 px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
           <div className="space-y-4">

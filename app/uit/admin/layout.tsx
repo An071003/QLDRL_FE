@@ -35,6 +35,12 @@ const Sidebar = () => {
         <Link href="/uit/admin/activities" className="block py-2 px-4 rounded hover:bg-gray-700">
           Activities
         </Link>
+        <Link href="/uit/admin/student-scores" className="block py-2 px-4 rounded hover:bg-gray-700">
+          Student Scores
+        </Link>
+        <Link href="/uit/admin/semesters" className="block py-2 px-4 rounded hover:bg-gray-700">
+          Semesters
+        </Link>
         <Link href="/uit/admin/roles" className="block py-2 px-4 rounded hover:bg-gray-700">
           Role
         </Link>

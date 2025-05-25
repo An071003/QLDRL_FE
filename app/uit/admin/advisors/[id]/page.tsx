@@ -51,6 +51,10 @@ export default function AdvisorDetailPage() {
     toast.info("Tính năng đang được phát triển");
   };
 
+  const handleClassViewDetail = (classId: number) => {
+    router.push(`/uit/admin/classes/${classId}`);
+  };
+
   if (loading) return <Loading />;
 
   if (!advisor) {
@@ -97,7 +101,7 @@ export default function AdvisorDetailPage() {
           </div>
           <div>
             <p className="text-gray-500 mb-1">Khoa</p>
-            <p className="font-medium">{advisor.Faculty?.name || advisor.Faculty?.faculty_name || 'Chưa phân công'}</p>
+            <p className="font-medium">{advisor.Faculty?.name || 'Chưa phân công'}</p>
           </div>
           <div>
             <p className="text-gray-500 mb-1">Mã Khoa</p>

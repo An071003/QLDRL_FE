@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback, useMemo, memo } from 'react';
 import { UploadCloud, Trash, Check, X, RefreshCw, Plus, SquarePen, Download } from "lucide-react";
 import ExcelJS from 'exceljs';
 import { toast } from 'sonner';
 import { Tooltip } from 'antd';
-import { useData } from '@/lib/contexts/DataContext';
 
-export default function UserImport({
+const UserImport = memo(function UserImport({
   onUsersImported,
   setLoadingManager,
   roles
@@ -16,7 +15,6 @@ export default function UserImport({
   setLoadingManager: (value: boolean) => void;
   roles: { id: number; name: string }[];
 }) {
-  const { faculties, classes, getFilteredClasses } = useData();
   
   const [loading, setLoading] = useState(false);
   const [previewUsers, setPreviewUsers] = useState<any[]>([]);
@@ -28,22 +26,20 @@ export default function UserImport({
   const [originalUserBeforeEdit, setOriginalUserBeforeEdit] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const isValidEmail = (email: string) => {
+  const isValidEmail = useCallback((email: string) => {
     if (!email || typeof email !== 'string') return false;
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
+  }, []);
 
-  const validateUser = (user: any) => {
+  const validateUser = useCallback((user: any) => {
     return {
       emailError: !isValidEmail(user.email),
       roleError: !user.role || !roles.some(r => r.name === user.role),
       nameError: !user.user_name || user.user_name.trim() === '',
-      facultyIdError: user.role === 'student' && !user.faculty_id,
-      classIdError: user.role === 'student' && !user.class_id
     };
-  };
+  }, [isValidEmail, roles]);
 
-  const processExcelFile = async (file: File) => {
+  const processExcelFile = useCallback(async (file: File) => {
     if (!file) return;
 
     setLoading(true);
@@ -74,33 +70,16 @@ export default function UserImport({
         const name = row.getCell(1).value?.toString().trim() || '';
         const email = row.getCell(2).value?.toString().trim() || '';
         const rawRole = row.getCell(3).value?.toString().trim().toLowerCase() || '';
-        const facultyAbbr = row.getCell(4)?.value?.toString().trim() || '';
-        const className = row.getCell(5)?.value?.toString().trim() || '';
 
         const matchedRole = roles.find(r => r.name.toLowerCase() === rawRole);
         const roleName = matchedRole ? matchedRole.name : '';
         const roleId = matchedRole?.id || null;
-
-        // Find faculty by abbreviation
-        const faculty = faculties.find(f => f.faculty_abbr.toLowerCase() === facultyAbbr.toLowerCase());
-        const faculty_id = faculty?.id || null;
-
-        // Find class by name and faculty_id
-        const classMatch = classes.find(c => 
-          c.name.toLowerCase() === className.toLowerCase() && 
-          (!faculty_id || c.faculty_id === faculty_id)
-        );
-        const class_id = classMatch?.id || null;
 
         users.push({
           user_name: name,
           email,
           role: roleName,
           role_id: roleId,
-          faculty_id,
-          class_id,
-          faculty_name: faculty?.name || '',
-          class_name: classMatch?.name || '',
           row_number: rowNumber
         });
       });
@@ -121,31 +100,30 @@ export default function UserImport({
     } finally {
       setLoading(false);
     }
-  };
+  }, [roles]);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     await processExcelFile(file);
-
     resetFileInput();
-  };
+  }, [processExcelFile]);
 
-  const resetFileInput = () => {
+  const resetFileInput = useCallback(() => {
     setFileKey(Date.now().toString());
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-  };
+  }, []);
 
-  const handleReselect = () => {
+  const handleReselect = useCallback(() => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
-  };
+  }, []);
 
-  const handleAddRow = () => {
+  const handleAddRow = useCallback(() => {
     setPreviewUsers(prev => [
       ...prev,
       {
@@ -153,53 +131,41 @@ export default function UserImport({
         email: '',
         role: '',
         role_id: null,
-        faculty_id: null,
-        class_id: null,
         row_number: prev.length > 0 ? Math.max(...prev.map(u => u.row_number || 0)) + 1 : 2
       }
     ]);
 
     setEditingIndex(previewUsers.length);
     setEditErrors({});
-  };
+  }, [previewUsers.length]);
 
-  const handleUserChange = (index: number, key: string, value: string) => {
+  const handleUserChange = useCallback((index: number, key: string, value: string) => {
     setPreviewUsers(prev => {
       const updated = [...prev];
       
-      // Convert faculty_id and class_id to numbers when storing
-      if (key === 'faculty_id' || key === 'class_id') {
-        updated[index][key] = value ? Number(value) : null;
-      } else {
-        updated[index][key] = value;
-      }
+      updated[index][key] = value;
 
       if (key === 'role') {
         const matched = roles.find(r => r.name === value);
         updated[index].role_id = matched?.id || null;
       }
 
-      // Handle class filtering based on faculty
-      if (key === 'faculty_id') {
-        updated[index].class_id = null; // Reset class when faculty changes
-      }
-
       return updated;
     });
     setEditErrors(prev => ({ ...prev, [key]: false }));
-  };
+  }, [roles]);
 
-  const handleDeleteRow = (index: number) => {
+  const handleDeleteRow = useCallback((index: number) => {
     setPreviewUsers(prev => prev.filter((_, i) => i !== index));
-  };
+  }, []);
 
-  const handleEditRow = (index: number) => {
+  const handleEditRow = useCallback((index: number) => {
     setOriginalUserBeforeEdit(JSON.parse(JSON.stringify(previewUsers[index])));
     setEditingIndex(index);
     setEditErrors({});
-  };
+  }, [previewUsers]);
 
-  const handleCancelEdit = () => {
+  const handleCancelEdit = useCallback(() => {
     if (editingIndex !== null && originalUserBeforeEdit) {
       setPreviewUsers(prev => {
         const updated = [...prev];
@@ -211,22 +177,19 @@ export default function UserImport({
     setEditingIndex(null);
     setEditErrors({});
     setOriginalUserBeforeEdit(null);
-  };
+  }, [editingIndex, originalUserBeforeEdit]);
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = useCallback(() => {
     if (editingIndex === null) return;
 
     const user = previewUsers[editingIndex];
-    const { emailError, roleError, nameError, facultyIdError, classIdError } = validateUser(user);
+    const { emailError, roleError, nameError } = validateUser(user);
 
-    if (emailError || roleError || nameError || 
-        (user.role === 'student' && (facultyIdError || classIdError))) {
+    if (emailError || roleError || nameError) {
       setEditErrors({
         email: emailError,
         role: roleError,
-        user_name: nameError,
-        faculty_id: facultyIdError,
-        class_id: classIdError
+        user_name: nameError
       });
       return;
     }
@@ -234,15 +197,14 @@ export default function UserImport({
     setEditingIndex(null);
     setEditErrors({});
     setOriginalUserBeforeEdit(null);
-  };
+  }, [editingIndex, previewUsers, validateUser]);
 
-  const handleImport = async () => {
+  const handleImport = useCallback(async () => {
     setShowErrors(true);
 
     const invalidUsers = previewUsers.filter(user => {
-      const { emailError, roleError, nameError, facultyIdError, classIdError } = validateUser(user);
-      return emailError || roleError || nameError || 
-             (user.role === 'student' && (facultyIdError || classIdError));
+      const { emailError, roleError, nameError } = validateUser(user);
+      return emailError || roleError || nameError;
     });
 
     if (invalidUsers.length > 0) {
@@ -252,12 +214,10 @@ export default function UserImport({
     }
 
     setLoadingManager(true);
-    const usersToImport = previewUsers.map(({ user_name, email, role_id, faculty_id, class_id }) => ({
+    const usersToImport = previewUsers.map(({ user_name, email, role_id }) => ({
       user_name,
       email,
-      role_id,
-      faculty_id,
-      class_id
+      role_id
     }));
 
     try {
@@ -278,21 +238,22 @@ export default function UserImport({
     } finally {
       setLoadingManager(false);
     }
-  };
+  }, [previewUsers, validateUser, onUsersImported, resetFileInput, setLoadingManager]);
 
-  const renderEmail = (email: any, isError: boolean) => {
+  const renderEmail = useCallback((email: any, isError: boolean) => {
     if (!email || typeof email !== 'string' || isError) {
       return "-";
     }
     return email;
-  };
-
-  const roleColors: Record<string, string> = {
+  }, []);
+  
+  const roleColors = useMemo(() => ({
     admin: 'bg-purple-100 text-purple-800',
     advisor: 'bg-green-100 text-green-800',
-    departmentofficer: 'bg-orange-100 text-orange-800',
     student: 'bg-blue-100 text-blue-800',
-  };
+    departmentofficer: 'bg-yellow-100 text-yellow-800',
+    classleader: 'bg-red-100 text-red-800',
+  }), []);
 
   // Function to generate and download a sample Excel template
   const downloadSampleTemplate = async () => {
@@ -302,44 +263,34 @@ export default function UserImport({
       
       // Add headers
       worksheet.columns = [
-        { header: 'Họ và tên', key: 'name', width: 30 },
+        { header: 'Tên tài khoản', key: 'name', width: 30 },
         { header: 'Email', key: 'email', width: 30 },
         { header: 'Vai trò', key: 'role', width: 15 },
-        { header: 'Mã khoa (nếu là sinh viên)', key: 'faculty_abbr', width: 25 },
-        { header: 'Tên lớp (nếu là sinh viên)', key: 'class_name', width: 25 },
       ];
       
       // Add some sample data - 1 sample for each role type
       worksheet.addRow({
-        name: 'Nguyễn Văn Admin',
+        name: 'NguyenVanAdmin',
         email: 'admin@example.com',
         role: 'admin',
-        faculty_abbr: '',
-        class_name: '',
       });
       
       worksheet.addRow({
-        name: 'Trần Thị Advisor',
+        name: 'TranThiAdvisor',
         email: 'advisor@example.com',
         role: 'advisor',
-        faculty_abbr: '',
-        class_name: '',
       });
 
       worksheet.addRow({
-        name: 'Lê Văn Officer',
+        name: 'LeVanOfficer',
         email: 'officer@example.com',
         role: 'departmentofficer',
-        faculty_abbr: '',
-        class_name: '',
       });
       
       worksheet.addRow({
-        name: 'Phạm Thị Sinh Viên',
+        name: '21521001',
         email: 'student@example.com',
         role: 'student',
-        faculty_abbr: 'CNTT', // Ví dụ: CNTT - Công nghệ thông tin
-        class_name: 'CNTT01', // Ví dụ: CNTT01
       });
       
       // Style the header row
@@ -431,9 +382,7 @@ export default function UserImport({
             <p className="mb-2 font-semibold">Lưu ý về định dạng dữ liệu:</p>
             <ul className="list-disc pl-4">
               <li><strong>Email:</strong> Phải là email hợp lệ (vd: example@example.com)</li>
-              <li><strong>Vai trò:</strong> Phải là một trong các giá trị: admin, advisor, departmentofficer, student</li>
-              <li><strong>Mã khoa:</strong> Bắt buộc đối với sinh viên. Phải khớp với mã khoa trong hệ thống</li>
-              <li><strong>Tên lớp:</strong> Bắt buộc đối với sinh viên. Phải khớp với tên lớp trong hệ thống</li>
+              <li><strong>Vai trò:</strong> Phải là một trong các giá trị: admin, advisor, departmentofficer, student, class_leader</li>
             </ul>
           </div>
           
@@ -444,16 +393,13 @@ export default function UserImport({
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vai trò</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khoa</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lớp</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {previewUsers.map((user, index) => {
-                const { emailError, roleError, nameError, facultyIdError, classIdError } = validateUser(user);
+                const { emailError, roleError, nameError } = validateUser(user);
                 const isEditing = editingIndex === index;
-                const isStudent = user.role === 'student';
 
                 return (
                   <tr key={index} className="border-b hover:bg-gray-50">
@@ -523,62 +469,6 @@ export default function UserImport({
                         </span>
                       )}
                     </td>
-                    <td className={`px-6 py-4 whitespace-nowrap ${isStudent && showErrors && facultyIdError ? 'bg-red-100' : ''}`}>
-                      {isEditing && isStudent ? (
-                        <>
-                          <select
-                            value={user.faculty_id || ""}
-                            onChange={(e) => handleUserChange(index, 'faculty_id', e.target.value)}
-                            className={`w-full border rounded px-2 py-1 ${isStudent && ((showErrors && facultyIdError) || editErrors.faculty_id) ? 'border-red-600 bg-red-50' : ''}`}
-                          >
-                            <option value="">-- Chọn khoa --</option>
-                            {faculties.map((faculty) => (
-                              <option key={faculty.id} value={faculty.id}>
-                                {faculty.name} ({faculty.faculty_abbr})
-                              </option>
-                            ))}
-                          </select>
-                          {isStudent && ((showErrors && facultyIdError) || editErrors.faculty_id) && (
-                            <p className="text-xs text-red-600 font-medium mt-1">Vui lòng chọn khoa</p>
-                          )}
-                        </>
-                      ) : (
-                        isStudent ? (
-                          <span className={facultyIdError && showErrors ? "text-red-700 font-semibold border-b-2 border-red-500" : ""}>
-                            {faculties.find(f => f.id === user.faculty_id)?.faculty_abbr || "-"}
-                          </span>
-                        ) : "-"
-                      )}
-                    </td>
-                    <td className={`px-6 py-4 whitespace-nowrap ${isStudent && showErrors && classIdError ? 'bg-red-100' : ''}`}>
-                      {isEditing && isStudent ? (
-                        <>
-                          <select
-                            name="class_id"
-                            value={user.class_id || ""}
-                            onChange={(e) => handleUserChange(index, 'class_id', e.target.value)}
-                            disabled={!user.faculty_id}
-                            className={`w-full border rounded px-2 py-1 ${isStudent && ((showErrors && classIdError) || editErrors.class_id) ? 'border-red-600 bg-red-50' : ''}`}
-                          >
-                            <option value="">-- Chọn lớp --</option>
-                            {getFilteredClasses(Number(user.faculty_id)).map((cls) => (
-                              <option key={cls.id} value={cls.id}>
-                                {cls.name}
-                              </option>
-                            ))}
-                          </select>
-                          {isStudent && ((showErrors && classIdError) || editErrors.class_id) && (
-                            <p className="text-xs text-red-600 font-medium mt-1">Vui lòng chọn lớp</p>
-                          )}
-                        </>
-                      ) : (
-                        isStudent ? (
-                          <span className={classIdError && showErrors ? "text-red-700 font-semibold border-b-2 border-red-500" : ""}>
-                            {classes.find(c => c.id === user.class_id)?.name || "-"}
-                          </span>
-                        ) : "-"
-                      )}
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex space-x-2">
                         {isEditing ? (
@@ -611,7 +501,7 @@ export default function UserImport({
                                 onClick={() => handleDeleteRow(index)}
                                 className="text-red-600 hover:text-red-800 flex items-center space-x-1"
                               >
-                                <Trash size={16} />
+                                <Trash size={20} />
                               </button>
                             </Tooltip>
                           </>
@@ -637,4 +527,6 @@ export default function UserImport({
       )}
     </div>
   );
-}
+});
+
+export default UserImport;

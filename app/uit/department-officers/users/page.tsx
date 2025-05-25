@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import api from '@/lib/api';
 import { User } from '@/types/user';
 import UserForm from '@/components/form/UserForm';
@@ -21,61 +21,66 @@ export default function UserManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const usersRes = await api.get('/api/users');
       setUsers(usersRes.data.data.users);
     } catch (err: any) {
       toast.error('Lỗi tải dữ liệu người dùng');
-    } finally{
+    } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchRoles = async () => {
-    setLoading(true);
+  const fetchRoles = useCallback(async () => {
     try {
       const rolesRes = await api.get('/api/roles');
-      // Hiển thị các vai trò: sinh viên, cố vấn, cán bộ khoa, lớp trưởng
       const allowedRoles = rolesRes.data.roles.filter(
-        (role: { name: string }) => ['student', 'advisor', 'department-officer', 'classleader'].includes(role.name.toLowerCase())
+        (role: { name: string }) => ['student', 'departmentofficer', 'classleader', 'advisor'].includes(role.name.toLowerCase())
       );
       setRoles(allowedRoles);
     } catch (err: any) {
       toast.error('Lỗi tải dữ liệu vai trò');
-    } finally{
-      setLoading(false);
     }
-  };
-  
-  useEffect(() => {
-    fetchUsers();
-    fetchRoles();
   }, []);
 
-  const handleCreateUser = async (newUser: { user_name: string; email: string; role_id: number }) => {
+  useEffect(() => {
+    // Use Promise.all to fetch data in parallel
+    const fetchInitialData = async () => {
+      setLoading(true);
+      try {
+        await Promise.all([fetchUsers(), fetchRoles()]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchInitialData();
+  }, [fetchUsers, fetchRoles]);
+
+  const handleCreateUser = useCallback(async (newUser: { user_name: string; email: string; role_id: number }) => {
     try {
       await api.post('/api/users', newUser);
-      fetchUsers();
+      await fetchUsers();
       setActiveComponent('table');
       return { success: true, message: 'Tạo người dùng thành công!' };
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Lỗi tạo người dùng.';
       return { success: false, message: msg };
     }
-  };
+  }, [fetchUsers]);
 
-  const handleDeleteClick = (userId: number) => {
+  const handleDeleteClick = useCallback((userId: number) => {
     setUserIdToDelete(userId);
     setShowConfirmModal(true);
-  };
+  }, []);
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = useCallback(async () => {
     if (userIdToDelete === null) return;
     try {
       await api.delete(`/api/users/${userIdToDelete}`);
-      fetchUsers();
+      await fetchUsers();
       toast.success('Xóa người dùng thành công!');
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Lỗi xóa người dùng';
@@ -84,12 +89,12 @@ export default function UserManagement() {
       setShowConfirmModal(false);
       setUserIdToDelete(null);
     }
-  };
+  }, [userIdToDelete, fetchUsers]);
 
-  const handleUsersImported = async (importedUsers: User[]) => {
+  const handleUsersImported = useCallback(async (importedUsers: User[]) => {
     try {
       await api.post('/api/users/import', importedUsers);
-      fetchUsers();
+      await fetchUsers();
       setActiveComponent('table');
       toast.success('Thêm người dùng thành công!');
       return { success: true };
@@ -98,16 +103,23 @@ export default function UserManagement() {
       toast.error(msg);
       return { success: false };
     }
-  };
+  }, [fetchUsers]);
 
   const debouncedSearch = useMemo(
     () => debounce((value: string) => setSearchTerm(value), 300),
     []
   );
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Add cleanup for debounce function
+  useEffect(() => {
+    return () => {
+      debouncedSearch.cancel();
+    };
+  }, [debouncedSearch]);
+
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     debouncedSearch(e.target.value);
-  };
+  }, [debouncedSearch]);
 
   const filteredUsers = useMemo(
     () =>
@@ -115,14 +127,11 @@ export default function UserManagement() {
         const userName = String(user?.user_name || '').toLowerCase();
         const email = String(user?.email || '').toLowerCase();
         const search = searchTerm.toLowerCase();
-        
-        // Hiển thị sinh viên, cố vấn học tập, cán bộ khoa và lớp trưởng
-        const roleName = user?.Role?.name?.toLowerCase() || '';
-        const allowedRoles = ['student', 'advisor', 'departmentofficer', 'classleader'];
-        const hasAllowedRole = allowedRoles.includes(roleName);
+
+        const isAllowedRole = ['student', 'departmentofficer', 'classleader', 'advisor'].includes(user?.Role?.name?.toLowerCase() || '');
 
         return (
-          hasAllowedRole &&
+          isAllowedRole &&
           (userName.includes(search) || email.includes(search)) &&
           (roleFilter === '' || user?.Role?.name === roleFilter)
         );
@@ -130,8 +139,11 @@ export default function UserManagement() {
     [users, searchTerm, roleFilter]
   );
 
+  const setComponentView = useCallback((view: 'form' | 'import' | 'table') => {
+    setActiveComponent(view);
+  }, []);
 
-  const renderComponent = () => {
+  const renderComponent = useCallback(() => {
     switch (activeComponent) {
       case 'form':
         return <UserForm onUserCreated={handleCreateUser} setLoading={setLoading} roles={roles} />;
@@ -140,7 +152,7 @@ export default function UserManagement() {
       default:
         return <UserTable users={filteredUsers} onDeleteUser={handleDeleteClick} />;
     }
-  };
+  }, [activeComponent, handleCreateUser, handleUsersImported, filteredUsers, handleDeleteClick, roles]);
 
   if (loading) return <Loading />;
 
@@ -156,37 +168,36 @@ export default function UserManagement() {
 
       {activeComponent === 'table' && (
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-          <div className="flex w-full md:w-2/3 gap-4">
-            <input
-              type="text"
-              placeholder="Tìm kiếm theo tên hoặc email..."
-              onChange={handleSearchChange}
-              className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-2/3"
-            />
-            
-            <select
-              className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/3"
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-            >
-              <option value="">Tất cả vai trò</option>
-              <option value="student">Sinh viên</option>
-              <option value="advisor">Cố vấn học tập</option>
-              <option value="department-officer">Cán bộ khoa</option>
-              <option value="classleader">Lớp trưởng</option>
-            </select>
-          </div>
+          <input
+            type="text"
+            placeholder="Tìm kiếm theo tên hoặc email..."
+            onChange={handleSearchChange}
+            className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/3"
+          />
+
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/4"
+          >
+            <option value="">Tất cả vai trò</option>
+            {roles.map(role => (
+              <option key={role.id} value={role.name}>
+                {role.name}
+              </option>
+            ))}
+          </select>
 
           <div className="flex gap-4">
             <button
-              onClick={() => setActiveComponent('form')}
+              onClick={() => setComponentView('form')}
               className="px-4 py-2 cursor-pointer bg-green-600 text-white rounded hover:bg-green-700"
             >
               + Thêm người dùng
             </button>
 
             <button
-              onClick={() => setActiveComponent('import')}
+              onClick={() => setComponentView('import')}
               className="px-4 py-2 cursor-pointer bg-blue-600 text-white rounded hover:bg-blue-700"
             >
               + Import người dùng
@@ -198,7 +209,7 @@ export default function UserManagement() {
       {activeComponent !== 'table' && (
         <div className="flex justify-end mb-6">
           <button
-            onClick={() => setActiveComponent('table')}
+            onClick={() => setComponentView('table')}
             className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
           >
             Quay về danh sách

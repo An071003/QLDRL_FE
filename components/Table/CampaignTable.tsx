@@ -115,7 +115,9 @@ export default function CampaignTable({ campaigns, criterias, onDeleteCampaign, 
                     autoFocus
                   />
                 ) : (
-                  campaign.name
+                  <Tooltip title={campaign.name}>
+                    <span>{campaign.name}</span>
+                  </Tooltip>
                 )}
               </td>
               <td className="px-6 py-4 max-w-[14rem] truncate whitespace-nowrap overflow-hidden">
@@ -133,7 +135,9 @@ export default function CampaignTable({ campaigns, criterias, onDeleteCampaign, 
                     ))}
                   </select>
                 ) : (
-                  criterias.find(c => c.id === campaign.criteria_id)?.name || `Tiêu chí ID: ${campaign.criteria_id}`
+                  <Tooltip title={criterias.find(c => c.id === campaign.criteria_id)?.name || `Tiêu chí ID: ${campaign.criteria_id}`}>
+                    <span>{criterias.find(c => c.id === campaign.criteria_id)?.name || `Tiêu chí ID: ${campaign.criteria_id}`}</span>
+                  </Tooltip>
                 )}
               </td>
               <td className="px-6 py-4 max-w-[10rem] truncate whitespace-nowrap overflow-hidden">

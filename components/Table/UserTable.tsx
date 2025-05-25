@@ -4,20 +4,22 @@ import { User } from "@/types/user";
 import { Tooltip } from "antd";
 import { format } from "date-fns";
 import { Trash } from "lucide-react";
+import { memo, useMemo } from "react";
 
 interface UserTableProps {
   users: User[];
   onDeleteUser: (id: number) => void;
 }
 
-export default function UserTable({ users, onDeleteUser }: UserTableProps) {
-  const roleColors: Record<string, string> = {
+const UserTable = memo(function UserTable({ users, onDeleteUser }: UserTableProps) {
+  const roleColors = useMemo(() => ({
     admin: 'bg-purple-100 text-purple-800',
     advisor: 'bg-green-100 text-green-800',
     departmentofficer: 'bg-orange-100 text-orange-800',
     student: 'bg-blue-100 text-blue-800',
-    classleader: 'bg-yellow-100 text-yellow-800',
-  };
+    classleader: 'bg-red-100 text-red-800',
+  }), []);
+  
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
       <table className="min-w-full divide-y divide-gray-200">
@@ -44,15 +46,16 @@ export default function UserTable({ users, onDeleteUser }: UserTableProps) {
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {users.map((user, index) => (
+          {users.map((user, index) => {
+            const roleClass = roleColors[(user.Role?.name?.toString() ?? 'student')];
+            return (
               <tr key={user.id}>
                 <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{user.user_name}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
-                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                    ${roleColors[(user.Role?.name?.toString() ?? 'student')]}`}
+                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${roleClass}`}
                   >
                     {user.Role?.name}
                   </span>
@@ -74,4 +77,6 @@ export default function UserTable({ users, onDeleteUser }: UserTableProps) {
       </table>
     </div>
   );
-}
+});
+
+export default UserTable;

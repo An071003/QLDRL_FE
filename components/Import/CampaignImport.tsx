@@ -1,48 +1,67 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import ExcelJS from "exceljs";
 import { toast } from "sonner";
 import { UploadCloud, Download, Trash, RefreshCw, Plus, SquarePen } from "lucide-react";
 import { Tooltip } from "antd";
 import Loading from "@/components/Loading";
+import { Criteria } from "@/types/criteria";
+import { Campaign } from "@/types/campaign";
 
-type Campaign = {
-  name: string;
-  max_score: number;
-  criteria_id: number;
-  semester_no: number;
-  academic_year: number;
-  created_by: number;
+// Local type for import operations that includes row_number
+type CampaignImportItem = Omit<Campaign, 'id'> & {
   row_number?: number;
   error?: string;
 };
 
 interface CampaignImportProps {
-  onCampaignsImported: (campaigns: Campaign[]) => Promise<{ success: boolean }>;
+  criteria: Criteria[];
+  onCampaignsImported: (campaigns: {
+    name: string;
+    max_score: number;
+    criteria_id: number; 
+    semester_no: number;
+    academic_year: number;
+    created_by: number;
+  }[]) => Promise<{ success: boolean }>;
 }
 
-export default function CampaignImport({ onCampaignsImported }: CampaignImportProps) {
+export default function CampaignImport({ criteria, onCampaignsImported }: CampaignImportProps) {
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [previewCampaigns, setPreviewCampaigns] = useState<Campaign[]>([]);
+  const [previewCampaigns, setPreviewCampaigns] = useState<CampaignImportItem[]>([]);
   const [showErrors, setShowErrors] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editErrors, setEditErrors] = useState<{ [key: string]: boolean }>({});
   const [fileKey, setFileKey] = useState<string>(Date.now().toString());
   const [lastUpdated, setLastUpdated] = useState<string>("");
-  const [originalCampaignBeforeEdit, setOriginalCampaignBeforeEdit] = useState<Campaign | null>(null);
+  const [originalCampaignBeforeEdit, setOriginalCampaignBeforeEdit] = useState<CampaignImportItem | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const validateCampaign = (campaign: Campaign) => {
+  const validateCampaign = (campaign: CampaignImportItem) => {
     const nameError = !campaign.name || campaign.name.trim() === '';
-    const maxScoreError = isNaN(campaign.max_score) || campaign.max_score <= 0;
-    const criteriaIdError = isNaN(campaign.criteria_id) || campaign.criteria_id <= 0;
-    const semesterNoError = ![1, 2, 3].includes(campaign.semester_no);
-    const academicYearError = isNaN(campaign.academic_year) || campaign.academic_year < 2000;
+    const maxScoreError = isNaN(Number(campaign.max_score)) || (campaign.max_score ?? 0) <= 0;
+    const criteriaIdError = isNaN(Number(campaign.criteria_id)) || (campaign.criteria_id ?? 0) <= 0;
+    const semesterNoError = ![1, 2, 3].includes(campaign.semester_no ?? 0);
+    const academicYearError = isNaN(Number(campaign.academic_year)) || (campaign.academic_year ?? 0) < 2000;
     
-    return { nameError, maxScoreError, criteriaIdError, semesterNoError, academicYearError };
+    // Check if campaign max_score exceeds criteria max_score
+    let criteriaMaxScoreError = false;
+    const selectedCriteria = criteria.find(c => c.id === campaign.criteria_id);
+    if (selectedCriteria && campaign.max_score > selectedCriteria.max_score) {
+      criteriaMaxScoreError = true;
+    }
+    
+    return { 
+      nameError, 
+      maxScoreError, 
+      criteriaIdError, 
+      semesterNoError, 
+      academicYearError,
+      criteriaMaxScoreError
+    };
   };
 
   const processExcelFile = async (file: File) => {
@@ -50,7 +69,7 @@ export default function CampaignImport({ onCampaignsImported }: CampaignImportPr
 
     setLoading(true);
     setError(null);
-    const campaigns: Campaign[] = [];
+    const campaigns: CampaignImportItem[] = [];
 
     try {
       const buffer = await file.arrayBuffer();
@@ -75,8 +94,8 @@ export default function CampaignImport({ onCampaignsImported }: CampaignImportPr
         if (rowNumber === 1) return; // Skip header
 
         const name = row.getCell(1).value?.toString() || "";
-        const max_score = Number(row.getCell(2).value) || 0;
-        const criteria_id = Number(row.getCell(3).value) || 0;
+        const criteriaName = row.getCell(2).value?.toString() || "";
+        const max_score = Number(row.getCell(3).value) || 0;
         let semester_no = Number(row.getCell(4).value) || 1;
         const academic_year = Number(row.getCell(5).value) || new Date().getFullYear();
 
@@ -89,19 +108,36 @@ export default function CampaignImport({ onCampaignsImported }: CampaignImportPr
         // Ensure semester_no is only 1, 2, or 3
         semester_no = Math.min(Math.max(1, Math.round(semester_no)), 3);
 
-        if (!name && isNaN(max_score) && isNaN(criteria_id)) {
+        if (!name && !criteriaName) {
           return; // Skip completely empty rows
         }
 
-        campaigns.push({ 
-          name, 
-          max_score, 
-          criteria_id, 
-          semester_no, 
-          academic_year, 
-          created_by: 1,
-          row_number: rowNumber 
-        });
+        // Find criteria ID based on criteria name
+        const foundCriteria = criteria.find(c => c.name.toLowerCase() === criteriaName.toLowerCase());
+        const criteria_id = foundCriteria?.id || 0;
+
+        if (!foundCriteria && criteriaName) {
+          campaigns.push({ 
+            name, 
+            max_score, 
+            criteria_id: 0, // Set to 0 to flag as invalid
+            semester_no, 
+            academic_year, 
+            created_by: 1,
+            row_number: rowNumber,
+            error: `Tiêu chí "${criteriaName}" không tồn tại`
+          });
+        } else {
+          campaigns.push({ 
+            name, 
+            max_score, 
+            criteria_id, 
+            semester_no, 
+            academic_year, 
+            created_by: 1,
+            row_number: rowNumber 
+          });
+        }
       });
 
       if (campaigns.length === 0) {
@@ -162,7 +198,7 @@ export default function CampaignImport({ onCampaignsImported }: CampaignImportPr
     setEditErrors({});
   };
 
-  const handleChange = (index: number, key: keyof Campaign, value: string | number | boolean) => {
+  const handleChange = (index: number, key: keyof CampaignImportItem, value: string | number | boolean) => {
     setPreviewCampaigns((prev) => {
       const updated = [...prev];
       updated[index][key] = value as never;
@@ -200,16 +236,21 @@ export default function CampaignImport({ onCampaignsImported }: CampaignImportPr
     if (editingIndex === null) return;
 
     const campaign = previewCampaigns[editingIndex];
-    const { nameError, maxScoreError, criteriaIdError, semesterNoError, academicYearError } = validateCampaign(campaign);
+    const { nameError, maxScoreError, criteriaIdError, semesterNoError, academicYearError, criteriaMaxScoreError } = validateCampaign(campaign);
 
-    if (nameError || maxScoreError || criteriaIdError || semesterNoError || academicYearError) {
+    if (nameError || maxScoreError || criteriaIdError || semesterNoError || academicYearError || criteriaMaxScoreError) {
       setEditErrors({
         name: nameError,
-        max_score: maxScoreError,
+        max_score: maxScoreError || criteriaMaxScoreError,
         criteria_id: criteriaIdError,
         semester_no: semesterNoError,
         academic_year: academicYearError
       });
+
+      if (criteriaMaxScoreError) {
+        const selectedCriteria = criteria.find(c => c.id === campaign.criteria_id);
+        toast.error(`Điểm phong trào không được lớn hơn điểm tiêu chí "${selectedCriteria?.name}" (${selectedCriteria?.max_score}).`);
+      }
       return;
     }
 
@@ -221,13 +262,25 @@ export default function CampaignImport({ onCampaignsImported }: CampaignImportPr
   const handleImport = async () => {
     setShowErrors(true);
 
-    const invalidCampaigns = previewCampaigns.filter(campaign => {
-      const { nameError, maxScoreError, criteriaIdError, semesterNoError, academicYearError } = validateCampaign(campaign);
-      return nameError || maxScoreError || criteriaIdError || semesterNoError || academicYearError;
-    });
+    const invalidCampaigns = previewCampaigns.map((campaign, index) => {
+      const validation = validateCampaign(campaign);
+      const hasError = validation.nameError || validation.maxScoreError || validation.criteriaIdError || 
+                       validation.semesterNoError || validation.academicYearError || validation.criteriaMaxScoreError;
+      
+      // Return the campaign with error details
+      return { campaign, index, hasError, validation };
+    }).filter(item => item.hasError);
+
+    // Check for criteria max score errors specifically
+    const criteriaMaxScoreErrors = invalidCampaigns.filter(item => item.validation.criteriaMaxScoreError);
+    
+    if (criteriaMaxScoreErrors.length > 0) {
+      toast.error("Import thất bại. Vui lòng kiểm tra điểm phong trào không vượt quá điểm tiêu chí.");
+      return;
+    }
 
     if (invalidCampaigns.length > 0) {
-      toast.error(`Có ${invalidCampaigns.length} phong trào chứa lỗi. Vui lòng kiểm tra các ô màu đỏ và sửa trước khi import.`);
+      toast.error("Import thất bại. Vui lòng kiểm tra lại dữ liệu.");
       return;
     }
 
@@ -238,12 +291,19 @@ export default function CampaignImport({ onCampaignsImported }: CampaignImportPr
 
     setImporting(true);
     try {
-      const campaignsWithCreatedBy = previewCampaigns.map(campaign => ({
+      const campaignsForImport = previewCampaigns.map(({ row_number, ...campaign }) => ({
         ...campaign,
-        created_by: 1 // Default to ID 1 for admin user
+        created_by: 1 
       }));
       
-      const result = await onCampaignsImported(campaignsWithCreatedBy);
+      const result = await onCampaignsImported(campaignsForImport as {
+        name: string;
+        max_score: number;
+        criteria_id: number; 
+        semester_no: number;
+        academic_year: number;
+        created_by: number;
+      }[]);
       if (result.success) {
         setPreviewCampaigns([]);
         setShowErrors(false);
@@ -270,25 +330,29 @@ export default function CampaignImport({ onCampaignsImported }: CampaignImportPr
       // Add headers
       worksheet.columns = [
         { header: 'Tên phong trào', key: 'name', width: 30 },
+        { header: 'Tên tiêu chí', key: 'criteria_id', width: 25 },
         { header: 'Điểm tối đa', key: 'max_score', width: 15 },
-        { header: 'ID tiêu chí', key: 'criteria_id', width: 15 },
         { header: 'Học kỳ (1, 2, hoặc 3)', key: 'semester_no', width: 20 },
         { header: 'Năm học', key: 'academic_year', width: 15 },
       ];
       
+      // Get first two criteria as sample if available
+      const sampleCriteria1 = criteria.length > 0 ? criteria[0] : { id: 1, name: 'Học tập', max_score: 100 };
+      const sampleCriteria2 = criteria.length > 1 ? criteria[1] : { id: 2, name: 'Đạo đức', max_score: 90 };
+      
       // Add some sample data
       worksheet.addRow({
         name: 'Phong trào học kỳ 1 mẫu',
+        criteria_id: sampleCriteria1.name,
         max_score: 100,
-        criteria_id: 1,
         semester_no: 1,
         academic_year: new Date().getFullYear(),
       });
       
       worksheet.addRow({
         name: 'Phong trào học kỳ 2 mẫu',
+        criteria_id: sampleCriteria2.name,
         max_score: 90,
-        criteria_id: 2,
         semester_no: 2,
         academic_year: new Date().getFullYear(),
       });
@@ -386,7 +450,7 @@ export default function CampaignImport({ onCampaignsImported }: CampaignImportPr
             <ul className="list-disc pl-4">
               <li><strong>Học kỳ (Semester):</strong> Chỉ nhận giá trị 1 (Học kỳ 1), 2 (Học kỳ 2), hoặc 3 (Học kỳ hè)</li>
               <li><strong>Năm học (Academic year):</strong> Năm học, ví dụ: 2024</li>
-              <li><strong>Điểm tối đa:</strong> Số điểm tối đa cho phong trào (phải là số dương)</li>
+              <li><strong>Điểm tối đa:</strong> Số điểm tối đa cho phong trào (phải là số dương và không được vượt quá điểm tiêu chí)</li>
               <li><strong>ID tiêu chí:</strong> ID của tiêu chí đã tồn tại trong hệ thống</li>
             </ul>
           </div>
@@ -396,8 +460,8 @@ export default function CampaignImport({ onCampaignsImported }: CampaignImportPr
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STT</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên phong trào</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên tiêu chí</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Điểm tối đa</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID tiêu chí</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Học kỳ</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Năm học</th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
@@ -405,9 +469,11 @@ export default function CampaignImport({ onCampaignsImported }: CampaignImportPr
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {previewCampaigns.map((campaign, index) => {
-                const { nameError, maxScoreError, criteriaIdError, semesterNoError, academicYearError } = validateCampaign(campaign);
-                const hasError = nameError || maxScoreError || criteriaIdError || semesterNoError || academicYearError;
+                const { nameError, maxScoreError, criteriaIdError, semesterNoError, academicYearError, criteriaMaxScoreError } = validateCampaign(campaign);
                 const isEditing = editingIndex === index;
+
+                // Get the selected criteria for error display
+                const selectedCriteria = criteria.find(c => c.id === campaign.criteria_id);
 
                 return (
                   <tr key={index} className="border-b hover:bg-gray-50">
@@ -426,46 +492,71 @@ export default function CampaignImport({ onCampaignsImported }: CampaignImportPr
                           )}
                         </>
                       ) : (
-                        <span className={nameError && showErrors ? "text-red-700 font-semibold border-b-2 border-red-500" : ""}>
-                          {campaign.name || "-"}
-                        </span>
+                        <Tooltip title={campaign.name}>
+                          <span className={`block truncate max-w-[200px] ${nameError && showErrors ? "text-red-700 font-semibold border-b-2 border-red-500" : ""}`}>
+                            {campaign.name || "-"}
+                          </span>
+                        </Tooltip>
                       )}
                     </td>
-                    <td className={`px-6 py-4 ${showErrors && maxScoreError ? 'bg-red-100' : ''}`}>
+                    <td className={`px-6 py-4 ${showErrors && criteriaIdError ? 'bg-red-100' : ''}`}>
+                      {isEditing ? (
+                        <>
+                          <select
+                            value={campaign.criteria_id || ""}
+                            onChange={(e) => handleChange(index, "criteria_id", Number(e.target.value))}
+                            className={`w-full border rounded px-2 py-1 ${(showErrors && criteriaIdError) || editErrors.criteria_id ? 'border-red-600 bg-red-50' : ''}`}
+                          >
+                            <option value="">-- Chọn tiêu chí --</option>
+                            {criteria.map((criteriaItem) => (
+                              <option key={criteriaItem.id} value={criteriaItem.id}>
+                                {criteriaItem.name} (Tối đa: {criteriaItem.max_score})
+                              </option>
+                            ))}
+                          </select>
+                          {((showErrors && criteriaIdError) || editErrors.criteria_id) && (
+                            <p className="text-xs text-red-600 font-medium mt-1">Vui lòng chọn tiêu chí</p>
+                          )}
+                        </>
+                      ) : (
+                        <Tooltip title={selectedCriteria ? selectedCriteria.name : "Không tìm thấy"}>
+                          <span className={`block truncate max-w-[200px] ${criteriaIdError && showErrors ? "text-red-700 font-semibold border-b-2 border-red-500" : ""}`}>
+                            {selectedCriteria ? selectedCriteria.name : "Không tìm thấy"} 
+                            {campaign.error && (
+                              <span className="block text-xs text-red-600 font-medium mt-1">
+                                {campaign.error}
+                              </span>
+                            )}
+                          </span>
+                        </Tooltip>
+                      )}
+                    </td>
+                    <td className={`px-6 py-4 ${showErrors && (maxScoreError || criteriaMaxScoreError) ? 'bg-red-100' : ''}`}>
                       {isEditing ? (
                         <>
                           <input
                             type="number"
                             value={campaign.max_score}
                             onChange={(e) => handleChange(index, "max_score", Number(e.target.value))}
-                            className={`w-full border rounded px-2 py-1 ${(showErrors && maxScoreError) || editErrors.max_score ? 'border-red-600 bg-red-50' : ''}`}
+                            className={`w-full border rounded px-2 py-1 ${(showErrors && (maxScoreError || criteriaMaxScoreError)) || editErrors.max_score ? 'border-red-600 bg-red-50' : ''}`}
                           />
-                          {((showErrors && maxScoreError) || editErrors.max_score) && (
+                          {((showErrors && maxScoreError) || editErrors.max_score) && !criteriaMaxScoreError && (
                             <p className="text-xs text-red-600 font-medium mt-1">Điểm tối đa phải lớn hơn 0</p>
                           )}
-                        </>
-                      ) : (
-                        <span className={maxScoreError && showErrors ? "text-red-700 font-semibold border-b-2 border-red-500" : ""}>
-                          {campaign.max_score || "-"}
-                        </span>
-                      )}
-                    </td>
-                    <td className={`px-6 py-4 ${showErrors && criteriaIdError ? 'bg-red-100' : ''}`}>
-                      {isEditing ? (
-                        <>
-                          <input
-                            type="number"
-                            value={campaign.criteria_id}
-                            onChange={(e) => handleChange(index, "criteria_id", Number(e.target.value))}
-                            className={`w-full border rounded px-2 py-1 ${(showErrors && criteriaIdError) || editErrors.criteria_id ? 'border-red-600 bg-red-50' : ''}`}
-                          />
-                          {((showErrors && criteriaIdError) || editErrors.criteria_id) && (
-                            <p className="text-xs text-red-600 font-medium mt-1">ID tiêu chí phải lớn hơn 0</p>
+                          {((showErrors && criteriaMaxScoreError) || (editErrors.max_score && criteriaMaxScoreError)) && (
+                            <p className="text-xs text-red-600 font-medium mt-1">
+                              Điểm tiêu chí ({selectedCriteria?.max_score})
+                            </p>
                           )}
                         </>
                       ) : (
-                        <span className={criteriaIdError && showErrors ? "text-red-700 font-semibold border-b-2 border-red-500" : ""}>
-                          {campaign.criteria_id || "-"}
+                        <span className={(maxScoreError || criteriaMaxScoreError) && showErrors ? "text-red-700 font-semibold border-b-2 border-red-500" : ""}>
+                          {campaign.max_score || "-"}
+                          {showErrors && criteriaMaxScoreError && (
+                            <span className="block text-xs text-red-600 font-medium mt-1">
+                              Điểm tiêu chí ({selectedCriteria?.max_score})
+                            </span>
+                          )}
                         </span>
                       )}
                     </td>
@@ -548,7 +639,7 @@ export default function CampaignImport({ onCampaignsImported }: CampaignImportPr
                                 className="text-red-600 hover:text-red-800 flex items-center space-x-1"
                                 disabled={editingIndex !== null}
                               >
-                                <Trash size={16} />
+                                <Trash size={20} />
                               </button>
                             </Tooltip>
                           </>

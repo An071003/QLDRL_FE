@@ -6,6 +6,7 @@ import ExcelJS from 'exceljs';
 import { toast } from 'sonner';
 import { Tooltip } from 'antd';
 import { useData } from '@/lib/contexts/DataContext';
+import Loading from '../Loading';
 
 export default function StudentImport({
   onStudentsImported,
@@ -32,12 +33,12 @@ export default function StudentImport({
   };
 
   const isValidPhone = (phone: string | null) => {
-    if (!phone) return true; // Phone is optional
+    if (!phone) return true; 
     return /^\d{10}$/.test(phone);
   };
 
   const isValidDate = (date: string | null) => {
-    if (!date) return true; // Date is optional
+    if (!date) return true;
     return !isNaN(Date.parse(date));
   };
 
@@ -171,8 +172,7 @@ export default function StudentImport({
   const handleStudentChange = (index: number, key: string, value: string) => {
     setPreviewStudents(prev => {
       const updated = [...prev];
-      
-      // Convert faculty_id and class_id to numbers when storing
+
       if (key === 'faculty_id' || key === 'class_id') {
         updated[index][key] = value ? Number(value) : null;
       } else {
@@ -309,7 +309,7 @@ export default function StudentImport({
       worksheet.addRow({
         student_id: '20050001',
         student_name: 'Nguyễn Văn A',
-        faculty_abbr: 'CNTT',
+        faculty_abbr: 'MMT',
         class_name: 'CNTT01',
         email: 'nguyenvana@example.com',
         phone: '0123456789',
@@ -319,8 +319,8 @@ export default function StudentImport({
       worksheet.addRow({
         student_id: '20050002',
         student_name: 'Trần Thị B',
-        faculty_abbr: 'KTPM',
-        class_name: 'KTPM02',
+        faculty_abbr: 'KH-KTT',
+        class_name: 'CNCL2021',
         email: 'tranthib@example.com',
         phone: '0987654321',
         birthdate: new Date(2000, 5, 15).toLocaleDateString(),
@@ -351,10 +351,7 @@ export default function StudentImport({
 
   if (dataLoading) {
     return (
-      <div className="text-center py-10">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-        <p className="mt-4 text-gray-600">Đang tải dữ liệu khoa và lớp...</p>
-      </div>
+      <Loading />
     );
   }
 

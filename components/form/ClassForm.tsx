@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { Class } from '@/types/class';
-import { Faculty } from '@/types/faculty';
-import api from '@/lib/api';
 import { toast } from 'sonner';
+import { useData } from '@/lib/contexts/DataContext';
+import Loading from '../Loading';
 
 interface Props {
   classItem?: Class;
@@ -13,27 +13,11 @@ interface Props {
 }
 
 export default function ClassForm({ classItem, onSubmit, setLoading }: Props) {
+  const { faculties, loading: dataLoading } = useData();
   const [name, setName] = useState('');
   const [facultyId, setFacultyId] = useState<number | ''>('');
   const [cohort, setCohort] = useState('');
-  const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [error, setError] = useState('');
-
-  const fetchFaculties = async () => {
-    setLoading(true);
-    try {
-      const response = await api.get('/api/faculties');
-      setFaculties(response.data.data.faculties || []);
-    } catch (err) {
-      toast.error('Không thể tải danh sách khoa');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchFaculties();
-  }, []);
 
   useEffect(() => {
     if (classItem) {
@@ -76,6 +60,12 @@ export default function ClassForm({ classItem, onSubmit, setLoading }: Props) {
       setLoading(false)
     }
   };
+
+  if (dataLoading) {
+    return (
+      <Loading />
+    );
+  }
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">

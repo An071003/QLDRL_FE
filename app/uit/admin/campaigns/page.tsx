@@ -3,19 +3,16 @@
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import api from "@/lib/api";
-import { Campaign } from "@/types/campaign";
-import { Criteria } from "@/types/criteria";
 import CampaignForm from "@/components/form/CampaignForm";
 import CampaignImport from "@/components/Import/CampaignImport";
 import CampaignTable from "@/components/Table/CampaignTable";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import Loading from "@/components/Loading";
 import axios from "axios";
+import { useData } from "@/lib/contexts/DataContext";
 
 export default function CampaignManagement() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [criterias, setCriterias] = useState<Criteria[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { campaigns, criteria, loading, refreshData } = useData();
   const [activeComponent, setActiveComponent] = useState<'form' | 'import' | 'table'>("table");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSemester, setSelectedSemester] = useState<string>("all");
@@ -27,35 +24,6 @@ export default function CampaignManagement() {
   const itemsPerPage = 20;
   const tableRef = useRef<HTMLDivElement>(null);
 
-  const fetchCampaigns = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get("/api/campaigns");
-      setCampaigns(res.data.data.campaigns);
-    } catch (err) {
-      console.error(err);
-      toast.error("Không thể tải danh sách phong trào ❌");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchCriterias = async () => {
-    try {
-      const res = await api.get("/api/criteria");
-      setCriterias(res.data.data.criteria);
-    } catch (err) {
-      console.error(err);
-      toast.error("Không thể tải danh sách tiêu chí ❌");
-    }
-  };
-
-
-  useEffect(() => {
-    fetchCampaigns();
-    fetchCriterias();
-  }, []);
-
   const handleCreateCampaign = async (newCampaign: { 
     name: string; 
     max_score: number; 
@@ -65,7 +33,7 @@ export default function CampaignManagement() {
   }) => {
     try {
       await api.post("/api/campaigns", newCampaign);
-      await fetchCampaigns();
+      await refreshData();
       setActiveComponent("table");
       toast.success("Thêm phong trào thành công 🎉");
       return { success: true };
@@ -85,7 +53,7 @@ export default function CampaignManagement() {
     if (selectedId === null) return;
     try {
       await api.delete(`/api/campaigns/${selectedId}`);
-      await fetchCampaigns();
+      await refreshData();
       toast.success("Xóa phong trào thành công ✅");
     } catch (error: unknown) {
       console.error(error);
@@ -105,7 +73,7 @@ export default function CampaignManagement() {
   }) => {
     try {
       await api.put(`/api/campaigns/${id}`, updatedCampaign);
-      await fetchCampaigns();
+      await refreshData();
       toast.success("Cập nhật phong trào thành công ✨");
     } catch (error: unknown) {
       console.error(error);
@@ -126,7 +94,7 @@ export default function CampaignManagement() {
       const response = await api.post("/api/campaigns/import", importedCampaigns);
       console.log("Import response:", response.data);
       
-      await fetchCampaigns();
+      await refreshData();
       setActiveComponent("table");
       
       if (response.data.status === "partial") {
@@ -189,9 +157,9 @@ export default function CampaignManagement() {
   const renderComponent = () => {
     switch (activeComponent) {
       case "form":
-        return <CampaignForm criteria={criterias} onCampaignCreated={handleCreateCampaign} />;
+        return <CampaignForm criteria={criteria} onCampaignCreated={handleCreateCampaign} />;
       case "import":
-        return <CampaignImport onCampaignsImported={handleCampaignsImported} />;
+        return <CampaignImport criteria={criteria} onCampaignsImported={handleCampaignsImported} />;
       default:
         return (
           <>
@@ -244,7 +212,7 @@ export default function CampaignManagement() {
 
             <CampaignTable
               campaigns={currentCampaigns}
-              criterias={criterias}
+              criterias={criteria}
               onDeleteCampaign={openDeleteModal}
               onUpdateCampaign={handleUpdateCampaign}
               onSortMaxScore={handleSortMaxScore}

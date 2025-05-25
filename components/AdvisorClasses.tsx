@@ -6,13 +6,22 @@ import { Tooltip } from 'antd';
 interface AdvisorClassesProps {
   classes: Class[] | undefined;
   showActions?: boolean;
+  handleViewDetail?: (classId: number) => void;
 }
 
-export default function AdvisorClasses({ classes, showActions = true }: AdvisorClassesProps) {
+export default function AdvisorClasses({ 
+  classes, 
+  showActions = true,
+  handleViewDetail: customHandleViewDetail
+}: AdvisorClassesProps) {
   const router = useRouter();
-
+  
   const handleViewDetail = (classId: number) => {
-    router.push(`/uit/advisor/classes/${classId}`);
+    if (customHandleViewDetail) {
+      customHandleViewDetail(classId);
+    } else {
+      router.push(`/uit/advisor/classes/${classId}`);
+    }
   };
 
   if (!classes || classes.length === 0) {
@@ -30,7 +39,6 @@ export default function AdvisorClasses({ classes, showActions = true }: AdvisorC
           <tr>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">STT</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên lớp</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khoa</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khóa</th>
             {showActions && (
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Hành động</th>
@@ -42,9 +50,6 @@ export default function AdvisorClasses({ classes, showActions = true }: AdvisorC
             <tr key={cls.id} className="hover:bg-gray-50">
               <td className="px-4 py-3 whitespace-nowrap">{index + 1}</td>
               <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-900">{cls.name}</td>
-              <td className="px-4 py-3 whitespace-nowrap">
-                {cls.Faculty?.name || cls.Faculty?.faculty_abbr || "--"}
-              </td>
               <td className="px-4 py-3 whitespace-nowrap">{cls.cohort || "--"}</td>
               {showActions && (
                 <td className="px-4 py-3 whitespace-nowrap text-center">

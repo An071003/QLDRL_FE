@@ -10,10 +10,12 @@ import FacultyImport from '@/components/Import/FacultyImport';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
 import Loading from '@/components/Loading';
 import debounce from 'lodash.debounce';
+import { useData } from '@/lib/contexts/DataContext';
 
 export default function FacultyManagementPage() {
+  const { faculties: contextFaculties, loading: dataLoading, refreshData } = useData();
   const [faculties, setFaculties] = useState<Faculty[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [facultyIdToDelete, setFacultyIdToDelete] = useState<number | null>(null);
@@ -22,20 +24,8 @@ export default function FacultyManagementPage() {
   const [submitLoading, setSubmitLoading] = useState(false);
 
   useEffect(() => {
-    fetchFaculties();
-  }, []);
-
-  const fetchFaculties = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/api/faculties');
-      setFaculties(res.data.data.faculties || []);
-    } catch (err) {
-      toast.error('Không thể tải danh sách khoa');
-    } finally {
-      setLoading(false);
-    }
-  };
+    setFaculties(contextFaculties);
+  }, [contextFaculties]);
 
   const handleCreateFaculty = async (data: Partial<Faculty>) => {
     try {
@@ -45,7 +35,7 @@ export default function FacultyManagementPage() {
       });
       toast.success('Thêm khoa thành công!');
       setMode('list');
-      fetchFaculties();
+      refreshData(); // Refresh data in context
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Lỗi khi tạo khoa';
       toast.error(msg);
@@ -59,7 +49,7 @@ export default function FacultyManagementPage() {
         name: faculty.name
       });
       toast.success('Cập nhật khoa thành công!');
-      fetchFaculties();
+      refreshData(); // Refresh data in context
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Lỗi khi cập nhật khoa';
       toast.error(msg);
@@ -77,7 +67,7 @@ export default function FacultyManagementPage() {
     try {
       await api.delete(`/api/faculties/${facultyIdToDelete}`);
       toast.success('Xóa khoa thành công!');
-      fetchFaculties();
+      refreshData(); // Refresh data in context
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Lỗi khi xóa khoa';
       toast.error(msg);
@@ -93,7 +83,7 @@ export default function FacultyManagementPage() {
       await api.post('/api/faculties/import', importedFaculties);
       toast.success('Import khoa thành công!');
       setMode('list');
-      fetchFaculties();
+      refreshData(); // Refresh data in context
       return { success: true };
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Lỗi khi import khoa';
@@ -145,7 +135,7 @@ export default function FacultyManagementPage() {
     }
   };
 
-  if (loading) return <Loading />;
+  if (dataLoading || submitLoading) return <Loading />;
 
   return (
     <div>

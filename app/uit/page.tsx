@@ -26,7 +26,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!role) return;
-    console.log(role);
     if (role === "admin") {
       router.push("/uit/admin/users");
     } else if (role === "student") {
@@ -36,7 +35,7 @@ export default function DashboardPage() {
     } else if (role === "departmentofficer") {
       router.push("/uit/department-officers/profile");
     } else if (role === "classleader") {
-      router.push("/uit/classleader");
+      router.push("/uit/class-leader");
     } else {
       router.push("/login");
     }

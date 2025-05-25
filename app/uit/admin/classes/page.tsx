@@ -10,10 +10,12 @@ import ClassImport from '@/components/Import/ClassImport';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
 import Loading from '@/components/Loading';
 import debounce from 'lodash.debounce';
+import { useData } from '@/lib/contexts/DataContext';
 
 export default function ClassManagementPage() {
+  const { classes: contextClasses, faculties, loading: dataLoading, refreshData } = useData();
   const [classes, setClasses] = useState<Class[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [classIdToDelete, setClassIdToDelete] = useState<number | null>(null);
@@ -21,20 +23,11 @@ export default function ClassManagementPage() {
   const [submitLoading, setSubmitLoading] = useState(false);
 
   useEffect(() => {
-    fetchClasses();
-  }, []);
-
-  const fetchClasses = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/api/classes');
-      setClasses(res.data.data.classes || []);
-    } catch (error) {
-      toast.error('Không thể tải danh sách lớp');
-    } finally {
-      setLoading(false);
-    }
-  };
+    setClasses(contextClasses.map(cls => ({
+      ...cls,
+      cohort: String(cls.cohort)
+    })));
+  }, [contextClasses]);
 
   const handleCreateClass = async (data: Partial<Class>) => {
     setSubmitLoading(true);
@@ -46,7 +39,7 @@ export default function ClassManagementPage() {
       });
       toast.success('Thêm lớp thành công!');
       setMode('list');
-      fetchClasses();
+      refreshData(); // Refresh data in context
     } catch (error: unknown) {
       const errorMessage = error instanceof Error 
         ? error.message 
@@ -65,7 +58,7 @@ export default function ClassManagementPage() {
         cohort: classItem.cohort
       });
       toast.success('Cập nhật lớp thành công!');
-      fetchClasses();
+      refreshData(); // Refresh data in context
     } catch (error: unknown) {
       const errorMessage = error instanceof Error 
         ? error.message 
@@ -86,7 +79,7 @@ export default function ClassManagementPage() {
     try {
       await api.delete(`/api/classes/${classIdToDelete}`);
       toast.success('Xóa lớp thành công!');
-      fetchClasses();
+      refreshData(); // Refresh data in context
     } catch (error: unknown) {
       const errorMessage = error instanceof Error 
         ? error.message 
@@ -103,7 +96,7 @@ export default function ClassManagementPage() {
       await api.post('/api/classes/import', importedClasses);
       toast.success('Import lớp thành công!');
       setMode('list');
-      fetchClasses();
+      refreshData(); // Refresh data in context
       return { success: true };
     } catch (error: unknown) {
       const errorMessage = error instanceof Error 
@@ -158,7 +151,7 @@ export default function ClassManagementPage() {
     }
   };
 
-  if (loading) return <Loading />;
+  if (dataLoading || submitLoading) return <Loading />;
 
   return (
     <div>

@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import Loading from '@/components/Loading';
 import { toast } from 'sonner';
 import { Table, Tag, Input, Modal, Button, Checkbox } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import debounce from 'lodash.debounce';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
 
@@ -45,6 +46,17 @@ interface Activity {
   };
 }
 
+interface Class {
+  id: number;
+  name: string;
+  cohort: string;
+  faculty_id: number;
+  Faculty?: {
+    id: number;
+    name: string;
+  };
+}
+
 export default function AdvisorActivityStudentsPage() {
   const params = useParams();
   const router = useRouter();
@@ -53,6 +65,8 @@ export default function AdvisorActivityStudentsPage() {
   const [loading, setLoading] = useState(true);
   const [activity, setActivity] = useState<Activity | null>(null);
   const [search, setSearch] = useState("");
+  const [managedClasses, setManagedClasses] = useState<Class[]>([]);
+  const [canEdit, setCanEdit] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
   
   // Modal states for registering new students
@@ -68,7 +82,30 @@ export default function AdvisorActivityStudentsPage() {
 
   useEffect(() => {
     fetchData();
+    fetchManagedClasses();
   }, [activityId]);
+
+  const fetchManagedClasses = async () => {
+    try {
+      // Get current user info
+      const userRes = await api.get('/api/auth/me');
+      if (!userRes.data?.data?.user?.id) {
+        toast.error("Không thể lấy thông tin người dùng");
+        return;
+      }
+
+      // Get advisor details with managed classes
+      const advisorRes = await api.get(`/api/advisors/user/${userRes.data.data.user.id}`);
+      if (advisorRes.data?.advisor) {
+        const classes = advisorRes.data.advisor.Classes || advisorRes.data.advisor.Class || [];
+        console.log("Managed classes:", classes);
+        setManagedClasses(classes);
+      }
+    } catch (err) {
+      console.error("Failed to fetch managed classes:", err);
+      toast.error("Không thể tải danh sách lớp phụ trách");
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -87,11 +124,22 @@ export default function AdvisorActivityStudentsPage() {
       
       setActivity(activityData);
       
-      // Fetch student activities data
+      // Xác định nếu có thể chỉnh sửa
+      if (activityData.status === 'ongoing' && activityData.approver_id !== null) {
+        const currentDate = new Date();
+        const registrationStart = activityData.registration_start ? new Date(activityData.registration_start) : null;
+        const registrationEnd = activityData.registration_end ? new Date(activityData.registration_end) : null;
+        
+        if (registrationStart && registrationEnd && 
+            currentDate >= registrationStart && 
+            currentDate <= registrationEnd) {
+          setCanEdit(true);
+        }
+      }
+      
       const studentsRes = await api.get(`/api/student-activities/${activityId}`);
       const fetchedStudents = studentsRes.data.data.students || [];
       
-      // Enhance each student with their class information
       const enhancedStudents = await Promise.all(
         fetchedStudents.map(async (student: StudentActivity) => {
           try {
@@ -101,7 +149,6 @@ export default function AdvisorActivityStudentsPage() {
               const studentData = studentRes.data.data.student;
               
               if (studentData) {
-                // Get class name if student has class_id but no class name
                 let className = student.class || '';
                 
                 if (studentData.class_id && !className) {
@@ -130,7 +177,6 @@ export default function AdvisorActivityStudentsPage() {
         })
       );
       
-      console.log('Enhanced students with class info:', enhancedStudents);
       setStudents(enhancedStudents);
     } catch (error) {
       console.error("Error loading activity data:", error);
@@ -145,7 +191,21 @@ export default function AdvisorActivityStudentsPage() {
     setLoadingAvailableStudents(true);
     try {
       const res = await api.get(`/api/student-activities/${activityId}/not-participated`);
-      setAvailableStudents(res.data.data.students);
+      const allStudents = res.data.data.students || [];
+      console.log("All available students:", allStudents);
+      
+      // Filter students to only include those from managed classes
+      const managedClassNames = managedClasses.map(c => c.name);
+      console.log("Managed class names:", managedClassNames);
+      
+      const filteredStudents = allStudents.filter((student: StudentActivity) => {
+        const isInManagedClass = student.class && managedClassNames.includes(student.class);
+        console.log(`Student ${student.student_id} in managed class:`, isInManagedClass);
+        return isInManagedClass;
+      });
+      
+      console.log("Filtered students:", filteredStudents);
+      setAvailableStudents(filteredStudents);
     } catch (error) {
       console.error("Error fetching available students:", error);
       toast.error("Không thể tải danh sách sinh viên có thể đăng ký ❌");
@@ -156,6 +216,23 @@ export default function AdvisorActivityStudentsPage() {
   
   // Open register modal
   const openRegisterModal = () => {
+    if (managedClasses.length === 0) {
+      toast.error("Bạn chưa được phân công quản lý lớp nào");
+      return;
+    }
+
+    if (!canEdit) {
+      const now = new Date();
+      const registrationStart = activity?.registration_start ? new Date(activity.registration_start) : null;
+      
+      if (registrationStart && now < registrationStart) {
+        toast.error("Chưa đến thời gian đăng ký");
+      } else {
+        toast.error("Thời gian đăng ký đã kết thúc");
+      }
+      return;
+    }
+
     fetchAvailableStudents();
     setRegisterModalVisible(true);
   };
@@ -175,6 +252,12 @@ export default function AdvisorActivityStudentsPage() {
       toast.warning("Vui lòng chọn ít nhất một sinh viên");
       return;
     }
+
+    if (!canEdit) {
+      toast.error("Thời gian đăng ký không hợp lệ");
+      setRegisterModalVisible(false);
+      return;
+    }
     
     try {
       await api.post(`/api/student-activities/${activityId}/students`, { 
@@ -185,9 +268,10 @@ export default function AdvisorActivityStudentsPage() {
       setSelectedStudents([]);
       toast.success("Đăng ký sinh viên thành công 🎉");
       await fetchData(); // Refresh the list
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error registering students:", error);
-      toast.error("Đăng ký sinh viên thất bại ❌");
+      const errorMessage = error.response?.data?.message || "Đăng ký sinh viên thất bại ❌";
+      toast.error(errorMessage);
     }
   };
   
@@ -250,26 +334,24 @@ export default function AdvisorActivityStudentsPage() {
     s.class?.toLowerCase().includes(searchStudent.toLowerCase())
   );
 
-  const columns = [
+  const columns: ColumnsType<StudentActivity> = [
     {
       title: 'STT',
       key: 'index',
-      render: (_: unknown, __: unknown, index: number) => index + 1,
+      render: (_, __, index) => index + 1,
       width: 70
     },
     {
       title: 'MSSV',
       dataIndex: 'student_id',
       key: 'student_id',
-      sorter: (a: StudentActivity, b: StudentActivity) => 
-        (a.student_id || '').localeCompare(b.student_id || '')
+      sorter: (a, b) => (a.student_id || '').localeCompare(b.student_id || '')
     },
     {
       title: 'Tên sinh viên',
       dataIndex: 'student_name',
       key: 'student_name',
-      sorter: (a: StudentActivity, b: StudentActivity) => 
-        (a.student_name || '').localeCompare(b.student_name || '')
+      sorter: (a, b) => (a.student_name || '').localeCompare(b.student_name || '')
     },
     {
       title: 'Lớp',
@@ -279,7 +361,7 @@ export default function AdvisorActivityStudentsPage() {
     {
       title: 'Trạng thái tham gia',
       key: 'participated',
-      render: (_: unknown, record: StudentActivity) => (
+      render: (_, record) => (
         <Tag color={record.participated ? 'green' : 'gray'}>
           {record.participated ? 'Đã tham gia' : 'Chưa tham gia'}
         </Tag>
@@ -288,13 +370,12 @@ export default function AdvisorActivityStudentsPage() {
         { text: 'Đã tham gia', value: true },
         { text: 'Chưa tham gia', value: false }
       ],
-      onFilter: (value: boolean | string | number, record: StudentActivity) => 
-        record.participated === value
+      onFilter: (value, record) => record.participated === !!value
     },
     {
       title: 'Thao tác',
       key: 'actions',
-      render: (_: unknown, record: StudentActivity) => (
+      render: (_, record) => (
         <div className="flex space-x-2">
           <Button 
             type="primary" 
@@ -379,19 +460,21 @@ export default function AdvisorActivityStudentsPage() {
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Danh sách sinh viên tham gia</h2>
         <div className="flex gap-4">
-          {activity?.status === 'ongoing' && activity?.approver_id !== null ? (
+          {activity?.approver_id === null ? (
+            <div className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded">
+              Hoạt động đang chờ phê duyệt
+            </div>
+          ) : canEdit ? (
             <button
               className="px-4 py-2 cursor-pointer bg-green-600 text-white rounded hover:bg-green-700"
               onClick={openRegisterModal}>
               Đăng ký sinh viên
             </button>
-          ) : activity?.approver_id === null ? (
-            <div className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded">
-              Hoạt động đang chờ phê duyệt
-            </div>
           ) : (
             <div className="px-4 py-2 bg-gray-100 text-gray-800 rounded">
-              Hoạt động đã kết thúc
+              {new Date() < new Date(activity?.registration_start || '') 
+                ? "Chưa đến thời gian đăng ký" 
+                : "Thời gian đăng ký đã kết thúc"}
             </div>
           )}
           <button
@@ -438,7 +521,6 @@ export default function AdvisorActivityStudentsPage() {
       
       {activity?.approver_id !== null && (
         <>
-          {/* Modal for registering students */}
           <Modal
             title="Đăng ký sinh viên tham gia hoạt động"
             open={registerModalVisible}

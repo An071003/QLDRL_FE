@@ -74,8 +74,8 @@ export default function AdvisorImport({
       worksheet.eachRow((row, rowNumber) => {
         if (rowNumber === 1) return;
 
-        const username = row.getCell(1).value?.toString().trim() || '';
-        const name = row.getCell(2).value?.toString().trim() || '';
+        const name = row.getCell(1).value?.toString().trim() || '';
+        const username = row.getCell(2).value?.toString().trim() || '';
         const facultyAbbr = row.getCell(3).value?.toString().trim() || '';
         const email = row.getCell(4)?.value?.toString().trim() || '';
         const phone = row.getCell(5)?.value?.toString().trim() || null;
@@ -259,7 +259,6 @@ export default function AdvisorImport({
     }
   };
 
-  // Function to generate and download a sample Excel template
   const downloadSampleTemplate = async () => {
     try {
       const workbook = new ExcelJS.Workbook();
@@ -276,7 +275,7 @@ export default function AdvisorImport({
       worksheet.addRow({
         name: 'Nguyễn Văn A',
         username: 'cvht001',
-        faculty_abbr: 'CNTT',
+        faculty_abbr: 'KH-KTTT',
         email: 'nguyenvana@example.com',
         phone: '0123456789',
       });
@@ -284,7 +283,7 @@ export default function AdvisorImport({
       worksheet.addRow({
         name: 'Trần Thị B',
         username: 'cvht002',
-        faculty_abbr: 'KTPM',
+        faculty_abbr: 'MMT',
         email: 'tranthib@example.com',
         phone: '0987654321',
       });

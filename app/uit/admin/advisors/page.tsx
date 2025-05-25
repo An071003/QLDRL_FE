@@ -10,16 +10,17 @@ import { Advisor, Faculty } from '@/types/advisor';
 import AdvisorTable from '@/components/Table/AdvisorTable';
 import AdvisorForm from '@/components/form/AdvisorForm';
 import AdvisorImport from '@/components/Import/AdvisorImport';
+import { useData } from '@/lib/contexts/DataContext';
 
 export default function AdvisorManagementPage() {
   const [advisors, setAdvisors] = useState<Advisor[]>([]);
-  const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [advisorIdToDelete, setAdvisorIdToDelete] = useState<number | null>(null);
   const [editingAdvisorId, setEditingAdvisorId] = useState<number | null>(null);
   const [activeComponent, setActiveComponent] = useState<'table' | 'form' | 'import'>('table');
+  const { faculties, loading: dataLoading } = useData();
   
   // Edit state for inline editing
   const [editData, setEditData] = useState<{
@@ -34,7 +35,6 @@ export default function AdvisorManagementPage() {
 
   useEffect(() => {
     fetchAdvisors();
-    fetchFaculties();
   }, []);
 
   const fetchAdvisors = async () => {
@@ -51,22 +51,6 @@ export default function AdvisorManagementPage() {
       toast.error('Không thể tải danh sách cố vấn học tập');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchFaculties = async () => {
-    try {
-      const res = await api.get('/api/faculties');
-      if (Array.isArray(res.data.data)) {
-        setFaculties(res.data.data);
-      } else if (res.data.data.faculties) {
-        setFaculties(res.data.data.faculties);
-      } else {
-        setFaculties([]);
-      }
-    } catch (err) {
-      console.error('Failed to fetch faculties:', err);
-      toast.error('Không thể tải danh sách khoa');
     }
   };
 
@@ -179,11 +163,11 @@ export default function AdvisorManagementPage() {
         (advisor.Faculty?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         (advisor.phone?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         (advisor.User?.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        (advisor.User?.username?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+        (advisor.User?.user_name?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     );
   }, [advisors, searchTerm]);
 
-  if (loading) return <Loading />;
+  if (loading || dataLoading) return <Loading />;
 
   const renderComponent = () => {
     switch (activeComponent) {
