@@ -150,6 +150,7 @@ export default function StudentManagementPage() {
           students={filteredStudents}
           onDeleteStudent={handleDeleteClick}
           onUpdateStudent={handleUpdateStudent}
+          userRole="department-officers"
         />
     }
   };

@@ -39,6 +39,10 @@ const Sidebar = () => {
         <Link href="/uit/department-officers/activities" className="block py-2 px-4 rounded hover:bg-gray-700">
           Hoạt động
         </Link>
+
+        <Link href="/uit/department-officers/student-scores" className="block py-2 px-4 rounded hover:bg-gray-700">
+          Điểm rèn luyện
+        </Link>
       </nav>
       <div className="mt-auto">
         <Link href="/logout" className="block py-2 px-4 rounded hover:bg-gray-700">

@@ -32,6 +32,15 @@ interface Faculty {
   faculty_abbr: string;
 }
 
+interface StudentDetail {
+  id: string;
+  name: string;
+  studentId: string;
+  class: string;
+  faculty: string;
+  score: number;
+}
+
 interface FacultyStatsProps {
   selectedSemester: string;
   selectedFaculty: string;
@@ -86,6 +95,9 @@ export default function FacultyStats({
   const [stats, setStats] = useState<StatsData | null>(null);
   const [classStats, setClassStats] = useState<ClassStats[]>([]);
   const [facultyStats, setFacultyStats] = useState<FacultyStats[]>([]);
+  const [selectedFacultyLocal, setSelectedFacultyLocal] = useState<string>('all');
+  const [studentDetails, setStudentDetails] = useState<StudentDetail[]>([]);
+  const [currentFacultyStats, setCurrentFacultyStats] = useState<FacultyStats | null>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -356,11 +368,32 @@ export default function FacultyStats({
     },
     {
       title: 'Xuất sắc',
-      dataIndex: 'excellent_count',
-      key: 'excellent_count',
+      key: 'excellent_rate',
       width: '20%',
-      render: (value: any) => Number(value),
+      render: (text: any, record: ClassStats) => {
+        const total = Number(record.excellent_count) + 
+                     Number(record.good_count) + 
+                     Number(record.fair_count) + 
+                     Number(record.average_count) + 
+                     Number(record.poor_count);
+        const rate = total > 0 ? (Number(record.excellent_count) / total) * 100 : 0;
+        return `${rate.toFixed(2)}%`;
+      },
     },
+    {
+      title: 'Tốt',
+      key: 'good_rate',
+      width: '20%',
+      render: (text: any, record: ClassStats) => {
+        const total = Number(record.excellent_count) + 
+                     Number(record.good_count) + 
+                     Number(record.fair_count) + 
+                     Number(record.average_count) + 
+                     Number(record.poor_count);
+        const rate = total > 0 ? (Number(record.good_count) / total) * 100 : 0;
+        return `${rate.toFixed(2)}%`;
+      },
+    }
   ];
 
   if (loading) {

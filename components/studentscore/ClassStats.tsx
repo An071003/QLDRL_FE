@@ -49,6 +49,7 @@ interface ClassStats {
   fair_count: number;
   average_count: number;
   poor_count: number;
+  total_students: number;
 }
 
 interface StudentDetail {
@@ -74,7 +75,9 @@ export default function ClassStats({
     const fetchStats = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/api/student-scores/stats/class/all');
+        let endpoint = statsEndpoint;
+        setClassStats([]);
+        const response = await api.get(endpoint);
         const stats = response.data.data.classes || [];
         setClassStats(stats);
         setSelectedClass('all');
@@ -87,7 +90,7 @@ export default function ClassStats({
     };
 
     fetchStats();
-  }, [selectedSemester]);
+  }, [statsEndpoint]);
 
   useEffect(() => {
     const fetchStudentDetails = async () => {
@@ -99,17 +102,21 @@ export default function ClassStats({
 
       try {
         setLoading(true);
-        let endpoint = `/api/student-scores/class/${selectedClass}`;
-        if (selectedSemester !== 'all') {
-          const [semesterNo, academicYear] = selectedSemester.split('_').map(Number);
-          endpoint = `/api/student-scores/class/${selectedClass}/${semesterNo}/${academicYear}`;
-        }
-        const response = await api.get(endpoint);
-        setStudentDetails(response.data.data.students);
+        const response = await api.get(statsEndpoint);
+        const classData = response.data.data.classes || [];
         
         // Set current class stats
-        const classData = classStats.find(stat => stat.class_name === selectedClass);
-        setCurrentClassStats(classData || null);
+        const classStats = classData.find((stat: ClassStats) => stat.class_name === selectedClass);
+        setCurrentClassStats(classStats || null);
+
+        // Get student details
+        let studentEndpoint = `/api/student-scores/class/${selectedClass}`;
+        if (selectedSemester !== 'all') {
+          const [semesterNo, academicYear] = selectedSemester.split('_').map(Number);
+          studentEndpoint = `/api/student-scores/class/${selectedClass}/${semesterNo}/${academicYear}`;
+        }
+        const studentResponse = await api.get(studentEndpoint);
+        setStudentDetails(studentResponse.data.data.students);
       } catch (error) {
         console.error('Error fetching student details:', error);
         setStudentDetails([]);
@@ -120,7 +127,7 @@ export default function ClassStats({
     };
 
     fetchStudentDetails();
-  }, [selectedClass, selectedSemester, classStats]);
+  }, [selectedClass, selectedSemester, statsEndpoint]);
 
   const getPieChartData = () => {
     if (!currentClassStats) return {
@@ -178,41 +185,31 @@ export default function ClassStats({
 
   const getAverageScore = () => {
     if (!currentClassStats) {
-      const totalScore = classStats.reduce((sum, stat) => {
-        const score = typeof stat.average_score === 'string' ? parseFloat(stat.average_score) : stat.average_score;
-        return sum + score;
+      // Tính điểm trung bình có trọng số theo số sinh viên của mỗi lớp
+      const totalStudents = classStats.reduce((sum, stat) => sum + Number(stat.total_students), 0);
+      const weightedScore = classStats.reduce((sum, stat) => {
+        return sum + (Number(stat.average_score) * Number(stat.total_students));
       }, 0);
-      return (totalScore / (classStats.length || 1)).toFixed(2);
+      return totalStudents > 0 ? (weightedScore / totalStudents).toFixed(2) : "0.00";
     }
     return currentClassStats.average_score.toFixed(2);
   };
 
   const getTotalStudents = () => {
     if (!currentClassStats) {
-      return classStats.reduce((sum, stat) => {
-        return sum + 
-          Number(stat.excellent_count) + 
-          Number(stat.good_count) + 
-          Number(stat.fair_count) + 
-          Number(stat.average_count) + 
-          Number(stat.poor_count);
-      }, 0);
+      return classStats.reduce((sum, stat) => sum + Number(stat.total_students), 0);
     }
-    return Number(currentClassStats.excellent_count) + 
-           Number(currentClassStats.good_count) + 
-           Number(currentClassStats.fair_count) + 
-           Number(currentClassStats.average_count) + 
-           Number(currentClassStats.poor_count);
+    return Number(currentClassStats.total_students);
   };
 
   const getExcellentGoodRate = () => {
     if (!currentClassStats) {
       const totalExcellent = classStats.reduce((sum, stat) => sum + Number(stat.excellent_count), 0);
       const totalGood = classStats.reduce((sum, stat) => sum + Number(stat.good_count), 0);
-      const total = getTotalStudents();
-      return total > 0 ? (((totalExcellent + totalGood) / total) * 100).toFixed(2) : '0.00';
+      const totalStudents = getTotalStudents();
+      return totalStudents > 0 ? (((totalExcellent + totalGood) / totalStudents) * 100).toFixed(2) : '0.00';
     }
-    const total = getTotalStudents();
+    const total = Number(currentClassStats.total_students);
     return total > 0 ? 
       (((Number(currentClassStats.excellent_count) + Number(currentClassStats.good_count)) / total) * 100).toFixed(2) 
       : '0.00';
@@ -276,19 +273,31 @@ export default function ClassStats({
       },
     },
     {
-      title: 'Tỷ lệ XS & Tốt',
-      key: 'excellent_good_rate',
+      title: 'Xuất sắc',
+      key: 'excellent_rate',
       render: (text: any, record: ClassStats) => {
         const total = Number(record.excellent_count) + 
                      Number(record.good_count) + 
                      Number(record.fair_count) + 
                      Number(record.average_count) + 
                      Number(record.poor_count);
-        const excellentGoodCount = Number(record.excellent_count) + Number(record.good_count);
-        const rate = total > 0 ? (excellentGoodCount / total) * 100 : 0;
+        const rate = total > 0 ? (Number(record.excellent_count) / total) * 100 : 0;
         return `${rate.toFixed(2)}%`;
       },
     },
+    {
+      title: 'Tốt',
+      key: 'good_rate',
+      render: (text: any, record: ClassStats) => {
+        const total = Number(record.excellent_count) + 
+                     Number(record.good_count) + 
+                     Number(record.fair_count) + 
+                     Number(record.average_count) + 
+                     Number(record.poor_count);
+        const rate = total > 0 ? (Number(record.good_count) / total) * 100 : 0;
+        return `${rate.toFixed(2)}%`;
+      },
+    }
   ];
 
   const getAverageScoreChartData = () => {

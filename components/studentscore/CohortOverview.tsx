@@ -63,7 +63,7 @@ const CohortOverview: React.FC<CohortOverviewProps> = ({
             <div className="text-center">
               <h3 className="text-lg font-semibold">SL Sinh viên yếu</h3>
               <p className="text-2xl text-red-600">
-                {Number(overview?.poor_percentage || 0)}%
+                {Math.round(overview?.total_students * (Number(overview?.poor_percentage || 0) / 100))}
               </p>
             </div>
           </Card>

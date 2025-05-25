@@ -15,6 +15,7 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
 }) => {
   const formatNumber = (value: number | string) => {
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    if (typeof numValue !== 'number' || isNaN(numValue)) return '0.00';
     return numValue.toFixed(2);
   };
 
@@ -48,7 +49,7 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
         <Card>
           <div className="text-center">
             <h3 className="text-lg font-semibold">SL Sinh viên yếu</h3>
-            <p className="text-2xl text-red-600">{poorCount}</p>
+            <p className="text-2xl text-red-600">{Math.round(poorCount)}</p>
           </div>
         </Card>
       </Col>

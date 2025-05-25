@@ -13,12 +13,14 @@ interface Props {
   students: Student[];
   onDeleteStudent: (id: string) => void;
   onUpdateStudent: (id: string, updatedData: Partial<Student>) => void;
+  userRole: 'admin' | 'department-officers';
 }
 
 export default function StudentTable({
   students,
   onDeleteStudent,
   onUpdateStudent,
+  userRole,
 }: Props) {
   const router = useRouter();
   const { faculties, classes, getFilteredClasses } = useData();
@@ -42,7 +44,8 @@ export default function StudentTable({
   }, [editFacultyId, getFilteredClasses]);
 
   const handleViewActivities = (id: string) => {
-    router.push(`/uit/admin/students/${id}`);
+    const basePath = userRole === 'admin' ? '/uit/admin' : '/uit/department-officers';
+    router.push(`${basePath}/students/${id}`);
   };
 
   const handleEdit = (student: Student) => {
