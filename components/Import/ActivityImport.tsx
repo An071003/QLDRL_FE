@@ -15,7 +15,7 @@ type ActivityImport = {
   max_participants: number;
   registration_start: string;
   registration_end: string;
-  status?: string;
+  status: "ongoing" | "expired";
   row_number?: number;
   error?: string;
   // Display only fields (not sent to backend)
@@ -83,6 +83,8 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
     setLoading(true);
     setError(null);
     const activities: ActivityImport[] = [];
+    let skippedRows = 0;
+    let invalidCampaigns = new Set<string>();
 
     try {
       const buffer = await file.arrayBuffer();
@@ -132,6 +134,9 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
                 campaign_name = campaignById.name;
               }
             }
+            if (!campaign_id) {
+              invalidCampaigns.add(campaignNameOrId);
+            }
           }
         }
 
@@ -165,34 +170,55 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
           }
         }
 
-        const status = row.getCell(7).value?.toString() || "ongoing";
+        // Parse status from cell 7, convert "Đã hết hạn" to "expired" and "Đang diễn ra" to "ongoing"
+        const statusText = row.getCell(7).value?.toString().toLowerCase().trim() || "";
+        const status = statusText === "đã hết hạn" || statusText === "expired" ? "expired" : "ongoing";
 
-        // Only add rows with at least a name and campaign_id
-        if (name && campaign_id) {
-          activities.push({
-            name,
-            point,
-            campaign_id,
-            campaign_name,
-            max_participants,
-            registration_start,
-            registration_end,
-            status,
-            row_number: rowNumber
-          });
+        // Add all rows, even if they have missing or invalid data
+        activities.push({
+          name,
+          point,
+          campaign_id,
+          campaign_name,
+          max_participants,
+          registration_start,
+          registration_end,
+          status,
+          row_number: rowNumber,
+          error: !name ? "Thiếu tên hoạt động" :
+                !campaign_id ? "Phong trào không hợp lệ hoặc không tồn tại" :
+                !registration_start ? "Thiếu ngày bắt đầu" :
+                !registration_end ? "Thiếu ngày kết thúc" : undefined
+        });
+
+        if (!name || !campaign_id || !registration_start || !registration_end) {
+          skippedRows++;
         }
       });
 
       if (activities.length === 0) {
-        toast.error('Không tìm thấy dữ liệu hoạt động hợp lệ trong file.');
+        toast.error('Không tìm thấy dữ liệu hoạt động trong file.');
         setLoading(false);
         return;
       }
 
       setPreviewActivities(activities);
-      setShowErrors(false);
+      setShowErrors(true);
+
+      if (skippedRows > 0 || invalidCampaigns.size > 0) {
+        let errorMessage = '';
+        if (skippedRows > 0) {
+          errorMessage += `Có ${skippedRows} hoạt động thiếu thông tin bắt buộc. `;
+        }
+        if (invalidCampaigns.size > 0) {
+          errorMessage += `Phong trào không tồn tại: ${Array.from(invalidCampaigns).join(', ')}`;
+        }
+        toast.warning(errorMessage);
+      } else {
+        toast.success(`Đã tải lên ${activities.length} hoạt động từ file Excel.`);
+      }
+
       setLastUpdated(new Date().toLocaleTimeString());
-      toast.success(`Đã tải lên ${activities.length} hoạt động từ file Excel.`);
     } catch (err) {
       console.error('Error reading file:', err);
       toast.error('Lỗi khi đọc file Excel. Hãy đảm bảo file không bị hỏng và đúng định dạng .xlsx.');
@@ -317,12 +343,12 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
         registration_start: registrationStartError || dateOrderError,
         registration_end: registrationEndError || dateOrderError
       });
-      
+
       if (pointExceedsCampaignError) {
         const campaign = currentcampaigns.find(c => c.id === activity.campaign_id);
         toast.error(`Điểm hoạt động không được lớn hơn điểm tối đa (${campaign?.max_score}) của phong trào.`);
       }
-      
+
       return;
     }
 
@@ -336,16 +362,16 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
 
     const invalidActivities = previewActivities.map((activity, index) => {
       const validation = validateActivity(activity);
-      const hasError = validation.nameError || validation.campaignIdError || validation.pointError || 
-                    validation.maxParticipantsError || validation.registrationStartError || 
-                    validation.registrationEndError || validation.dateOrderError || validation.pointExceedsCampaignError;
-      
+      const hasError = validation.nameError || validation.campaignIdError || validation.pointError ||
+        validation.maxParticipantsError || validation.registrationStartError ||
+        validation.registrationEndError || validation.dateOrderError || validation.pointExceedsCampaignError;
+
       return { activity, index, hasError, validation };
     }).filter(item => item.hasError);
-    
+
     // Check for point exceeds campaign max_score errors specifically
     const pointExceedsCampaignErrors = invalidActivities.filter(item => item.validation.pointExceedsCampaignError);
-    
+
     if (pointExceedsCampaignErrors.length > 0) {
       toast.error("Import thất bại. Vui lòng kiểm tra điểm hoạt động không vượt quá điểm tối đa của phong trào.");
       return;
@@ -398,7 +424,7 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
         { header: 'Số lượng tham gia tối đa', key: 'max_participants', width: 20 },
         { header: 'Ngày bắt đầu đăng ký', key: 'registration_start', width: 20 },
         { header: 'Ngày kết thúc đăng ký', key: 'registration_end', width: 20 },
-        { header: 'Trạng thái', key: 'status', width: 15 },
+        { header: 'Trạng thái (Đang diễn ra/Đã kết thúc)', key: 'status', width: 25 },
       ];
 
       // Get tomorrow as example start date
@@ -412,8 +438,8 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
       // Add some sample data
       worksheet.addRow({
         name: 'Hoạt động tình nguyện',
-        point: 10,
         campaign_name: currentcampaigns.length > 0 ? currentcampaigns[0].name : 'Phong trào 1',
+        point: 10,
         max_participants: 30,
         registration_start: tomorrow,
         registration_end: nextWeek,
@@ -422,12 +448,12 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
 
       worksheet.addRow({
         name: 'Vắng họp',
-        point: -5,
         campaign_name: currentcampaigns.length > 0 ? currentcampaigns[0].name : 'Phong trào 1',
+        point: -5,
         max_participants: 50,
         registration_start: tomorrow,
         registration_end: nextWeek,
-        status: 'ongoing',
+        status: 'expired',
       });
 
       // Style the header row
@@ -543,14 +569,15 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STT</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên hoạt động</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phong trào</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Điểm</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SL tối đa</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày bắt đầu</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày kết thúc</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STT</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-w-20">Tên hoạt động</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-w-20">Phong trào</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-w-20">Điểm</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SL tối đa</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày bắt đầu</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày kết thúc</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -561,8 +588,8 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
 
                 return (
                   <tr key={index} className="border-b hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
-                    <td className={`px-6 py-4 ${showErrors && nameError ? 'bg-red-100' : ''}`}>
+                    <td className="px-2 py-4 whitespace-nowrap">{index + 1}</td>
+                    <td className={`px-2 py-4 ${showErrors && nameError ? 'bg-red-100' : ''}`}>
                       {isEditing ? (
                         <>
                           <input
@@ -582,7 +609,7 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
                         </Tooltip>
                       )}
                     </td>
-                    <td className={`px-6 py-4 ${showErrors && campaignIdError ? 'bg-red-100' : ''}`}>
+                    <td className={`px-2 py-4 ${showErrors && campaignIdError ? 'bg-red-100' : ''}`}>
                       {isEditing ? (
                         <>
                           <select
@@ -607,7 +634,7 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
                         </Tooltip>
                       )}
                     </td>
-                    <td className={`px-6 py-4 ${showErrors && (pointError || pointExceedsCampaignError) ? 'bg-red-100' : ''}`}>
+                    <td className={`px-2 py-4 ${showErrors && (pointError || pointExceedsCampaignError) ? 'bg-red-100' : ''}`}>
                       {isEditing ? (
                         <>
                           <input
@@ -640,7 +667,7 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
                         </span>
                       )}
                     </td>
-                    <td className={`px-6 py-4 ${showErrors && maxParticipantsError ? 'bg-red-100' : ''}`}>
+                    <td className={`px-2 py-4 ${showErrors && maxParticipantsError ? 'bg-red-100' : ''}`}>
                       {isEditing ? (
                         <>
                           <input
@@ -660,7 +687,7 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
                         </span>
                       )}
                     </td>
-                    <td className={`px-6 py-4 ${showErrors && (registrationStartError || dateOrderError) ? 'bg-red-100' : ''}`}>
+                    <td className={`px-2 py-4 ${showErrors && (registrationStartError || dateOrderError) ? 'bg-red-100' : ''}`}>
                       {isEditing ? (
                         <>
                           <input
@@ -682,7 +709,7 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
                         </span>
                       )}
                     </td>
-                    <td className={`px-6 py-4 ${showErrors && (registrationEndError || dateOrderError) ? 'bg-red-100' : ''}`}>
+                    <td className={`px-2 py-4 ${showErrors && (registrationEndError || dateOrderError) ? 'bg-red-100' : ''}`}>
                       {isEditing ? (
                         <>
                           <input
@@ -704,7 +731,26 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <td className="px-2 py-4">
+                      {isEditing ? (
+                        <select
+                          value={activity.status}
+                          onChange={(e) => handleActivityChange(index, 'status', e.target.value)}
+                          className="w-full border rounded px-2 py-1"
+                        >
+                          <option value="ongoing">Đang diễn ra</option>
+                          <option value="expired">Đã kết thúc</option>
+                        </select>
+                      ) : (
+                        <span className={`px-2 py-1 rounded-full text-sm font-medium ${activity.status === 'ongoing'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                          }`}>
+                          {activity.status === 'ongoing' ? 'Đang diễn ra' : 'Đã kết thúc'}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-2 py-4 whitespace-nowrap text-center">
                       <div className="flex justify-center space-x-2">
                         {isEditing ? (
                           <>

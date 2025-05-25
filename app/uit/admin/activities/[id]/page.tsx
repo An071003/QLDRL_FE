@@ -10,6 +10,7 @@ import StudentsActivitesImport from "@/components/Import/StudentsActivitesImport
 import { StudentActivity } from "@/types/studentActivity";
 import { useParams } from "next/navigation";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
+import { useData } from "@/lib/contexts/DataContext";
 
 export default function ActivityStudentManagement() {
   const params = useParams();
@@ -20,24 +21,8 @@ export default function ActivityStudentManagement() {
   const tableRef = useRef<HTMLDivElement>(null);
   const [studentIdToDelete, setStudentIdToDelete] = useState<string | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
-  
-  // Thông tin campaign và activity
-  interface ActivityInfo {
-    id: number;
-    name: string;
-    point: number;
-    max_participants?: number;
-    status: "ongoing" | "expired";
-    campaign_id: number;
-    campaign?: {
-      id: number;
-      name: string;
-      semester_no?: number;
-      academic_year?: number;
-    }
-  }
-  
-  const [activityInfo, setActivityInfo] = useState<ActivityInfo | null>(null);
+  const { refreshActivities } = useData();
+
   const [canEdit, setCanEdit] = useState(false);
 
   const fetchStudents = async () => {
@@ -59,15 +44,6 @@ export default function ActivityStudentManagement() {
       // Tải thông tin activity 
       const activityRes = await api.get(`/api/activities/${activityId}`);
       const activity = activityRes.data.data.activity;
-      
-      // Tải thông tin campaign tương ứng
-      const campaignRes = await api.get(`/api/campaigns/${activity.campaign_id}`);
-      const campaign = campaignRes.data.data.campaign;
-      
-      setActivityInfo({
-        ...activity,
-        campaign
-      });
 
       if (activity.status === "ongoing") {
         const currentDate = new Date();
@@ -94,6 +70,7 @@ export default function ActivityStudentManagement() {
     try {
       await api.post(`/api/student-activities/${activityId}/students`, { studentIds });
       await fetchStudents();
+      await refreshActivities(); // Refresh activities data
       setActiveComponent("table");
       toast.success("Thêm sinh viên thành công 🎉");
     } catch (err) {
@@ -105,6 +82,7 @@ export default function ActivityStudentManagement() {
     try {
       await api.post(`/api/student-activities/${activityId}/import`, { students: studentsToImport });
       await fetchStudents();
+      await refreshActivities(); // Refresh activities data
       setActiveComponent("table");
       toast.success("Import sinh viên thành công 🚀");
       return { success: true };
@@ -121,6 +99,7 @@ export default function ActivityStudentManagement() {
         participated: participated,
       });
       await fetchStudents();
+      await refreshActivities(); // Refresh activities data
       toast.success("Cập nhật trạng thái tham gia thành công ✅");
     } catch (err) {
       toast.error("Cập nhật trạng thái thất bại ❌");
@@ -140,6 +119,7 @@ export default function ActivityStudentManagement() {
     try {
       await api.delete(`/api/student-activities/${activityId}/students/${studentIdToDelete}`);
       await fetchStudents();
+      await refreshActivities(); // Refresh activities data
       toast.success("Xóa sinh viên khỏi hoạt động thành công ✅");
     } catch (err) {
       toast.error("Xóa sinh viên thất bại ❌");
@@ -211,6 +191,6 @@ export default function ActivityStudentManagement() {
         )}
       </div>
       {renderComponent()}
-    </div >
+    </div>
   );
 }

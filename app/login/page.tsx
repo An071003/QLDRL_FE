@@ -19,12 +19,12 @@ export default function LoginPage() {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (values: LoginFormValues) => {
     setLoading(true);
     try {
       await api.post("/api/auth/login", values);
       router.push("/uit");
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(err.response.data.message || "Đăng nhập không thành công.");
       setLoading(false);
     }

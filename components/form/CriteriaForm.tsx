@@ -20,7 +20,7 @@ export default function CriteriaForm({ onCriteriaCreated }: CriteriaFormProps) {
     e.preventDefault();
     setIsCreating(true);
     setError("");
-
+    console.log(newCriteria);
     try {
       const result = await onCriteriaCreated(newCriteria);
       if (result.success) {
@@ -65,8 +65,6 @@ export default function CriteriaForm({ onCriteriaCreated }: CriteriaFormProps) {
             />
           </div>
         </div>
-
-        {error && <p className="text-red-500 text-sm">{error}</p>}
 
         <div className="flex justify-end mt-4">
           <button
