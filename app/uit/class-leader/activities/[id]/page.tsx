@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import Loading from '@/components/Loading';
@@ -79,31 +79,7 @@ export default function ClassleaderActivityStudentsPage() {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [studentIdToDelete, setStudentIdToDelete] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchData();
-    fetchManagedClasses();
-  }, [activityId]);
-
-  const fetchManagedClasses = async () => {
-    try {
-      // Get current user info
-      const userRes = await api.get('/api/auth/me');
-      if (!userRes.data?.data?.user?.id) {
-        toast.error("Không thể lấy thông tin người dùng");
-        return;
-      }
-
-      const classleaderRes = await api.get(`/api/students/user/${userRes.data.data.user.id}`);
-      if (classleaderRes.data?.student) {
-        const classes = classleaderRes.data.student.Classes || classleaderRes.data.student.Class || [];
-        setManagedClasses(classes);
-      }
-    } catch (err) {
-      toast.error("Không thể tải danh sách lớp phụ trách");
-    }
-  };
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       // Fetch activity details with campaign information
@@ -141,8 +117,8 @@ export default function ClassleaderActivityStudentsPage() {
                     if (classRes.data.data && classRes.data.data.class) {
                       className = classRes.data.data.class.name;
                     }
-                  } catch (classError : any) {
-                    toast.error(`Lỗi tải sinh viên trong lớp ${student.student_id}:`, classError);
+                  } catch (classError) {
+                    console.error(`Error fetching class for student ${student.student_id}:`, classError);
                   }
                 }
                 
@@ -154,8 +130,8 @@ export default function ClassleaderActivityStudentsPage() {
               }
             }
             return student;
-          } catch (error : any) {
-            toast.error(`Lỗi tải thông tin sinh viên ${student.student_id}:`, error);
+          } catch (error) {
+            console.error(`Error fetching details for student ${student.student_id}:`, error);
             return student;
           }
         })
@@ -163,9 +139,35 @@ export default function ClassleaderActivityStudentsPage() {
       
       setStudents(enhancedStudents);
     } catch (error) {
+      console.error(error);
       toast.error("Không thể tải dữ liệu hoạt động ❌");
     } finally {
       setLoading(false);
+    }
+  }, [activityId]);
+
+  useEffect(() => {
+    fetchData();
+    fetchManagedClasses();
+  }, [activityId, fetchData]);
+
+  const fetchManagedClasses = async () => {
+    try {
+      // Get current user info
+      const userRes = await api.get('/api/auth/me');
+      if (!userRes.data?.data?.user?.id) {
+        toast.error("Không thể lấy thông tin người dùng");
+        return;
+      }
+
+      const classleaderRes = await api.get(`/api/students/user/${userRes.data.data.user.id}`);
+      if (classleaderRes.data?.student) {
+        const classes = classleaderRes.data.student.Classes || classleaderRes.data.student.Class || [];
+        setManagedClasses(classes);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Không thể tải danh sách lớp phụ trách");
     }
   };
   
@@ -263,9 +265,10 @@ export default function ClassleaderActivityStudentsPage() {
       setSelectedStudents([]);
       toast.success("Đăng ký sinh viên thành công 🎉");
       await fetchData(); // Refresh the list
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error registering students:", error);
-      const errorMessage = error.response?.data?.message || "Đăng ký sinh viên thất bại ❌";
+      const apiError = error as { response?: { data?: { message?: string } } };
+      const errorMessage = apiError.response?.data?.message || "Đăng ký sinh viên thất bại ❌";
       toast.error(errorMessage);
     }
   };
@@ -367,7 +370,7 @@ export default function ClassleaderActivityStudentsPage() {
         { text: 'Đã tham gia', value: true },
         { text: 'Chưa tham gia', value: false }
       ],
-      onFilter: (value: any, record: StudentActivity) => 
+      onFilter: (value: boolean | React.Key, record: StudentActivity) => 
         record.participated === value
     },
     {

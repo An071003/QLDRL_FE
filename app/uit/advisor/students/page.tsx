@@ -77,8 +77,8 @@ export default function AdvisorStudentsPage() {
     // Sort students
     if (sortField) {
       return [...filtered].sort((a, b) => {
-        let valueA: any;
-        let valueB: any;
+        let valueA: string | number;
+        let valueB: string | number;
         
         switch (sortField) {
           case 'student_id':

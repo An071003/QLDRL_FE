@@ -18,7 +18,6 @@ type ActivityImport = {
   status: "ongoing" | "expired";
   row_number?: number;
   error?: string;
-  // Display only fields (not sent to backend)
   campaign_name?: string;
 };
 
@@ -84,7 +83,7 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
     setError(null);
     const activities: ActivityImport[] = [];
     let skippedRows = 0;
-    let invalidCampaigns = new Set<string>();
+    const invalidCampaigns = new Set<string>();
 
     try {
       const buffer = await file.arrayBuffer();
@@ -186,8 +185,8 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
           status,
           row_number: rowNumber,
           error: !name ? "Thiếu tên hoạt động" :
-                !campaign_id ? "Phong trào không hợp lệ hoặc không tồn tại" :
-                !registration_start ? "Thiếu ngày bắt đầu" :
+            !campaign_id ? "Phong trào không hợp lệ hoặc không tồn tại" :
+              !registration_start ? "Thiếu ngày bắt đầu" :
                 !registration_end ? "Thiếu ngày kết thúc" : undefined
         });
 
@@ -390,7 +389,11 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
     setImporting(true);
     try {
       // Create a clean version of activities without the display-only fields
-      const activitiesToImport = previewActivities.map(({ campaign_name, ...rest }) => rest);
+      const activitiesToImport = previewActivities.map(activity => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { campaign_name, row_number, error, ...rest } = activity;
+        return rest;
+      });
 
       const result = await onActivitiesImported(activitiesToImport);
       if (result.success) {
@@ -583,9 +586,7 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
             <tbody className="bg-white divide-y divide-gray-200">
               {previewActivities.map((activity, index) => {
                 const { nameError, campaignIdError, pointError, maxParticipantsError, registrationStartError, registrationEndError, dateOrderError, pointExceedsCampaignError } = validateActivity(activity);
-                const hasError = nameError || campaignIdError || pointError || maxParticipantsError || registrationStartError || registrationEndError || dateOrderError || pointExceedsCampaignError;
                 const isEditing = editingIndex === index;
-
                 return (
                   <tr key={index} className="border-b hover:bg-gray-50">
                     <td className="px-2 py-4 whitespace-nowrap">{index + 1}</td>
@@ -743,8 +744,8 @@ export default function ActivityImport({ onActivitiesImported, currentcampaigns 
                         </select>
                       ) : (
                         <span className={`px-2 py-1 rounded-full text-sm font-medium ${activity.status === 'ongoing'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
                           }`}>
                           {activity.status === 'ongoing' ? 'Đang diễn ra' : 'Đã kết thúc'}
                         </span>

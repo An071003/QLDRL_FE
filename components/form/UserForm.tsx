@@ -1,9 +1,8 @@
 'use client';
 
 import { NewUser } from "@/types/user";
-import { useState, useEffect, useCallback, memo } from "react";
+import { useState, useCallback, memo } from "react";
 import { toast } from "sonner";
-import { useData } from "@/lib/contexts/DataContext";
 
 const UserForm = memo(function UserForm({
   onUserCreated,
@@ -14,11 +13,10 @@ const UserForm = memo(function UserForm({
     user_name: string; 
     email: string; 
     role_id: number;
-  }) => Promise<{ success: boolean; message: any; }>;
+  }) => Promise<{ success: boolean; message: string; }>;
   setLoading: (value: boolean) => void;
   roles: { id: number; name: string }[];
 }) {
-  const { getFilteredClasses } = useData();
   
   const [newUser, setNewUser] = useState<NewUser>({
     user_name: '',
@@ -62,6 +60,7 @@ const UserForm = memo(function UserForm({
           toast.error("Lỗi tạo người dùng");
         }
       } catch (error) {
+        console.error(error);
         toast.error("Lỗi tạo người dùng");
       } finally {
         setLoading(false);

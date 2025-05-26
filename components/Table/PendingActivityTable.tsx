@@ -6,7 +6,6 @@ import { Campaign } from "@/types/campaign";
 import { CheckCircle, XCircle } from "lucide-react";
 import { Tooltip } from "antd";
 import Loading from "../Loading";
-import { useRouter } from "next/navigation";
 import ConfirmDeleteModal from "../Modal/ConfirmDeleteModal";
 
 interface PendingActivityTableProps {
@@ -14,15 +13,6 @@ interface PendingActivityTableProps {
   activities: Activity[];
   onApproveActivity: (id: number) => Promise<void>;
   onRejectActivity: (id: number) => Promise<void>;
-  onUpdateActivity: (id: number, updatedActivity: {
-    name: string;
-    point: number;
-    campaign_id: number;
-    status: "ongoing" | "expired";
-    max_participants?: number;
-    registration_start?: string;
-    registration_end?: string;
-  }) => Promise<void>;
 }
 
 export default function PendingActivityTable({
@@ -30,12 +20,10 @@ export default function PendingActivityTable({
   activities,
   onApproveActivity,
   onRejectActivity,
-  onUpdateActivity,
 }: PendingActivityTableProps) {
   const [loading, setLoading] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [activityToDelete, setActivityToDelete] = useState<number | null>(null);
-  const router = useRouter();
 
   const handleApprove = async (id: number) => {
     try {

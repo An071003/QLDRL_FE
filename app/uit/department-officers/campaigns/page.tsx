@@ -1,59 +1,19 @@
 'use client';
 
-import { useState, useEffect } from "react";
-import { toast } from "sonner";
-import api from "@/lib/api";
+import { useState } from "react";
 import Loading from "@/components/Loading";
 import { useRouter } from 'next/navigation';
 import { Tooltip } from "antd";
-
-interface Campaign {
-  id: number;
-  name: string;
-  max_score: number;
-  criteria_id: number;
-  semester_no: number;
-  academic_year: string;
-  status: string;
-  Criteria?: {
-    id: number;
-    name: string;
-  };
-}
+import { useData } from "@/lib/contexts/DataContext";
 
 export default function DPOCampaignManagement() {
   const router = useRouter();
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { campaigns, criteria, loading } = useData();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const itemsPerPage = 10;
-  
-  useEffect(() => {
-    fetchCampaigns();
-  }, []);
-
-  const fetchCampaigns = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get("/api/campaigns");
-      if (res.data.data.campaigns) {
-        setCampaigns(res.data.data.campaigns);
-      } else if (Array.isArray(res.data.data)) {
-        setCampaigns(res.data.data);
-      } else {
-        setCampaigns([]);
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Không thể tải danh sách phong trào");
-      setCampaigns([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -70,17 +30,18 @@ export default function DPOCampaignManagement() {
   };
 
   const sortedAndFilteredCampaigns = campaigns
-    .filter((campaign) =>
-      campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      campaign.Criteria?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      `${campaign.semester_no} ${campaign.academic_year}`.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    .filter((campaign) => {
+      const criteriaName = criteria.find(c => c.id === campaign.criteria_id)?.name || '';
+      return campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        criteriaName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        `${campaign.semester_no} ${campaign.academic_year}`.toLowerCase().includes(searchTerm.toLowerCase());
+    });
 
   // Apply sorting
   if (sortField) {
     sortedAndFilteredCampaigns.sort((a, b) => {
-      let valueA: any;
-      let valueB: any;
+              let valueA: string | number;
+        let valueB: string | number;
       
       switch (sortField) {
         case 'id':
@@ -92,8 +53,8 @@ export default function DPOCampaignManagement() {
           valueB = b.name || '';
           break;
         case 'criteria':
-          valueA = a.Criteria?.name || '';
-          valueB = b.Criteria?.name || '';
+          valueA = criteria.find(c => c.id === a.criteria_id)?.name || '';
+          valueB = criteria.find(c => c.id === b.criteria_id)?.name || '';
           break;
         case 'max_score':
           valueA = a.max_score || 0;
@@ -131,9 +92,7 @@ export default function DPOCampaignManagement() {
   };
 
   if (loading) {
-    return (
-      <Loading />
-    );
+    return <Loading />;
   }
 
   return (
@@ -193,41 +152,44 @@ export default function DPOCampaignManagement() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {paginatedCampaigns.map((campaign) => (
-                <tr key={campaign.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 whitespace-nowrap">{campaign.id}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <Tooltip title={campaign.name} placement="topLeft">
-                      <div className="max-w-[200px] overflow-hidden text-ellipsis">
-                        {campaign.name}
-                      </div>
-                    </Tooltip>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <Tooltip title={campaign.Criteria?.name || 'N/A'} placement="topLeft">
-                      <div className="max-w-[200px] overflow-hidden text-ellipsis">
-                        {campaign.Criteria?.name || 'N/A'}
-                      </div>
-                    </Tooltip>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    Học kỳ {campaign.semester_no} - {campaign.academic_year}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">{campaign.max_score}</td>
-                  <td className="px-4 py-3 text-center whitespace-nowrap">
-                    <button
-                      onClick={() => router.push(`/uit/department-officers/campaigns/${campaign.id}`)}
-                      className="bg-blue-500 hover:bg-blue-700 text-white text-sm py-1 px-3 rounded inline-flex items-center gap-1"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                      Xem hoạt động
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {paginatedCampaigns.map((campaign) => {
+                const criteriaName = criteria.find(c => c.id === campaign.criteria_id)?.name || 'N/A';
+                return (
+                  <tr key={campaign.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 whitespace-nowrap">{campaign.id}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <Tooltip title={campaign.name} placement="topLeft">
+                        <div className="max-w-[200px] overflow-hidden text-ellipsis">
+                          {campaign.name}
+                        </div>
+                      </Tooltip>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <Tooltip title={criteriaName} placement="topLeft">
+                        <div className="max-w-[200px] overflow-hidden text-ellipsis">
+                          {criteriaName}
+                        </div>
+                      </Tooltip>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      Học kỳ {campaign.semester_no} - {campaign.academic_year}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">{campaign.max_score}</td>
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
+                      <button
+                        onClick={() => router.push(`/uit/department-officers/campaigns/${campaign.id}`)}
+                        className="bg-blue-500 hover:bg-blue-700 text-white text-sm py-1 px-3 rounded inline-flex items-center gap-1"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                        Xem hoạt động
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

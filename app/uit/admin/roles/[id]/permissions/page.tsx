@@ -1,64 +1,70 @@
 'use client';
 
-import { useState, useEffect, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { useState, useEffect, useCallback } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
-import { PlusCircle, CheckCircle, XCircle, ArrowLeft, Search, Filter } from "lucide-react";
-import Loading from '@components/Loading';
+import { toast } from 'sonner';
+import { CheckCircle2 } from 'lucide-react';
+import Loading from '@/components/Loading';
 import { Permission } from '@/types/permission';
-import debounce from 'lodash.debounce';
+
+interface RolePermission {
+  id: number;
+  role_id: number;
+  permission_id: number;
+  Permission: Permission;
+}
+
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+  message?: string;
+}
 
 export default function RolePermissionsPage() {
   const params = useParams();
   const router = useRouter();
-  const roleId = Number(params.id);
-  
-  const [loading, setLoading] = useState(true);
-  const [roleName, setRoleName] = useState("");
-  const [allPermissions, setAllPermissions] = useState<Permission[]>([]);
-  const [selectedPermissions, setSelectedPermissions] = useState<number[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [actionFilter, setActionFilter] = useState<string>("all");
+  const roleId = params?.id as string;
 
-  useEffect(() => {
-    const fetchRoleInfo = async () => {
-      try {
-        const roleResponse = await api.get(`/api/roles/${roleId}`);
-        setRoleName(roleResponse.data.role?.name || "Vai trò không xác định");
-      } catch (error) {
-        toast.error('Lỗi khi tải thông tin vai trò');
-        router.push('/uit/admin/roles');
+  const [loading, setLoading] = useState(true);
+  const [roleName, setRoleName] = useState('');
+  const [rolePermissions, setRolePermissions] = useState<RolePermission[]>([]);
+  const [availablePermissions, setAvailablePermissions] = useState<Permission[]>([]);
+  const [selectedPermissions, setSelectedPermissions] = useState<number[]>([]);
+
+  const fetchRolePermissions = useCallback(async () => {
+    try {
+      const [roleRes, permissionsRes] = await Promise.all([
+        api.get(`/api/roles/${roleId}`),
+        api.get('/api/permissions')
+      ]);
+
+      if (roleRes.data.role) {
+        setRoleName(roleRes.data.role.name);
+        setRolePermissions(roleRes.data.role.RolePermissions || []);
       }
-    };
-    
-    fetchRoleInfo();
+
+      if (permissionsRes.data.permissions) {
+        setAvailablePermissions(permissionsRes.data.permissions);
+      }
+    } catch (error) {
+      const apiError = error as ApiError;
+      console.error('Failed to fetch role permissions:', apiError);
+      toast.error(apiError?.response?.data?.message || 'Không thể tải quyền hạn của vai trò');
+      router.push('/uit/admin/roles');
+    } finally {
+      setLoading(false);
+    }
   }, [roleId, router]);
 
   useEffect(() => {
-    const fetchPermissions = async () => {
-      setLoading(true);
-      try {
-        const [permissionsResponse, rolePermissionsResponse] = await Promise.all([
-          api.get('/api/permissions'),
-          api.get(`/api/role-permissions/${roleId}/permissions`)
-        ]);
-        
-        setAllPermissions(permissionsResponse.data.permissions || []);
-        setSelectedPermissions(
-          (rolePermissionsResponse.data.permissions || []).map((p: Permission) => p.id)
-        );
-      } catch (error) {
-        toast.error('Lỗi khi tải dữ liệu quyền hạn');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchPermissions();
-  }, [roleId]);
+    fetchRolePermissions();
+  }, [roleId, fetchRolePermissions]);
 
-  const togglePermission = (permissionId: number) => {
+  const handlePermissionToggle = (permissionId: number) => {
     setSelectedPermissions(prev => {
       if (prev.includes(permissionId)) {
         return prev.filter(id => id !== permissionId);
@@ -68,172 +74,82 @@ export default function RolePermissionsPage() {
     });
   };
 
-  const savePermissions = async () => {
-    setLoading(true);
+  const handleSavePermissions = async () => {
     try {
-      await api.post(`/api/role-permissions/${roleId}/permissions`, {
+      await api.post(`/api/roles/${roleId}/permissions`, {
         permissionIds: selectedPermissions
       });
-      toast.success('Đã cập nhật quyền cho vai trò');
-      router.push('/uit/admin/roles');
+      toast.success('Cập nhật quyền hạn thành công');
+      await fetchRolePermissions();
+      setSelectedPermissions([]);
     } catch (error) {
-      toast.error('Lỗi khi cập nhật quyền');
-      setLoading(false);
+      const apiError = error as ApiError;
+      console.error('Failed to update role permissions:', apiError);
+      toast.error(apiError?.response?.data?.message || 'Không thể cập nhật quyền hạn');
     }
   };
-
-  const handleCancel = () => {
-    router.push('/uit/admin/roles');
-  };
-
-  const getActionColor = (action: string) => {
-    switch (action.toLowerCase()) {
-      case 'create':
-        return 'bg-green-100 text-green-800';
-      case 'read':
-        return 'bg-blue-100 text-blue-800';
-      case 'update':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'delete':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const debouncedSearch = useMemo(
-    () => debounce((value: string) => setSearchTerm(value), 300),
-    []
-  );
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    debouncedSearch(e.target.value);
-  };
-
-  const handleActionFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setActionFilter(e.target.value);
-  };
-
-  const filteredPermissions = useMemo(() => {
-    return allPermissions.filter(permission => {
-      const nameMatch = permission.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const actionMatch = actionFilter === 'all' || permission.action.toLowerCase() === actionFilter.toLowerCase();
-      return nameMatch && actionMatch;
-    });
-  }, [allPermissions, searchTerm, actionFilter]);
-
-  const availableActions = useMemo(() => {
-    const actions = allPermissions.map(p => p.action.toLowerCase());
-    return [...new Set(actions)];
-  }, [allPermissions]);
 
   if (loading) return <Loading />;
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex items-center mb-6">
-        <button
-          onClick={handleCancel}
-          className="mr-3 text-gray-600 hover:text-gray-900"
-        >
-          <ArrowLeft size={24} />
-        </button>
-        <h1 className="text-3xl font-bold">Quản lý quyền cho vai trò: <span className="text-blue-600">{roleName}</span></h1>
-      </div>
-
-      <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <p className="text-gray-700 mb-4">Chọn các quyền bạn muốn gán cho vai trò này:</p>
-        
-        <div className="mb-4 flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            {/* <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search size={18} className="text-gray-400" />
-            </div> */}
-            <input 
-              type="text" 
-              placeholder="Tìm kiếm theo tên chức năng..."
-              onChange={handleSearchChange}
-              className="px-4 py-2 w-full border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          
-          <div className="relative w-full sm:w-64">
-            <select
-              onChange={handleActionFilterChange}
-              className="px-4 py-2 w-full border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              value={actionFilter}
-            >
-              <option value="all">Tất cả action</option>
-              {availableActions.map(action => (
-                <option key={action} value={action}>{action.charAt(0).toUpperCase() + action.slice(1)}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-        
-        <div className="bg-gray-50 p-4 rounded-lg max-h-[calc(100vh-300px)] overflow-y-auto">
-          <table className="min-w-full">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Tên chức năng</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Quyền</th>
-                <th className="px-4 py-3 text-center font-medium text-gray-600">Chọn</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPermissions.map(permission => (
-                <tr key={permission.id} className="border-t border-gray-200 hover:bg-gray-50">
-                  <td className="px-4 py-3">{permission.name}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getActionColor(permission.action)}`}>
-                      {permission.action}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <div className="flex justify-center">
-                      <button
-                        type="button"
-                        onClick={() => togglePermission(permission.id)}
-                        className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                          selectedPermissions.includes(permission.id) 
-                          ? 'text-green-600 hover:text-green-800' 
-                          : 'text-gray-400 hover:text-gray-600'
-                        }`}
-                      >
-                        {selectedPermissions.includes(permission.id) ? (
-                          <CheckCircle size={24} />
-                        ) : (
-                          <PlusCircle size={24} />
-                        )}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filteredPermissions.length === 0 && (
-                <tr>
-                  <td colSpan={3} className="px-4 py-6 text-center text-gray-500">
-                    Không có quyền hạn nào khả dụng
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        
-        <div className="flex justify-end gap-3 mt-6">
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold">Quản lý quyền hạn: {roleName}</h1>
+        <div className="flex gap-4">
           <button
-            onClick={handleCancel}
-            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-          >
-            Hủy bỏ
-          </button>
-          <button
-            onClick={savePermissions}
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            onClick={handleSavePermissions}
+            disabled={selectedPermissions.length === 0}
+            className={`px-4 py-2 rounded text-white ${
+              selectedPermissions.length > 0
+                ? 'bg-green-600 hover:bg-green-700'
+                : 'bg-gray-400 cursor-not-allowed'
+            }`}
           >
             Lưu thay đổi
           </button>
+          <button
+            onClick={() => router.push('/uit/admin/roles')}
+            className="px-4 py-2 bg-rose-400 text-white rounded hover:bg-rose-700"
+          >
+            Quay về danh sách
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {availablePermissions.map((permission) => {
+              const isAssigned = rolePermissions.some(
+                rp => rp.permission_id === permission.id
+              );
+              const isSelected = selectedPermissions.includes(permission.id);
+
+              return (
+                <div
+                  key={permission.id}
+                  onClick={() => handlePermissionToggle(permission.id)}
+                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                    isAssigned
+                      ? 'bg-green-50 border-green-200'
+                      : isSelected
+                      ? 'bg-blue-50 border-blue-200'
+                      : 'hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium">{permission.name}</h3>
+                      <p className="text-sm text-gray-500">{permission.action}</p>
+                    </div>
+                    {isAssigned && (
+                      <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

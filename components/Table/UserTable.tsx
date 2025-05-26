@@ -47,7 +47,7 @@ const UserTable = memo(function UserTable({ users, onDeleteUser }: UserTableProp
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {users.map((user, index) => {
-            const roleClass = roleColors[(user.Role?.name?.toString() ?? 'student')];
+            const roleClass = (roleColors as Record<string, string>)[(user.Role?.name?.toString() ?? 'student')];
             return (
               <tr key={user.id}>
                 <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>

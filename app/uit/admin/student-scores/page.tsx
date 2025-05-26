@@ -1,15 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import Loading from '@/components/Loading';
-import { Select, Tabs, Row, Col, Card } from 'antd';
+import { Select, Tabs} from 'antd';
 import type { TabsProps } from 'antd';
 import ScoreList from '@/components/studentscore/ScoreList';
 import FacultyStats from '@/components/studentscore/FacultyStats';
 import ClassStats from '@/components/studentscore/ClassStats';
 import CohortStats from '@/components/studentscore/CohortStats';
-import PieChart from '@/components/studentscore/PieChart';
+
 
 const { Option } = Select;
 
@@ -40,11 +40,7 @@ interface FacultyStats {
   good_percentage: number;
 }
 
-interface ScoreDistribution {
-  classification_group: string;
-  count: number;
-  percentage: number;
-}
+
 
 interface CohortBatch {
   cohort: string;
@@ -62,7 +58,6 @@ export default function StudentScoresPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [scores, setScores] = useState([]);
   const [semesters, setSemesters] = useState<Semester[]>([]);
-  const [currentSemester, setCurrentSemester] = useState<Semester | null>(null);
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [activeTab, setActiveTab] = useState<string>('scores');
   const [selectedSemester, setSelectedSemester] = useState<string>('all');
@@ -70,12 +65,6 @@ export default function StudentScoresPage() {
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [batchYears, setBatchYears] = useState<BatchYear[]>([]);
   const [cohortOverview, setCohortOverview] = useState<CohortOverview | null>(null);
-  const [scoreDistribution, setScoreDistribution] = useState<ScoreDistribution[] | null>(null);
-  const [facultyStats, setFacultyStats] = useState<FacultyStats[] | null>(null);
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(9999);
-  const [classStats, setClassStats] = useState([]);
-  const [selectedClass, setSelectedClass] = useState('all');
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -141,12 +130,10 @@ export default function StudentScoresPage() {
       if (value === 'all') {
         const response = await api.get('/api/student-scores/students');
         setScores(response.data.data.studentScores);
-        setCurrentSemester(null);
       } else {
         const [semesterNo, academicYear] = value.split('_').map(Number);
         const response = await api.get(`/api/student-scores/semester/${semesterNo}/${academicYear}`);
         setScores(response.data.data.studentScores);
-        setCurrentSemester({ semester_no: semesterNo, academic_year: academicYear });
       }
     } catch (error) {
       console.error('Error changing semester:', error);
@@ -282,8 +269,6 @@ export default function StudentScoresPage() {
       children: (
         <ClassStats
           selectedSemester={selectedSemester}
-          selectedFaculty={selectedFaculty}
-          faculties={faculties}
           statsEndpoint={getStatsEndpoint('class')}
         />
       )
@@ -313,7 +298,7 @@ export default function StudentScoresPage() {
             selectedYear={selectedYear}
             selectedSemester={selectedSemester}
             overview={cohortOverview}
-            scoreDistribution={scoreDistribution}
+            scoreDistribution={null}
           />
         </>
       )
@@ -339,24 +324,7 @@ export default function StudentScoresPage() {
     }
   ];
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        const response = await api.get(getStatsEndpoint('class'));
-        const stats = response.data.data.classes || [];
-        setClassStats(stats);
-        setSelectedClass('all');
-      } catch (error) {
-        console.error('Error fetching class stats:', error);
-        setClassStats([]);
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    fetchStats();
-  }, [getStatsEndpoint('class')]);
 
   if (loading) {
     return <Loading />;

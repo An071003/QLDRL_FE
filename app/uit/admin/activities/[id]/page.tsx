@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import Loading from '@/components/Loading';
@@ -24,6 +24,24 @@ interface StudentActivity {
     id: number;
     name: string;
   };
+}
+
+interface ImportedFile {
+  file: File;
+  data: {
+    student_id: string;
+    student_name: string;
+    class_name?: string;
+  }[];
+}
+
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+  message?: string;
 }
 
 export default function ActivityStudentManagement() {
@@ -50,20 +68,21 @@ export default function ActivityStudentManagement() {
     setSearchTerm(value);
   }, 300);
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.get(`/api/student-activities/${activityId}`);
       const fetchedStudents = res.data.data.students;
       setStudents(fetchedStudents);
-    } catch (err) {
+    } catch (error) {
+      console.error("Error fetching students:", error);
       toast.error("Không thể tải danh sách sinh viên tham gia ❌");
     } finally {
       setLoading(false);
     }
-  };
+  }, [activityId]);
 
-  const fetchActivityInfo = async () => {
+  const fetchActivityInfo = useCallback(async () => {
     try {
       const activityRes = await api.get(`/api/activities/${activityId}`);
       const activityData = activityRes.data.data.activity;
@@ -81,11 +100,12 @@ export default function ActivityStudentManagement() {
         }
       }
     } catch (error) {
+      console.error("Error fetching activity info:", error);
       toast.error("Không thể tải thông tin hoạt động");
     }
-  };
+  }, [activityId]);
 
-  const fetchAvailableStudents = async () => {
+  const fetchAvailableStudents = useCallback(async () => {
     setLoadingAvailableStudents(true);
     try {
       const res = await api.get(`/api/student-activities/${activityId}/not-participated`);
@@ -97,7 +117,7 @@ export default function ActivityStudentManagement() {
     } finally {
       setLoadingAvailableStudents(false);
     }
-  };
+  }, [activityId]);
 
   const toggleStudentSelection = (studentId: string) => {
     if (selectedStudents.includes(studentId)) {
@@ -128,14 +148,15 @@ export default function ActivityStudentManagement() {
       setSelectedStudents([]);
       toast.success("Đăng ký sinh viên thành công 🎉");
       await fetchStudents();
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as ApiError;
       console.error("Error registering students:", error);
-      const errorMessage = error.response?.data?.message || "Đăng ký sinh viên thất bại ❌";
+      const errorMessage = err.response?.data?.message || "Đăng ký sinh viên thất bại ❌";
       toast.error(errorMessage);
     }
   };
 
-  const handleImportStudents = async (file: File) => {
+  const handleImportStudents = async (file: ImportedFile) => {
     if (!canEdit) {
       toast.error("Thời gian đăng ký không hợp lệ");
       setImportModalVisible(false);
@@ -143,7 +164,7 @@ export default function ActivityStudentManagement() {
     }
 
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', file.file);
 
     try {
       await api.post(`/api/student-activities/${activityId}/import`, formData, {
@@ -154,17 +175,18 @@ export default function ActivityStudentManagement() {
       setImportModalVisible(false);
       toast.success("Import sinh viên thành công 🎉");
       await fetchStudents();
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as ApiError;
       console.error("Error importing students:", error);
-      const errorMessage = error.response?.data?.message || "Import sinh viên thất bại ❌";
-      toast.error(errorMessage);
+      toast.error(err?.response?.data?.message || "Import sinh viên thất bại ❌");
     }
   };
 
   useEffect(() => {
     fetchStudents();
     fetchActivityInfo();
-  }, [activityId]);
+    fetchAvailableStudents();
+  }, [fetchStudents, fetchActivityInfo, fetchAvailableStudents]);
 
   const handleToggleParticipated = async (studentId: string, participated: boolean) => {
     try {
@@ -174,8 +196,10 @@ export default function ActivityStudentManagement() {
       });
       await fetchStudents();
       toast.success("Cập nhật trạng thái tham gia thành công ✅");
-    } catch (err) {
-      toast.error("Cập nhật trạng thái thất bại ❌");
+    } catch (error) {
+      const err = error as ApiError;
+      console.error("Error toggling participation:", error);
+      toast.error(err?.response?.data?.message || "Cập nhật trạng thái thất bại ❌");
     }
   };
 
@@ -191,8 +215,10 @@ export default function ActivityStudentManagement() {
       await api.delete(`/api/student-activities/${activityId}/students/${studentIdToDelete}`);
       await fetchStudents();
       toast.success("Xóa sinh viên khỏi hoạt động thành công ✅");
-    } catch (err) {
-      toast.error("Xóa sinh viên thất bại ❌");
+    } catch (error) {
+      const err = error as ApiError;
+      console.error("Error removing student:", error);
+      toast.error(err?.response?.data?.message || "Xóa sinh viên thất bại ❌");
     } finally {
       setConfirmDeleteOpen(false);
       setStudentIdToDelete(null);
@@ -205,7 +231,7 @@ export default function ActivityStudentManagement() {
 
   const handleSave = async (updatedActivity: Partial<Activity>) => {
     try {
-      const response = await api.put(`/api/activities/${activityId}`, {
+      await api.put(`/api/activities/${activityId}`, {
         ...updatedActivity,
         is_approved: true,
         status: 'ongoing'
@@ -216,8 +242,9 @@ export default function ActivityStudentManagement() {
       toast.success("Cập nhật hoạt động thành công");
       router.push('/uit/admin/activities?tab=approved');
     } catch (error) {
+      const err = error as ApiError;
       console.error("Error updating activity:", error);
-      toast.error("Cập nhật hoạt động thất bại");
+      toast.error(err?.response?.data?.message || "Cập nhật hoạt động thất bại");
     }
   };
 
@@ -247,6 +274,14 @@ export default function ActivityStudentManagement() {
       toast.error("Từ chối hoạt động thất bại");
     }
   };
+
+  const sortedAndFilteredActivities = students
+    .filter((activity) => {
+      const criteriaName = activity.Class?.name || '';
+      return activity.student_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        activity.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        criteriaName.toLowerCase().includes(searchTerm.toLowerCase());
+    });
 
   const columns: ColumnsType<StudentActivity> = [
     {
@@ -303,12 +338,6 @@ export default function ActivityStudentManagement() {
       ),
     },
   ];
-
-  const filteredStudents = students.filter(student =>
-    student.student_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (student.Class?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   if (loading) return <Loading />;
 
@@ -520,7 +549,7 @@ export default function ActivityStudentManagement() {
 
         <Table
           columns={columns}
-          dataSource={filteredStudents}
+          dataSource={sortedAndFilteredActivities}
           rowKey="id"
           pagination={{
             pageSize: 10,
@@ -625,7 +654,7 @@ export default function ActivityStudentManagement() {
           <Upload.Dragger
             accept=".xlsx,.xls"
             beforeUpload={(file) => {
-              handleImportStudents(file);
+              handleImportStudents({ file, data: [] });
               return false;
             }}
             showUploadList={false}

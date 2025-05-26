@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 export const metadata = {
   title: 'Quản lý sinh viên',
@@ -9,7 +10,14 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
     <div>
       <header className="flex items-center justify-between py-4 px-6 border-b bg-[#0b3c65] border-blue-900 text-white">
         <div className="flex items-center space-x-4">
-          <img src="/banner.png" alt="Logo" className="w-[90%] h-auto text-[50px] object-contain" />
+          <Image 
+            src="/banner.png" 
+            alt="Logo" 
+            width={400}
+            height={80}
+            className="w-[90%] h-auto text-[50px] object-contain"
+            priority
+          />
         </div>
         <div className="flex items-center space-x-4">
           <div className="text-sm">
@@ -29,9 +37,14 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
       </header>
 
       <nav className="flex items-center p-2 bg-[#0a3a60]">
-        
         <Link href="/" className="flex items-center space-x-2">
-          <img src="/house-user-solid.svg" alt="Home" className="w-8 h-8" />
+          <Image 
+            src="/house-user-solid.svg" 
+            alt="Home" 
+            width={32}
+            height={32}
+            className="w-8 h-8"
+          />
         </Link>
       </nav>
 

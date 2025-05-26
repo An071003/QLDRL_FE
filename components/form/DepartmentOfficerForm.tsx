@@ -1,8 +1,15 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+interface DepartmentOfficer {
+  officer_name: string;
+  officer_phone: string | null;
+  username: string;
+  email: string;
+}
+
 interface DepartmentOfficerFormProps {
-  onOfficerCreated: (officer: any) => Promise<void>;
+  onOfficerCreated: (officer: DepartmentOfficer) => Promise<void>;
   setLoading: (loading: boolean) => void;
   onCancel?: () => void;
 }
@@ -61,7 +68,7 @@ export default function DepartmentOfficerForm({ onOfficerCreated, setLoading, on
 
     setLoading(true);
     try {
-      const officerData = {
+      const officerData: DepartmentOfficer = {
         officer_name: formData.officer_name,
         officer_phone: formData.officer_phone || null,
         username: formData.username,
@@ -70,8 +77,8 @@ export default function DepartmentOfficerForm({ onOfficerCreated, setLoading, on
       
       await onOfficerCreated(officerData);
       resetForm();
-    } catch (err: any) {
-      console.error('Error in form submission:', err);
+    } catch (error) {
+      console.error('Error in form submission:', error);
     } finally {
       setLoading(false);
     }

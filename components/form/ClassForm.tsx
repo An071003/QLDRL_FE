@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Class } from '@/types/class';
-import { toast } from 'sonner';
 import { useData } from '@/lib/contexts/DataContext';
 import Loading from '../Loading';
 

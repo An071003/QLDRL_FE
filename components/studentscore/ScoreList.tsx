@@ -85,7 +85,7 @@ export default function ScoreList({ scores, faculties, page = 1, limit = 10, sel
       title: 'STT',
       key: 'index',
       width: '70px',
-      render: (_: any, __: any, index: number) => ((currentPage - 1) * limit) + index + 1,
+      render: (_: unknown, __: unknown, index: number) => ((currentPage - 1) * limit) + index + 1,
     },
     {
       title: 'Mã sinh viên',

@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Table, Space, Button, Tag, Tooltip, Select, message } from 'antd';
+import { Table, Space, Button, Tag, Tooltip, Select } from 'antd';
 import { EyeOutlined, EditOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import api from '@/lib/api';
 import Loading from '@/components/Loading';
@@ -30,7 +30,7 @@ interface Class {
   };
 }
 
-type TableRecord = Record<string, any>;
+type TableRecord = Record<string, unknown>;
 
 export default function AdvisorClassStudentsPage() {
   const params = useParams();
@@ -45,19 +45,7 @@ export default function AdvisorClassStudentsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLeaderId, setSelectedLeaderId] = useState<string>('');
 
-  useEffect(() => {
-    if (classId) {
-      fetchClassAndStudents();
-    }
-  }, [classId]);
-
-  useEffect(() => {
-    if (classData?.class_leader_id) {
-      setSelectedLeaderId(classData.class_leader_id);
-    }
-  }, [classData?.class_leader_id]);
-
-  const fetchClassAndStudents = async () => {
+  const fetchClassAndStudents = useCallback(async () => {
     setLoading(true);
     try {
       const classRes = await api.get(`/api/classes/${classId}`);
@@ -78,7 +66,19 @@ export default function AdvisorClassStudentsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [classId]);
+
+  useEffect(() => {
+    if (classId) {
+      fetchClassAndStudents();
+    }
+  }, [classId, fetchClassAndStudents]);
+
+  useEffect(() => {
+    if (classData?.class_leader_id) {
+      setSelectedLeaderId(classData.class_leader_id);
+    }
+  }, [classData?.class_leader_id]);
 
   const handleSaveClassLeader = async () => {
     if (!selectedLeaderId) {

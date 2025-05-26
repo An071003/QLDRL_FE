@@ -8,23 +8,44 @@ import { Tooltip } from 'antd';
 import { useData } from '@/lib/contexts/DataContext';
 import Loading from '../Loading';
 
+interface Student {
+  student_id: string;
+  student_name: string;
+  faculty_id: number | null;
+  class_id: number | null;
+  email: string;
+  phone: string | null;
+  birthdate: string | null;
+  row_number: number;
+}
+
+interface ValidationErrors {
+  studentIdError: boolean;
+  nameError: boolean;
+  facultyIdError: boolean;
+  classIdError: boolean;
+  emailError: boolean;
+  phoneError: boolean;
+  birthdateError: boolean;
+}
+
 export default function StudentImport({
   onStudentsImported,
   setLoadingManager
 }: {
-  onStudentsImported: (students: any[]) => Promise<{ success: boolean }>;
+  onStudentsImported: (students: Student[]) => Promise<{ success: boolean }>;
   setLoadingManager: (value: boolean) => void;
 }) {
   const { faculties, classes, loading: dataLoading, getFilteredClasses } = useData();
   
   const [loading, setLoading] = useState(false);
-  const [previewStudents, setPreviewStudents] = useState<any[]>([]);
+  const [previewStudents, setPreviewStudents] = useState<Student[]>([]);
   const [showErrors, setShowErrors] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editErrors, setEditErrors] = useState<{ [key: string]: boolean }>({});
   const [fileKey, setFileKey] = useState<string>(Date.now().toString());
   const [lastUpdated, setLastUpdated] = useState<string>("");
-  const [originalStudentBeforeEdit, setOriginalStudentBeforeEdit] = useState<any>(null);
+  const [originalStudentBeforeEdit, setOriginalStudentBeforeEdit] = useState<Student | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isValidEmail = (email: string) => {
@@ -42,7 +63,7 @@ export default function StudentImport({
     return !isNaN(Date.parse(date));
   };
 
-  const validateStudent = (student: any) => {
+  const validateStudent = (student: Student): ValidationErrors => {
     return {
       studentIdError: !student.student_id || student.student_id.trim() === '',
       nameError: !student.student_name || student.student_name.trim() === '',
@@ -58,7 +79,7 @@ export default function StudentImport({
     if (!file) return;
 
     setLoading(true);
-    const students: any[] = [];
+    const students: Student[] = [];
 
     try {
       const buffer = await file.arrayBuffer();
@@ -88,7 +109,8 @@ export default function StudentImport({
         const className = row.getCell(4).value?.toString().trim() || '';
         const email = row.getCell(5)?.value?.toString().trim() || '';
         const phone = row.getCell(6)?.value?.toString().trim() || null;
-        const birthdate = row.getCell(7)?.value || null;
+        const birthdateValue = row.getCell(7)?.value;
+        const birthdate = birthdateValue ? birthdateValue.toString() : null;
 
         const faculty = faculties.find(f => f.faculty_abbr.toLowerCase() === facultyAbbr.toLowerCase());
         const faculty_id = faculty?.id || null;
@@ -174,9 +196,9 @@ export default function StudentImport({
       const updated = [...prev];
 
       if (key === 'faculty_id' || key === 'class_id') {
-        updated[index][key] = value ? Number(value) : null;
+        (updated[index] as unknown as Record<string, unknown>)[key] = value ? Number(value) : null;
       } else {
-        updated[index][key] = value;
+        (updated[index] as unknown as Record<string, unknown>)[key] = value;
       }
 
       if (key === 'faculty_id') {

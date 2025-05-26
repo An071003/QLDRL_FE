@@ -35,8 +35,8 @@ export default function AdvisorDetailPage() {
           toast.error("Không tìm thấy thông tin cố vấn học tập");
           setAdvisor(null);
         }
-      } catch (err) {
-        console.error("Failed to fetch advisor details:", err);
+      } catch (error) {
+        console.error("Failed to fetch advisor details:", error);
         toast.error("Không thể tải thông tin cố vấn học tập");
         setAdvisor(null);
       } finally {
@@ -77,6 +77,12 @@ export default function AdvisorDetailPage() {
       
       <div className="flex justify-end gap-4 mb-6">
         <button
+          onClick={handleEditAdvisor}
+          className="px-4 py-2 cursor-pointer bg-blue-500 text-white rounded hover:bg-blue-700"
+        >
+          Chỉnh sửa
+        </button>
+        <button
           className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
           onClick={() => router.push('/uit/admin/advisors')}
         >
@@ -113,7 +119,7 @@ export default function AdvisorDetailPage() {
       <div className="bg-white shadow rounded-lg p-6">
         <h2 className="text-xl font-semibold mb-4">Danh sách lớp phụ trách</h2>
         <div className="rounded-md overflow-hidden">
-          <AdvisorClasses classes={classes} />
+          <AdvisorClasses classes={classes} handleViewDetail={handleClassViewDetail} />
         </div>
       </div>
     </div>

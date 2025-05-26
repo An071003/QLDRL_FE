@@ -9,7 +9,8 @@ import {
   BarElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  TooltipItem
 } from 'chart.js';
 import { Bar, Pie } from 'react-chartjs-2';
 import api from '@/lib/api';
@@ -28,15 +29,7 @@ ChartJS.register(
 
 interface ClassStatsProps {
   selectedSemester: string;
-  selectedFaculty: string;
-  faculties: Faculty[];
   statsEndpoint: string;
-}
-
-interface Faculty {
-  id: number;
-  name: string;
-  faculty_abbr: string;
 }
 
 interface ClassStats {
@@ -61,8 +54,6 @@ interface StudentDetail {
 
 export default function ClassStats({ 
   selectedSemester,
-  selectedFaculty,
-  faculties,
   statsEndpoint
 }: ClassStatsProps) {
   const [loading, setLoading] = useState(true);
@@ -75,7 +66,7 @@ export default function ClassStats({
     const fetchStats = async () => {
       try {
         setLoading(true);
-        let endpoint = statsEndpoint;
+        const endpoint = statsEndpoint;
         setClassStats([]);
         const response = await api.get(endpoint);
         const stats = response.data.data.classes || [];
@@ -183,45 +174,6 @@ export default function ClassStats({
     }
   };
 
-  const getAverageScore = () => {
-    if (!currentClassStats) {
-      // Tính điểm trung bình có trọng số theo số sinh viên của mỗi lớp
-      const totalStudents = classStats.reduce((sum, stat) => sum + Number(stat.total_students), 0);
-      const weightedScore = classStats.reduce((sum, stat) => {
-        return sum + (Number(stat.average_score) * Number(stat.total_students));
-      }, 0);
-      return totalStudents > 0 ? (weightedScore / totalStudents).toFixed(2) : "0.00";
-    }
-    return currentClassStats.average_score.toFixed(2);
-  };
-
-  const getTotalStudents = () => {
-    if (!currentClassStats) {
-      return classStats.reduce((sum, stat) => sum + Number(stat.total_students), 0);
-    }
-    return Number(currentClassStats.total_students);
-  };
-
-  const getExcellentGoodRate = () => {
-    if (!currentClassStats) {
-      const totalExcellent = classStats.reduce((sum, stat) => sum + Number(stat.excellent_count), 0);
-      const totalGood = classStats.reduce((sum, stat) => sum + Number(stat.good_count), 0);
-      const totalStudents = getTotalStudents();
-      return totalStudents > 0 ? (((totalExcellent + totalGood) / totalStudents) * 100).toFixed(2) : '0.00';
-    }
-    const total = Number(currentClassStats.total_students);
-    return total > 0 ? 
-      (((Number(currentClassStats.excellent_count) + Number(currentClassStats.good_count)) / total) * 100).toFixed(2) 
-      : '0.00';
-  };
-
-  const getPoorCount = () => {
-    if (!currentClassStats) {
-      return classStats.reduce((sum, stat) => sum + Number(stat.poor_count), 0);
-    }
-    return Number(currentClassStats.poor_count);
-  };
-
   const studentColumns = [
     {
       title: 'MSSV',
@@ -264,7 +216,7 @@ export default function ClassStats({
     {
       title: 'SL Sinh viên',
       key: 'total_students',
-      render: (text: any, record: ClassStats) => {
+      render: (_: unknown, record: ClassStats) => {
         return Number(record.excellent_count) + 
                Number(record.good_count) + 
                Number(record.fair_count) + 
@@ -275,7 +227,7 @@ export default function ClassStats({
     {
       title: 'Xuất sắc',
       key: 'excellent_rate',
-      render: (text: any, record: ClassStats) => {
+      render: (_: unknown, record: ClassStats) => {
         const total = Number(record.excellent_count) + 
                      Number(record.good_count) + 
                      Number(record.fair_count) + 
@@ -288,7 +240,7 @@ export default function ClassStats({
     {
       title: 'Tốt',
       key: 'good_rate',
-      render: (text: any, record: ClassStats) => {
+      render: (_: unknown, record: ClassStats) => {
         const total = Number(record.excellent_count) + 
                      Number(record.good_count) + 
                      Number(record.fair_count) + 
@@ -409,9 +361,10 @@ export default function ClassStats({
         stacked: true,
         beginAtZero: true,
         ticks: {
-          callback: function(value: any) {
-            if (Math.floor(value) === value) {
-              return value;
+          callback: function(value: string | number) {
+            const numValue = typeof value === 'string' ? parseFloat(value) : value;
+            if (Math.floor(numValue) === numValue) {
+              return numValue;
             }
             return null;
           }
@@ -421,8 +374,8 @@ export default function ClassStats({
     plugins: {
       tooltip: {
         callbacks: {
-          label: function(context: any) {
-            const value = context.raw;
+          label: function(context: TooltipItem<'bar'>) {
+            const value = context.raw as number;
             if (value === null || value === 0) return '';
             return `${context.dataset.label}: ${Math.round(value)}`;
           }
@@ -515,7 +468,7 @@ export default function ClassStats({
         </Col>
       </Row>
 
-      <StatsOverview {...getOverviewData()} />
+      <StatsOverview key={`overview-${selectedClass}`} {...getOverviewData()} />
 
       {selectedClass === 'all' ? (
         <>
@@ -536,14 +489,14 @@ export default function ClassStats({
             <Col span={12}>
               <Card title="Điểm trung bình theo lớp" className="h-[500px]">
                 <div style={{ height: '400px' }}>
-                  <Bar data={getAverageScoreChartData()} options={averageScoreOptions} />
+                  <Bar key={`avg-chart-${selectedClass}`} data={getAverageScoreChartData()} options={averageScoreOptions} />
                 </div>
               </Card>
             </Col>
             <Col span={12}>
               <Card title="Chi tiết xếp loại theo lớp" className="h-[500px]">
                 <div style={{ height: '400px' }}>
-                  <Bar data={getDistributionChartData()} options={chartOptions} />
+                  <Bar key={`dist-chart-${selectedClass}`} data={getDistributionChartData()} options={chartOptions} />
                 </div>
               </Card>
             </Col>
@@ -565,7 +518,7 @@ export default function ClassStats({
             <Col span={12}>
               <Card title="Phân bố xếp loại" className="h-[500px]">
                 <div style={{ height: '400px' }}>
-                  <Pie data={getPieChartData()} options={pieOptions} />
+                  <Pie key={`pie-chart-${selectedClass}`} data={getPieChartData()} options={pieOptions} />
                 </div>
               </Card>
             </Col>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 
 interface CriteriaFormProps {
   onCriteriaCreated: (newCriteria: { name: string; max_score: number }) => Promise<{ success: boolean }>;
@@ -9,7 +10,6 @@ interface CriteriaFormProps {
 export default function CriteriaForm({ onCriteriaCreated }: CriteriaFormProps) {
   const [newCriteria, setNewCriteria] = useState({ name: "", max_score: 0 });
   const [isCreating, setIsCreating] = useState(false);
-  const [error, setError] = useState("");
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -19,18 +19,17 @@ export default function CriteriaForm({ onCriteriaCreated }: CriteriaFormProps) {
   const handleCreateCriteria = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsCreating(true);
-    setError("");
     console.log(newCriteria);
     try {
       const result = await onCriteriaCreated(newCriteria);
       if (result.success) {
         setNewCriteria({ name: "", max_score: 0 });
       } else {
-        setError("Thêm tiêu chí thất bại.");
+        toast.error("Thêm tiêu chí thất bại.");
       }
     } catch (error) {
       console.error("Error creating criteria:", error);
-      setError("Thêm tiêu chí thất bại.");
+      toast.error("Thêm tiêu chí thất bại.");
     } finally {
       setIsCreating(false);
     }

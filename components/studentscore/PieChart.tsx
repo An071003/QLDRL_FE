@@ -1,5 +1,5 @@
 import { Pie } from 'react-chartjs-2';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, ChartOptions } from 'chart.js';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -9,7 +9,7 @@ interface PieChartProps {
     count: number;
     percentage: number;
   }>;
-  options?: any;
+  options?: ChartOptions<'pie'>;
 }
 
 const PieChart: React.FC<PieChartProps> = ({ data, options }) => {
@@ -29,7 +29,7 @@ const PieChart: React.FC<PieChartProps> = ({ data, options }) => {
     ],
   };
 
-  const defaultOptions = {
+  const defaultOptions: ChartOptions<'pie'> = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {

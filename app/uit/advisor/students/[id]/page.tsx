@@ -23,6 +23,7 @@ export default function AdvisorStudentActivitiesPage() {
         const res = await api.get(`/api/student-activities/${studentId}/all`);
         setActivities(res.data.studentActivity);
       } catch (err) {
+        console.error(err);
         toast.error('Không thể tải danh sách hoạt động của sinh viên');
       } finally {
         setLoading(false);

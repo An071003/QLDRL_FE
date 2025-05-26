@@ -8,6 +8,10 @@ import { Tooltip } from 'antd';
 import { Class } from "@/types/class";
 import { useData } from "@/lib/contexts/DataContext";
 
+interface ClassImportItem extends Partial<Class> {
+  row_number?: number;
+}
+
 type ClassImportProps = {
   onClassesImported: (classes: Partial<Class>[]) => Promise<{ success: boolean }>;
   setLoadingManager: (value: boolean) => void;
@@ -17,16 +21,16 @@ export default function ClassImport({ onClassesImported, setLoadingManager }: Cl
   const { faculties, loading: dataLoading } = useData();
   
   const [loading, setLoading] = useState(false);
-  const [previewClasses, setPreviewClasses] = useState<Partial<Class>[]>([]);
+  const [previewClasses, setPreviewClasses] = useState<ClassImportItem[]>([]);
   const [showErrors, setShowErrors] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editErrors, setEditErrors] = useState<{ [key: string]: boolean }>({});
   const [fileKey, setFileKey] = useState<string>(Date.now().toString());
   const [lastUpdated, setLastUpdated] = useState<string>("");
-  const [originalClassBeforeEdit, setOriginalClassBeforeEdit] = useState<Partial<Class> | null>(null);
+  const [originalClassBeforeEdit, setOriginalClassBeforeEdit] = useState<ClassImportItem | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const validateClass = (classItem: Partial<Class>) => {
+  const validateClass = (classItem: ClassImportItem) => {
     return {
       nameError: !classItem.name || classItem.name.trim() === '',
       facultyIdError: !classItem.faculty_id,
@@ -38,7 +42,7 @@ export default function ClassImport({ onClassesImported, setLoadingManager }: Cl
     if (!file) return;
 
     setLoading(true);
-    const classes: Partial<Class>[] = [];
+    const classes: ClassImportItem[] = [];
 
     try {
       const buffer = await file.arrayBuffer();
@@ -72,7 +76,7 @@ export default function ClassImport({ onClassesImported, setLoadingManager }: Cl
         }
 
         const faculty = faculties.find(f => f.faculty_abbr.toLowerCase() === facultyAbbr.toLowerCase());
-        const faculty_id = faculty?.id || null;
+        const faculty_id = faculty?.id;
 
         classes.push({
           name,
@@ -126,7 +130,7 @@ export default function ClassImport({ onClassesImported, setLoadingManager }: Cl
       ...prev,
       {
         name: '',
-        faculty_id: null,
+        faculty_id: undefined,
         cohort: '',
         row_number: prev.length > 0 ? Math.max(...(prev.map(c => c.row_number || 0))) + 1 : 2
       }
@@ -140,7 +144,7 @@ export default function ClassImport({ onClassesImported, setLoadingManager }: Cl
     setPreviewClasses(prev => {
       const updated = [...prev];
       if (key === 'faculty_id') {
-        updated[index] = { ...updated[index], [key]: value ? Number(value) : null };
+        updated[index] = { ...updated[index], [key]: value ? Number(value) : undefined };
       } else {
         updated[index] = { ...updated[index], [key]: value };
       }

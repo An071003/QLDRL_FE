@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import CampaignForm from "@/components/form/CampaignForm";

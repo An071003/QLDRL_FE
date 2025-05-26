@@ -59,6 +59,16 @@ interface CohortData {
   excellent_good_rate: number;
 }
 
+interface CohortTableData {
+  cohort?: string;
+  class_name?: string;
+  average_score: number;
+  total_students: number;
+  excellent_good_rate?: number;
+  excellent_percentage?: string;
+  good_percentage?: string;
+}
+
 const CohortStats: React.FC<CohortStatsProps> = ({ 
   selectedYear,
   selectedSemester,
@@ -66,11 +76,11 @@ const CohortStats: React.FC<CohortStatsProps> = ({
   scoreDistribution
 }) => {
   const [loading, setLoading] = useState(false);
-  const [stats, setStats] = useState<CohortData[]>([]);
+  const [stats, setStats] = useState<(CohortData | CohortTableData)[]>([]);
   const [localOverview, setLocalOverview] = useState(overview);
   const [localDistribution, setLocalDistribution] = useState(scoreDistribution);
 
-  const columns: ColumnsType<any> = selectedYear === 'all' ? [
+  const columns: ColumnsType<CohortData | CohortTableData> = selectedYear === 'all' ? [
     {
       title: 'Khóa',
       dataIndex: 'cohort',
@@ -96,7 +106,7 @@ const CohortStats: React.FC<CohortStatsProps> = ({
       key: 'excellent_good_rate',
       align: 'right',
       render: (value) => `${value}%`,
-      sorter: (a, b) => Number(a.excellent_good_rate) - Number(b.excellent_good_rate),
+      sorter: (a, b) => Number((a as CohortData).excellent_good_rate) - Number((b as CohortData).excellent_good_rate),
     },
   ] : [
     {
@@ -125,7 +135,7 @@ const CohortStats: React.FC<CohortStatsProps> = ({
       key: 'excellent_percentage',
       align: 'right',
       render: (value) => `${Number(value).toFixed(2)}%`,
-      sorter: (a, b) => Number(a.excellent_percentage) - Number(b.excellent_percentage),
+      sorter: (a, b) => Number((a as CohortTableData).excellent_percentage) - Number((b as CohortTableData).excellent_percentage),
     },
     {
       title: 'Tốt',
@@ -133,7 +143,7 @@ const CohortStats: React.FC<CohortStatsProps> = ({
       key: 'good_percentage',
       align: 'right',
       render: (value) => `${Number(value).toFixed(2)}%`,
-      sorter: (a, b) => Number(a.good_percentage) - Number(b.good_percentage),
+      sorter: (a, b) => Number((a as CohortTableData).good_percentage) - Number((b as CohortTableData).good_percentage),
     }
   ];
 

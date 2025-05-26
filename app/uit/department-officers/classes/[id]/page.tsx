@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { toast } from 'sonner';
@@ -34,17 +34,7 @@ export default function ClassDetailPage() {
     advisor_id: '',
   });
 
-  useEffect(() => {
-    fetchClassDetails();
-  }, [classId]);
-
-  useEffect(() => {
-    if (classData?.faculty_id) {
-      fetchFacultyAdvisors(classData.faculty_id);
-    }
-  }, [classData?.faculty_id]);
-
-  const fetchClassDetails = async () => {
+  const fetchClassDetails = useCallback(async () => {
     if (!classId) return;
     setLoading(true);
     try {
@@ -89,7 +79,17 @@ export default function ClassDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [classId]);
+
+  useEffect(() => {
+    fetchClassDetails();
+  }, [classId, fetchClassDetails]);
+
+  useEffect(() => {
+    if (classData?.faculty_id) {
+      fetchFacultyAdvisors(classData.faculty_id);
+    }
+  }, [classData?.faculty_id]);
 
   const fetchFacultyAdvisors = async (facultyId: number) => {
     try {

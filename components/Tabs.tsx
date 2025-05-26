@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, ReactNode } from "react";
+import React, { createContext, ReactNode } from "react";
 
 // Context for tab state
 interface TabsContextType {
@@ -9,15 +9,6 @@ interface TabsContextType {
 }
 
 const TabsContext = createContext<TabsContextType | undefined>(undefined);
-
-// Hook to use the tabs context
-function useTabsContext() {
-  const context = useContext(TabsContext);
-  if (!context) {
-    throw new Error("Tabs components must be used within a Tabs provider");
-  }
-  return context;
-}
 
 interface TabsProps {
   value: string;
@@ -42,7 +33,7 @@ export function Tabs({
     (child) => 
       React.isValidElement(child) && 
       child.type === Tab && 
-      child.props.value === value
+      (child.props as TabProps).value === value
   );
 
   return (
@@ -51,17 +42,18 @@ export function Tabs({
         <div className="flex border-b border-gray-200 mb-4">
           {tabs.map((tab) => {
             if (React.isValidElement(tab)) {
+              const tabProps = tab.props as TabProps;
               return (
                 <button
-                  key={tab.props.value}
-                  onClick={() => onValueChange(tab.props.value)}
+                  key={tabProps.value}
+                  onClick={() => onValueChange(tabProps.value)}
                   className={`px-4 py-2 font-medium ${
-                    tab.props.value === value
+                    tabProps.value === value
                       ? "text-blue-600 border-b-2 border-blue-600 -mb-px"
                       : "text-gray-500 hover:text-gray-700"
                   }`}
                 >
-                  {tab.props.title}
+                  {tabProps.title}
                 </button>
               );
             }
@@ -83,11 +75,6 @@ interface TabProps {
   className?: string;
 }
 
-export function Tab({ 
-  value, 
-  title, 
-  children, 
-  className = "" 
-}: TabProps) {
+export function Tab({ children, className = "" }: TabProps) {
   return <div className={className}>{children}</div>;
 } 

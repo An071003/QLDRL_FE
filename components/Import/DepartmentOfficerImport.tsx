@@ -7,23 +7,38 @@ import { toast } from 'sonner';
 import { Tooltip } from 'antd';
 import Loading from "@/components/Loading";
 
+interface DepartmentOfficer {
+  username: string;
+  officer_name: string;
+  email: string;
+  officer_phone: string | null;
+  row_number: number;
+}
+
+interface ValidationErrors {
+  usernameError: boolean;
+  officer_nameError: boolean;
+  emailError: boolean;
+  phoneError: boolean;
+}
+
 export default function DepartmentOfficerImport({
   onOfficersImported,
   setLoadingManager
 }: {
-  onOfficersImported: (officers: any[]) => Promise<{ success: boolean }>;
+  onOfficersImported: (officers: DepartmentOfficer[]) => Promise<{ success: boolean }>;
   setLoadingManager: (value: boolean) => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [previewOfficers, setPreviewOfficers] = useState<any[]>([]);
+  const [previewOfficers, setPreviewOfficers] = useState<DepartmentOfficer[]>([]);
   const [showErrors, setShowErrors] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editErrors, setEditErrors] = useState<{ [key: string]: boolean }>({});
   const [fileKey, setFileKey] = useState<string>(Date.now().toString());
   const [lastUpdated, setLastUpdated] = useState<string>("");
-  const [originalOfficerBeforeEdit, setOriginalOfficerBeforeEdit] = useState<any>(null);
+  const [originalOfficerBeforeEdit, setOriginalOfficerBeforeEdit] = useState<DepartmentOfficer | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isValidEmail = (email: string) => {
@@ -36,7 +51,7 @@ export default function DepartmentOfficerImport({
     return /^\d{10}$/.test(phone);
   };
 
-  const validateOfficer = (officer: any) => {
+  const validateOfficer = (officer: DepartmentOfficer): ValidationErrors => {
     return {
       usernameError: !officer.username || officer.username.trim() === '',
       officer_nameError: !officer.officer_name || officer.officer_name.trim() === '',
@@ -50,7 +65,7 @@ export default function DepartmentOfficerImport({
 
     setLoading(true);
     setError(null);
-    const officers: any[] = [];
+    const officers: DepartmentOfficer[] = [];
 
     try {
       const buffer = await file.arrayBuffer();
@@ -151,7 +166,7 @@ export default function DepartmentOfficerImport({
   const handleOfficerChange = (index: number, key: string, value: string) => {
     setPreviewOfficers(prev => {
       const updated = [...prev];
-      updated[index][key] = value;
+      (updated[index] as unknown as Record<string, unknown>)[key] = value;
       return updated;
     });
     setEditErrors(prev => ({ ...prev, [key]: false }));
@@ -247,6 +262,7 @@ export default function DepartmentOfficerImport({
         toast.error("Import thất bại. Vui lòng kiểm tra lại dữ liệu.");
       }
     } catch (error) {
+      console.error(error);
       toast.error('Đã xảy ra lỗi khi import cán bộ khoa');
     } finally {
       setImporting(false);
@@ -399,7 +415,6 @@ export default function DepartmentOfficerImport({
                   emailError,
                   phoneError
                 } = validateOfficer(officer);
-                const hasError = usernameError || officer_nameError || emailError || phoneError;
                 const isEditing = editingIndex === index;
 
                 return (

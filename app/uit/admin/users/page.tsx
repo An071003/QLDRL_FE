@@ -11,6 +11,14 @@ import { toast } from 'sonner';
 import debounce from 'lodash.debounce';
 import Loading from '@components/Loading';
 
+interface UserImportData {
+  user_name: string;
+  email: string;
+  role: string;
+  role_id: number | null;
+  row_number: number;
+}
+
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<{ id: number; name: string }[]>([]);
@@ -26,7 +34,8 @@ export default function UserManagement() {
     try {
       const usersRes = await api.get('/api/users');
       setUsers(usersRes.data.data.users);
-    } catch (err: any) {
+    } catch (error: unknown) {
+      console.error('Failed to fetch users:', error);
       toast.error('Lỗi tải dữ liệu người dùng');
     } finally{
       setLoading(false);
@@ -37,7 +46,8 @@ export default function UserManagement() {
     try {
       const rolesRes = await api.get('/api/roles');
       setRoles(rolesRes.data.roles);
-    } catch (err: any) {
+    } catch (error: unknown) {
+      console.error('Failed to fetch roles:', error);
       toast.error('Lỗi tải dữ liệu vai trò');
     }
   }, []);
@@ -62,7 +72,8 @@ export default function UserManagement() {
       await fetchUsers();
       setActiveComponent('table');
       return { success: true, message: 'Tạo người dùng thành công!' };
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       const msg = err?.response?.data?.message || 'Lỗi tạo người dùng.';
       return { success: false, message: msg };
     }
@@ -79,7 +90,8 @@ export default function UserManagement() {
       await api.delete(`/api/users/${userIdToDelete}`);
       await fetchUsers();
       toast.success('Xóa người dùng thành công!');
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       const msg = err?.response?.data?.message || 'Lỗi xóa người dùng';
       toast.error(msg);
     } finally {
@@ -88,14 +100,15 @@ export default function UserManagement() {
     }
   }, [userIdToDelete, fetchUsers]);
 
-  const handleUsersImported = useCallback(async (importedUsers: User[]) => {
+  const handleUsersImported = useCallback(async (importedUsers: UserImportData[]) => {
     try {
       await api.post('/api/users/import', importedUsers);
       await fetchUsers();
       setActiveComponent('table');
       toast.success('Thêm người dùng thành công!');
       return { success: true };
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       const msg = err?.response?.data?.message || 'Lỗi nhập người dùng.';
       toast.error(msg);
       return { success: false };

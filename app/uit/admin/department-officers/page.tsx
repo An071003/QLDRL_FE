@@ -9,15 +9,41 @@ import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
 import DepartmentOfficerTable from '@/components/Table/DepartmentOfficerTable';
 import DepartmentOfficerForm from '@/components/form/DepartmentOfficerForm';
 import DepartmentOfficerImport from '@/components/Import/DepartmentOfficerImport';
+import { DepartmentOfficer } from '@/types/department-officer';
 
-interface DepartmentOfficer {
-  id: number;
+interface DepartmentOfficerCreateData {
   officer_name: string;
-  officer_phone: string;
-  User?: {
-    email: string;
-    user_name: string;
+  officer_phone: string | null;
+  username: string;
+  email: string;
+}
+
+interface DepartmentOfficerImportData {
+  officer_name: string;
+  officer_phone: string | null;
+  username: string;
+  email: string;
+  row_number?: number;
+}
+
+interface ImportResponse {
+  status: 'success' | 'partial';
+  message?: string;
+  data?: {
+    failed?: Array<{
+      row: number;
+      errors: string[];
+    }>;
   };
+}
+
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+  message?: string;
 }
 
 export default function DepartmentOfficerManagementPage() {
@@ -59,17 +85,18 @@ export default function DepartmentOfficerManagementPage() {
     }
   };
 
-  const handleCreateOfficer = async (officerData: any) => {
+  const handleCreateOfficer = async (officerData: DepartmentOfficerCreateData) => {
     try {
       await api.post('/api/department-officers', officerData);
-      toast.success('Thêm cán bộ khoa thành công!');
+      toast.success('Thêm cán bộ thành công!');
       fetchOfficers();
       setActiveComponent('table');
       return Promise.resolve();
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Lỗi khi thêm cán bộ khoa';
+    } catch (error) {
+      const err = error as ApiError;
+      const msg = err?.response?.data?.message || 'Lỗi khi thêm cán bộ';
       toast.error(msg);
-      return Promise.reject(err);
+      return Promise.reject(error);
     }
   };
 
@@ -127,24 +154,25 @@ export default function DepartmentOfficerManagementPage() {
     }
   };
 
-  const handleImportOfficers = async (officers: any[]): Promise<{ success: boolean }> => {
+  const handleImportOfficers = async (officers: DepartmentOfficerImportData[]): Promise<{ success: boolean }> => {
     try {
-      const res = await api.post('/api/department-officers/import', { officers });
+      const res = await api.post<ImportResponse>('/api/department-officers/import', { officers });
       
       if (res.data.status === 'success' || res.data.status === 'partial') {
         const successMessage = res.data.status === 'success' 
-          ? 'Tất cả cán bộ khoa đã được import thành công!' 
+          ? 'Tất cả cán bộ đã được import thành công!' 
           : res.data.message;
         
         toast.success(successMessage);
         fetchOfficers();
         return { success: true };
       } else {
-        toast.error(res.data.message || 'Lỗi khi import cán bộ khoa');
+        toast.error(res.data.message || 'Lỗi khi import cán bộ');
         return { success: false };
       }
-    } catch (err: any) {
-      const errorMsg = err?.response?.data?.message || 'Lỗi khi import cán bộ khoa';
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
+      const errorMsg = apiError?.response?.data?.message || 'Lỗi khi import cán bộ';
       toast.error(errorMsg);
       return { success: false };
     }

@@ -78,8 +78,8 @@ export default function AdvisorCampaignManagement() {
   // Apply sorting
   if (sortField) {
     sortedAndFilteredCampaigns.sort((a, b) => {
-      let valueA: any;
-      let valueB: any;
+      let valueA: string | number;
+      let valueB: string | number;
       
       switch (sortField) {
         case 'id':

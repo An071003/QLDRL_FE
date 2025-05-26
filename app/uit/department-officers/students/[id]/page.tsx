@@ -33,6 +33,7 @@ export default function StudentActivitiesPage() {
           setActivities([]);
         }
       } catch (err) {
+        console.error(err);
         toast.error("Không thể tải hoạt động sinh viên ❌");
         setActivities([]);
       } finally {

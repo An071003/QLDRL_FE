@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import Loading from '@/components/Loading';
@@ -43,11 +43,7 @@ export default function DPOActivityStudentsPage() {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [studentIdToDelete, setStudentIdToDelete] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchData();
-  }, [activityId]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -95,7 +91,11 @@ export default function DPOActivityStudentsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activityId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [activityId, fetchData]);
 
   const debouncedSearch = debounce((value: string) => {
     setSearch(value);
@@ -238,9 +238,10 @@ export default function DPOActivityStudentsPage() {
       setSelectedStudents([]);
       toast.success("Đăng ký sinh viên thành công 🎉");
       await fetchData(); // Refresh the list
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error registering students:", error);
-      const errorMessage = error.response?.data?.message || "Đăng ký sinh viên thất bại ❌";
+      const apiError = error as { response?: { data?: { message?: string } } };
+      const errorMessage = apiError.response?.data?.message || "Đăng ký sinh viên thất bại ❌";
       toast.error(errorMessage);
     }
   };

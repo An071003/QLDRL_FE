@@ -1,15 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { useData } from '@/lib/contexts/DataContext';
 import Loading from '@/components/Loading';
 
-interface AdvisorFormProps {
-  onAdvisorCreated: (advisor: any) => Promise<void>;
-  setLoading: (loading: boolean) => void;
-  onCancel?: () => void;
+interface AdvisorData {
+  name: string;
+  faculty_id: number;
+  phone: string | null;
+  user: {
+    email: string | null;
+    username: string | null;
+  };
 }
 
-export default function AdvisorForm({ onAdvisorCreated, setLoading, onCancel }: AdvisorFormProps) {
+interface AdvisorFormProps {
+  onAdvisorCreated: (advisor: AdvisorData) => Promise<void>;
+  setLoading: (loading: boolean) => void;
+}
+
+export default function AdvisorForm({ onAdvisorCreated, setLoading }: AdvisorFormProps) {
   const { faculties, loading: dataLoading } = useData();
   const [formData, setFormData] = useState<{
     name: string;
@@ -71,7 +80,7 @@ export default function AdvisorForm({ onAdvisorCreated, setLoading, onCancel }: 
 
     setLoading(true);
     try {
-      const advisorData = {
+      const advisorData: AdvisorData = {
         name: formData.name,
         faculty_id: parseInt(formData.faculty_id),
         phone: formData.phone || null,
@@ -83,8 +92,8 @@ export default function AdvisorForm({ onAdvisorCreated, setLoading, onCancel }: 
       
       await onAdvisorCreated(advisorData);
       resetForm();
-    } catch (err: any) {
-      console.error('Error in form submission:', err);
+    } catch (error) {
+      console.error('Error in form submission:', error);
     } finally {
       setLoading(false);
     }

@@ -12,14 +12,22 @@ import Loading from '@/components/Loading';
 import debounce from 'lodash.debounce';
 import { useData } from '@/lib/contexts/DataContext';
 
+interface ErrorResponse {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+  message?: string;
+}
+
 export default function FacultyManagementPage() {
   const { faculties: contextFaculties, loading: dataLoading, refreshData } = useData();
   const [faculties, setFaculties] = useState<Faculty[]>([]);
-  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [facultyIdToDelete, setFacultyIdToDelete] = useState<number | null>(null);
-  const [selectedFaculty, setSelectedFaculty] = useState<Faculty | null>(null);
+
   const [mode, setMode] = useState<'list' | 'create' | 'import'>('list');
   const [submitLoading, setSubmitLoading] = useState(false);
 
@@ -36,7 +44,8 @@ export default function FacultyManagementPage() {
       toast.success('Thêm khoa thành công!');
       setMode('list');
       refreshData(); // Refresh data in context
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const err = error as ErrorResponse;
       const msg = err?.response?.data?.message || 'Lỗi khi tạo khoa';
       toast.error(msg);
     }
@@ -50,7 +59,8 @@ export default function FacultyManagementPage() {
       });
       toast.success('Cập nhật khoa thành công!');
       refreshData(); // Refresh data in context
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const err = error as ErrorResponse;
       const msg = err?.response?.data?.message || 'Lỗi khi cập nhật khoa';
       toast.error(msg);
       return Promise.reject(err);
@@ -68,7 +78,8 @@ export default function FacultyManagementPage() {
       await api.delete(`/api/faculties/${facultyIdToDelete}`);
       toast.success('Xóa khoa thành công!');
       refreshData(); // Refresh data in context
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const err = error as ErrorResponse;
       const msg = err?.response?.data?.message || 'Lỗi khi xóa khoa';
       toast.error(msg);
     } finally {
@@ -85,7 +96,8 @@ export default function FacultyManagementPage() {
       setMode('list');
       refreshData(); // Refresh data in context
       return { success: true };
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const err = error as ErrorResponse;
       const msg = err?.response?.data?.message || 'Lỗi khi import khoa';
       toast.error(msg);
       return { success: false };
@@ -108,6 +120,8 @@ export default function FacultyManagementPage() {
         f.faculty_abbr.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [faculties, searchTerm]);
+
+
 
   const renderContent = () => {
     if (mode === 'create') {
@@ -173,10 +187,7 @@ export default function FacultyManagementPage() {
       ) : (
         <div className="flex justify-end mb-6">
           <button
-            onClick={() => {
-              setMode('list');
-              setSelectedFaculty(null);
-            }}
+            onClick={() => setMode('list')}
             className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
           >
             Quay lại danh sách

@@ -1,24 +1,31 @@
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Advisor } from '@/types/advisor';
 import { ReceiptText, SquarePen, Trash } from 'lucide-react';
 import { Tooltip } from 'antd';
 import { toast } from 'sonner';
 
+interface Faculty {
+  id: number;
+  name: string;
+  faculty_name?: string;
+}
+
+interface EditData {
+  name: string;
+  faculty_id: string;
+  phone: string;
+}
+
 interface AdvisorTableProps {
   advisors: Advisor[];
-  faculties: any[];
+  faculties: Faculty[];
   editingAdvisorId: number | null;
-  editData: {
-    name: string;
-    faculty_id: string;
-    phone: string;
-  };
+  editData: EditData;
   onDeleteAdvisor: (id: number) => void;
   onEditClick: (advisor: Advisor) => void;
   onSaveEdit: (id: number) => void;
   onCancelEdit: () => void;
-  onEditDataChange: (data: any) => void;
+  onEditDataChange: (data: EditData) => void;
 }
 
 export default function AdvisorTable({

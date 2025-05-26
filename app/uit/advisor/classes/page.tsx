@@ -81,8 +81,8 @@ export default function AdvisorClassesPage() {
     // Sort classes
     if (sortField) {
       return [...filtered].sort((a, b) => {
-        let valueA: any;
-        let valueB: any;
+        let valueA: string | number;
+        let valueB: string | number;
         
         switch (sortField) {
           case 'id':

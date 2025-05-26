@@ -3,6 +3,14 @@ import { jwtVerify } from 'jose';
 
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get("token")?.value;
+
+  // Handle logout path
+  if (request.nextUrl.pathname === "/logout" && request.method === "POST") {
+    const response = NextResponse.redirect(new URL("/login", request.url));
+    response.cookies.delete("token");
+    return response;
+  }
+
   if (!token) {
     if (request.nextUrl.pathname !== "/login") {
       return NextResponse.redirect(new URL("/login", request.url));
@@ -10,19 +18,19 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (request.nextUrl.pathname === "/logout") {
-    const response = NextResponse.redirect(new URL("/login", request.url));
-
-    response.cookies.delete("token");
-    return response;
-  }
-
   try {
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET as string);
-    const { payload } = await jwtVerify(token, secret); 
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not defined');
+      throw new Error('JWT_SECRET is not defined');
+    }
+
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+    const { payload } = await jwtVerify(token, secret);
+    
     const { role } = payload as { role: string };
     const pathname = request.nextUrl.pathname;
 
+    // Role-based access control with logging
     if (pathname.startsWith("/uit/admin") && role !== "admin") {
       return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
@@ -42,14 +50,13 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith("/uit/class-leader") && role !== "classleader") {
       return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
-
     return NextResponse.next();
   } catch (error) {
-    console.error('Error verifying JWT:', error);
+    console.error('Error in middleware:', error);
     return NextResponse.redirect(new URL("/login", request.url));
   }
 }
 
 export const config = {
-  matcher: ["/uit/:path*", "/logout"],
+  matcher: ["/uit/:path*", "/login", "/logout"],
 };

@@ -28,20 +28,22 @@ export default function StudentManagementPage() {
     try {
       const res = await api.get('/api/students');
       setStudents(res.data.data.students);
-    } catch (err) {
+    } catch (error) {
+      console.error('Failed to fetch students:', error);
       toast.error('Không thể tải danh sách sinh viên');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreateStudent = async (newStudent: any) => {
+  const handleCreateStudent = async (newStudent: Partial<Student>) => {
     try {
       await api.post('/api/students', newStudent);
       toast.success('Thêm sinh viên thành công!');
       fetchStudents();
       setActiveComponent('table');
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       const msg = err?.response?.data?.message || 'Lỗi khi tạo sinh viên';
       toast.error(msg);
     }
@@ -93,7 +95,7 @@ export default function StudentManagementPage() {
     );
   }, [students, searchTerm]);
 
-  const handleStudentsImported = async (importedStudents: any[]): Promise<{ success: boolean }> => {
+  const handleStudentsImported = async (importedStudents: Partial<Student>[]): Promise<{ success: boolean }> => {
     try {
       setLoading(true);
       const res = await api.post('/api/students/import', { students: importedStudents });
@@ -101,7 +103,8 @@ export default function StudentManagementPage() {
       fetchStudents();
       setActiveComponent('table');
       return { success: true };
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       const msg = err?.response?.data?.message || 'Lỗi khi import sinh viên';
       toast.error(msg);
       return { success: false };

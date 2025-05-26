@@ -49,7 +49,7 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
         <Card>
           <div className="text-center">
             <h3 className="text-lg font-semibold">SL Sinh viên yếu</h3>
-            <p className="text-2xl text-red-600">{Math.round(poorCount)}</p>
+            <p className="text-2xl text-red-600">{Math.round(typeof poorCount === 'string' ? parseFloat(poorCount) : poorCount)}</p>
           </div>
         </Card>
       </Col>

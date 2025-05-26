@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -14,7 +14,7 @@ interface Class {
   id: number;
   name: string;
   faculty_id: number;
-  cohort: number;
+  cohort: string;
 }
 
 interface Criteria {
@@ -100,7 +100,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const fetchActivities = async () => {
+  const fetchActivities = useCallback(async () => {
     try {
       // Get all activities
       const activitiesRes = await api.get("/api/activities");
@@ -131,7 +131,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error('Error fetching activities:', err);
     }
-  };
+  }, [campaigns]);
 
   useEffect(() => {
     fetchData();
@@ -141,7 +141,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (campaigns.length > 0) {
       fetchActivities();
     }
-  }, [campaigns]);
+  }, [campaigns, fetchActivities]);
 
   const refreshData = async () => {
     await fetchData();
