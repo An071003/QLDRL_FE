@@ -34,7 +34,7 @@ export default function AdvisorActivityManagement() {
         .split('; ')
         .find(row => row.startsWith('token='))
         ?.split('=')[1];
-  
+      
       if (token) {
         try {
           const secret = new TextEncoder().encode(process.env.NEXT_PUBLIC_JWT_SECRET as string);

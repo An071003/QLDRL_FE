@@ -1,9 +1,29 @@
 'use client';
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { DataProvider } from '@/lib/contexts/DataContext';
 
 const Sidebar = () => {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        router.push('/login');
+      }
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
+  };
+
   return (
     <div className="bg-gray-800 text-white w-64 h-screen fixed left-0 top-0 p-4 flex flex-col">
       <div className="text-xl font-bold mb-8">Admin Dashboard</div>
@@ -46,9 +66,12 @@ const Sidebar = () => {
         </Link>
       </nav>
       <div className="mt-auto">
-        <Link href="/logout" className="block py-2 px-4 rounded hover:bg-gray-700">
+        <button 
+          onClick={handleLogout}
+          className="w-full text-left py-2 px-4 rounded hover:bg-gray-700"
+        >
           Logout
-        </Link>
+        </button>
       </div>
     </div>
   );

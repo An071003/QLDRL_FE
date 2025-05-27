@@ -1,5 +1,7 @@
+"use client"
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import ClassleaderDropdown from "@/components/class-leader/ClassleaderDropdown";
 
 export const metadata = {
@@ -7,6 +9,25 @@ export const metadata = {
 };
 
 export function ClassleaderLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        router.push('/login');
+      }
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
+  };
+
   return (
     <div>
       <header className="flex items-center justify-between py-4 px-6 border-b bg-[#0b3c65] border-blue-900 text-white">
@@ -22,9 +43,9 @@ export function ClassleaderLayout({ children }: { children: React.ReactNode }) {
         </div>
         <div className="flex items-center space-x-4">
           <div className="text-sm">
-            <Link href="/login" className="hover:underline">Tài khoản</Link>
+            <button onClick={handleLogout} className="hover:underline">Tài khoản</button>
             <span className="text-sm"> | </span>
-            <Link href="/login" className="hover:underline">Thoát</Link>
+            <button onClick={handleLogout} className="hover:underline">Thoát</button>
           </div>
           <div className="relative">
             <input

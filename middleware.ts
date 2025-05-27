@@ -4,11 +4,14 @@ import { jwtVerify } from 'jose';
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get("token")?.value;
 
-  // Handle logout path
   if (request.nextUrl.pathname === "/logout" && request.method === "POST") {
-    const response = NextResponse.redirect(new URL("/login", request.url));
+    const response = NextResponse.json({ success: true });
     response.cookies.delete("token");
     return response;
+  }
+
+  if (request.nextUrl.pathname === "/logout" && request.method === "GET") {
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   if (!token) {
@@ -26,7 +29,7 @@ export async function middleware(request: NextRequest) {
 
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const { payload } = await jwtVerify(token, secret);
-    
+
     const { role } = payload as { role: string };
     const pathname = request.nextUrl.pathname;
 
