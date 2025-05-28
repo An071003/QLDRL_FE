@@ -30,7 +30,6 @@ export default function LoginPage() {
 
   const handleSubmit = async (values: LoginFormValues) => {
     setLoading(true);
-    console.log("NEXT_PUBLIC_API_URL =", process.env.NEXT_PUBLIC_API_URL);
     try {
       await api.post("/api/auth/login", values);
       router.push("/uit");
