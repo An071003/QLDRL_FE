@@ -12,7 +12,7 @@ interface UserTableProps {
 }
 
 const UserTable = memo(function UserTable({ users, onDeleteUser }: UserTableProps) {
-  const roleColors = useMemo(() => ({
+  const roleColors: Record<string, string> = useMemo(() => ({
     admin: 'bg-purple-100 text-purple-800',
     advisor: 'bg-green-100 text-green-800',
     departmentofficer: 'bg-orange-100 text-orange-800',
@@ -72,7 +72,8 @@ const UserTable = memo(function UserTable({ users, onDeleteUser }: UserTableProp
                   </Tooltip>
                 </td>
               </tr>
-            ))}
+            );
+          })}
         </tbody>
       </table>
     </div>
