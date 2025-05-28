@@ -10,6 +10,7 @@ export default function DPOCampaignManagement() {
   const router = useRouter();
   const { campaigns, criteria, loading } = useData();
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedSemester, setSelectedSemester] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -29,12 +30,23 @@ export default function DPOCampaignManagement() {
     }
   };
 
+  // Group campaigns by semester_no and academic_year
+  const semesterOptions = [...new Set(campaigns
+    .filter(c => c.semester_no && c.academic_year)
+    .map(c => `Học kỳ ${c.semester_no} - ${c.academic_year}|${c.semester_no}_${c.academic_year}`))];
+
   const sortedAndFilteredCampaigns = campaigns
     .filter((campaign) => {
       const criteriaName = criteria.find(c => c.id === campaign.criteria_id)?.name || '';
       return campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         criteriaName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         `${campaign.semester_no} ${campaign.academic_year}`.toLowerCase().includes(searchTerm.toLowerCase());
+    })
+    .filter((campaign) => {
+      if (selectedSemester === "all") return true;
+      const [semesterNo, academicYear] = selectedSemester.split('_');
+      return campaign.semester_no === parseInt(semesterNo) && 
+             campaign.academic_year?.toString() === academicYear;
     });
 
   // Apply sorting
@@ -99,7 +111,7 @@ export default function DPOCampaignManagement() {
     <div>
       <h1 className="text-3xl font-bold mb-6">Quản lý phong trào</h1>
       
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+      <div className="flex flex-col md:flex-row items-center gap-4 mb-6">
         <input
           type="text"
           value={searchTerm}
@@ -107,6 +119,24 @@ export default function DPOCampaignManagement() {
           placeholder="Tìm kiếm theo tên phong trào, tiêu chí, học kỳ..."
           className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/3"
         />
+        <select
+          value={selectedSemester}
+          onChange={(e) => {
+            setSelectedSemester(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="px-4 py-2 border border-gray-300 rounded-md w-full max-w-[200px] md:w-1/4"
+        >
+          <option value="all">Tất cả học kỳ</option>
+          {semesterOptions.map((option) => {
+            const [label, value] = option.split("|");
+            return (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            );
+          })}
+        </select>
       </div>
       
       <div className="bg-white rounded-lg shadow overflow-hidden mb-6">

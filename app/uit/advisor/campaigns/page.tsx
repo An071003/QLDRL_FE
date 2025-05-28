@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import api from "@/lib/api";
 import Loading from "@/components/Loading";
 import { useRouter } from 'next/navigation';
+import { Tooltip } from 'antd';
 
 interface Campaign {
   id: number;
@@ -25,6 +26,7 @@ export default function AdvisorCampaignManagement() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedSemester, setSelectedSemester] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -68,12 +70,23 @@ export default function AdvisorCampaignManagement() {
     }
   };
 
+  // Group campaigns by semester_no and academic_year
+  const semesterOptions = [...new Set(campaigns
+    .filter(c => c.semester_no && c.academic_year)
+    .map(c => `Học kỳ ${c.semester_no} - ${c.academic_year}|${c.semester_no}_${c.academic_year}`))];
+
   const sortedAndFilteredCampaigns = campaigns
     .filter((campaign) =>
       campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       campaign.Criteria?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       `${campaign.semester_no} ${campaign.academic_year}`.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    )
+    .filter((campaign) => {
+      if (selectedSemester === "all") return true;
+      const [semesterNo, academicYear] = selectedSemester.split('_');
+      return campaign.semester_no === parseInt(semesterNo) && 
+             campaign.academic_year.toString() === academicYear;
+    });
 
   // Apply sorting
   if (sortField) {
@@ -139,7 +152,7 @@ export default function AdvisorCampaignManagement() {
     <div>
       <h1 className="text-3xl font-bold mb-6">Quản lý phong trào</h1>
       
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+      <div className="flex flex-col md:flex-row items-center gap-4 mb-6">
         <input
           type="text"
           value={searchTerm}
@@ -147,6 +160,24 @@ export default function AdvisorCampaignManagement() {
           placeholder="Tìm kiếm theo tên phong trào, tiêu chí, học kỳ..."
           className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/3"
         />
+        <select
+          value={selectedSemester}
+          onChange={(e) => {
+            setSelectedSemester(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="px-4 py-2 border border-gray-300 rounded-md w-full max-w-[200px] md:w-1/4"
+        >
+          <option value="all">Tất cả học kỳ</option>
+          {semesterOptions.map((option) => {
+            const [label, value] = option.split("|");
+            return (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            );
+          })}
+        </select>
       </div>
       
       <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
@@ -185,11 +216,6 @@ export default function AdvisorCampaignManagement() {
                   Điểm tối đa {sortField === 'max_score' && (sortDirection === 'asc' ? '▲' : '▼')}
                 </th>
                 <th 
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
-                >
-                  Trạng thái
-                </th>
-                <th 
                   className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
                 >
                   Thao tác
@@ -201,20 +227,19 @@ export default function AdvisorCampaignManagement() {
                 <tr key={campaign.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 whitespace-nowrap">{campaign.id}</td>
                   <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="max-w-xs truncate" title={campaign.name}>{campaign.name}</div>
+                    <Tooltip title={campaign.name} placement="topLeft">
+                      <div className="max-w-xs truncate">{campaign.name}</div>
+                    </Tooltip>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap">{campaign.Criteria?.name || 'N/A'}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <Tooltip title={campaign.Criteria?.name || 'Tiêu chí...'} placement="topLeft">
+                      <div className="max-w-xs truncate">{campaign.Criteria?.name || 'Tiêu chí...'}</div>
+                    </Tooltip>
+                  </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     Học kỳ {campaign.semester_no} - {campaign.academic_year}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">{campaign.max_score}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded inline-flex text-xs leading-5 font-semibold ${
-                      campaign.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {campaign.status === 'active' ? 'Đang hoạt động' : 'Đã kết thúc'}
-                    </span>
-                  </td>
                   <td className="px-4 py-3 text-center whitespace-nowrap">
                     <button
                       onClick={() => router.push(`/uit/advisor/campaigns/${campaign.id}`)}
