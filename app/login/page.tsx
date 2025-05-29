@@ -32,8 +32,8 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await api.post("/api/auth/login", values);
-      router.push("/uit");
       toast.success("Đăng nhập thành công!");
+      router.push("/uit");
       setLoading(false);
     } catch (err: unknown) {
       const error = err as ApiError;

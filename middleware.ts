@@ -3,23 +3,53 @@ import { jwtVerify } from 'jose';
 
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get("token")?.value;
-  const pathname = request.nextUrl.pathname;
+  const { pathname } = request.nextUrl;
 
-  if (pathname === "/logout" && request.method === "POST") {
-    const response = NextResponse.json({ success: true });
-    response.cookies.delete("token");
-    return response;
+  // Public routes that don't require authentication
+  if (pathname === "/login" || pathname === "/") {
+    if (token) {
+      // If user is logged in, redirect to default page based on role
+      try {
+        const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+        const { payload } = await jwtVerify(token, secret);
+        const { role } = payload as { role: string };
+        
+        let redirectPath = "/uit/student"; 
+        switch(role) {
+          case "admin":
+            redirectPath = "/uit/admin";
+            break;
+          case "advisor":
+            redirectPath = "/uit/advisor";
+            break;
+          case "departmentofficer":
+            redirectPath = "/uit/department-officers";
+            break;
+          case "classleader":
+            redirectPath = "/uit/class-leader";
+            break;
+        }
+        return NextResponse.redirect(new URL(redirectPath, request.url));
+      } catch (error) {
+        const response = NextResponse.redirect(new URL("/login", request.url));
+        response.cookies.delete("token");
+        return response;
+      }
+    }
+    return NextResponse.next();
   }
 
-  if (pathname === "/logout" && request.method === "GET") {
+  if (pathname === "/logout") {
+    if (request.method === "POST") {
+      const response = NextResponse.json({ success: true });
+      response.cookies.delete("token");
+      return response;
+    }
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
   if (!token) {
-    if (pathname !== "/login" && pathname !== "/") {
-      return NextResponse.redirect(new URL("/login", request.url));
-    }
-    return NextResponse.next();
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   try {
@@ -29,36 +59,39 @@ export async function middleware(request: NextRequest) {
 
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const { payload } = await jwtVerify(token, secret);
-
     const { role } = payload as { role: string };
 
-    // Role-based access control
     if (pathname.startsWith("/uit/admin") && role !== "admin") {
       return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
-
     if (pathname.startsWith("/uit/student") && role !== "student") {
       return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
-
     if (pathname.startsWith("/uit/advisor") && role !== "advisor") {
       return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
-
     if (pathname.startsWith("/uit/department-officers") && role !== "departmentofficer") {
       return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
-
     if (pathname.startsWith("/uit/class-leader") && role !== "classleader") {
       return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
-    
+
     return NextResponse.next();
   } catch (error) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    console.error('Error in middleware:', error);
+    const response = NextResponse.redirect(new URL("/login", request.url));
+    response.cookies.delete("token");
+    return response;
   }
 }
 
 export const config = {
-  matcher: ["/uit/:path*", "/login", "/logout"],
+  matcher: [
+    '/',
+    '/login',
+    '/logout',
+    '/uit/:path*',
+    '/unauthorized'
+  ]
 };
