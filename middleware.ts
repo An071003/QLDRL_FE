@@ -3,7 +3,7 @@ import { jwtVerify } from 'jose';
 
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get("token")?.value;
-
+  console.log(request.nextUrl.pathname);
   if (request.nextUrl.pathname === "/logout" && request.method === "POST") {
     const response = NextResponse.json({ success: true });
     response.cookies.delete("token");
