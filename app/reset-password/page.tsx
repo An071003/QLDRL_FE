@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
-import { MainLayout } from "@/components/layout";
+import { MainLayout } from "@/components/layout/main";
 import { toast } from "sonner";
 
 type ErrorWithResponse = Error & {

@@ -3,7 +3,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import StudentDropdown from "@/components/students/StudentDropdown";
-
 export const metadata = {
   title: 'Trang dành cho sinh viên',
 };
@@ -75,9 +74,10 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
         </div>
       </nav>
 
-      <main className="p-4">
-        {children}
-      </main>
-    </div>
+        <main className="p-4">
+          {children}
+        </main>
+      </div>
+
   );
 }
