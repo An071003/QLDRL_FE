@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { ApexOptions } from 'apexcharts';
@@ -8,13 +8,13 @@ import { ApexOptions } from 'apexcharts';
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
 export default function AdvisorDashboard() {
-  const [stats, setStats] = useState({
+  const stats = {
     totalStudents: 0,
     activeCampaigns: 0,
     totalActivities: 0,
-  });
+  };
 
-  const [loading, setLoading] = useState(true);
+  const loading = false;
 
   const classificationChartOptions: ApexOptions = {
     chart: { type: 'pie' as const },

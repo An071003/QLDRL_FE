@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Table, Space, Button, Tooltip, Tag } from 'antd';
 import { EyeOutlined } from '@ant-design/icons';
@@ -23,7 +23,7 @@ interface Campaign {
   };
 }
 
-type TableRecord = Record<string, any>;
+type TableRecord = Record<string, unknown>;
 
 export default function AdvisorCampaignActivitiesPage() {
   const params = useParams();
@@ -36,13 +36,7 @@ export default function AdvisorCampaignActivitiesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
-  useEffect(() => {
-    if (campaignId) {
-      fetchCampaignAndActivities();
-    }
-  }, [campaignId]);
-
-  const fetchCampaignAndActivities = async () => {
+  const fetchCampaignAndActivities = useCallback(async () => {
     setLoading(true);
     try {
       // Fetch campaign details
@@ -73,7 +67,13 @@ export default function AdvisorCampaignActivitiesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [campaignId]);
+
+  useEffect(() => {
+    if (campaignId) {
+      fetchCampaignAndActivities();
+    }
+  }, [campaignId, fetchCampaignAndActivities]);
 
   const debouncedSearch = useMemo(
     () => debounce((value: string) => setSearchTerm(value), 300),

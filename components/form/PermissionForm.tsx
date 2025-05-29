@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 interface PermissionFormProps {
-  onPermissionCreated: (newPermission: { name: string; action: string }) => Promise<{ success: boolean; message: any }>;
+  onPermissionCreated: (newPermission: { name: string; action: string }) => Promise<{ success: boolean; message: string }>;
   setLoading: (value: boolean) => void;
 }
 
@@ -45,6 +45,7 @@ export default function PermissionForm({ onPermissionCreated, setLoading }: Perm
         toast.error(result.message || "Lỗi tạo quyền hạn");
       }
     } catch (error) {
+      console.error(error);
       toast.error("Lỗi tạo quyền hạn");
     } finally {
       setLoading(false);

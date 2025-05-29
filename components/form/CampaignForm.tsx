@@ -2,17 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { Criteria } from "@/types/criteria";
-import api from "@/lib/api";
 import { toast } from "sonner";
 
 interface CampaignFormProps {
   criteria: Criteria[];
-  onCampaignCreated: (campaign: { 
-    name: string; 
-    max_score: number; 
-    criteria_id: number; 
-    semester_no: number; 
-    academic_year: number 
+  onCampaignCreated: (campaign: {
+    name: string;
+    max_score: number;
+    criteria_id: number;
+    semester_no: number;
+    academic_year: number
   }) => Promise<{ success: boolean }>;
 }
 
@@ -25,16 +24,8 @@ export default function CampaignForm({ criteria, onCampaignCreated }: CampaignFo
   const [criterias, setCriterias] = useState<Criteria[]>([]);
 
   useEffect(() => {
-    const fetchCriterias = async () => {
-      try {
-        const res = await api.get("/api/criteria");
-        setCriterias(res.data.data.criteria);
-      } catch (err) {
-        toast.error("Không thể tải danh sách tiêu chí.");
-      }
-    };
-    fetchCriterias();
-  }, []);
+    setCriterias(criteria);
+  }, [criteria]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

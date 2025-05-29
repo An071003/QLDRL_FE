@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import Loading from '@/components/Loading';
 import { Student } from '@/types/student';
@@ -17,7 +16,6 @@ interface ExtendedStudent extends Student {
 }
 
 export default function ClassleaderStudentsPage() {
-    const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [students, setStudents] = useState<ExtendedStudent[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -82,8 +80,8 @@ export default function ClassleaderStudentsPage() {
         // Sort students
         if (sortField) {
             return [...filtered].sort((a, b) => {
-                let valueA: any;
-                let valueB: any;
+                        let valueA: string | number;
+        let valueB: string | number;
 
                 switch (sortField) {
                     case 'student_id':

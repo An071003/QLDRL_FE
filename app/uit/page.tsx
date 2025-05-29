@@ -14,6 +14,7 @@ export default function DashboardPage() {
         const res = await api.get("/api/auth/me");
         setRole(res.data.data.user.Role.name);
       } catch (error) {
+        console.error(error);
         router.push("/login");
       }
     };

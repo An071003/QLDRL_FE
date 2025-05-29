@@ -11,8 +11,17 @@ import debounce from 'lodash.debounce';
 import StudentImport from '@/components/Import/StudentImport';
 import { Student } from '@/types/student';
 
+interface StudentCreateData {
+  student_id: string;
+  student_name: string;
+  email: string;
+  phone: string | null;
+  birthdate: string | null;
+  faculty_id: number;
+  class_id: number;
+}
+
 export default function StudentManagementPage() {
-  const [students, setStudents] = useState<Student[]>([]);
   const [departmentStudents, setDepartmentStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,7 +46,6 @@ export default function StudentManagementPage() {
       // Lấy danh sách sinh viên
       const res = await api.get('/api/students');
       const allStudents = res.data.data.students || [];
-      setStudents(allStudents);
       
       // Lọc sinh viên theo khoa của cán bộ khoa
       try {
@@ -56,20 +64,22 @@ export default function StudentManagementPage() {
         console.error("Failed to fetch department officer:", error);
         setDepartmentStudents([]);
       }
-    } catch (err) {
+    } catch (error) {
+      console.error(error);
       toast.error('Không thể tải danh sách sinh viên');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreateStudent = async (newStudent: any) => {
+  const handleCreateStudent = async (newStudent: StudentCreateData) => {
     try {
       await api.post('/api/students', newStudent);
       toast.success('Thêm sinh viên thành công!');
       fetchStudents();
       setActiveComponent('table');
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       const msg = err?.response?.data?.message || 'Lỗi khi tạo sinh viên';
       toast.error(msg);
     }
@@ -122,7 +132,7 @@ export default function StudentManagementPage() {
     );
   }, [departmentStudents, searchTerm]);
 
-  const handleStudentsImported = async (importedStudents: any[]): Promise<{ success: boolean }> => {
+  const handleStudentsImported = async (importedStudents: unknown[]): Promise<{ success: boolean }> => {
     try {
       setLoading(true);
       const res = await api.post('/api/students/import', { students: importedStudents });
@@ -130,7 +140,8 @@ export default function StudentManagementPage() {
       fetchStudents();
       setActiveComponent('table');
       return { success: true };
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       const msg = err?.response?.data?.message || 'Lỗi khi import sinh viên';
       toast.error(msg);
       return { success: false };
@@ -150,6 +161,7 @@ export default function StudentManagementPage() {
           students={filteredStudents}
           onDeleteStudent={handleDeleteClick}
           onUpdateStudent={handleUpdateStudent}
+          role="department-officers"
         />
     }
   };

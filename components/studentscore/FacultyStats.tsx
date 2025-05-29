@@ -10,7 +10,8 @@ import {
   CategoryScale,
   LinearScale,
   BarElement,
-  Title
+  Title,
+  TooltipItem
 } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
 import api from '@/lib/api';
@@ -65,6 +66,7 @@ interface ClassStats {
 interface FacultyStats extends ClassStats {
   id: number;
   faculty_name: string;
+  total_students: number;
   high_achieving_rate: number;
 }
 
@@ -109,7 +111,7 @@ export default function FacultyStats({
         setStats(overallStats);
 
         // Set faculty stats
-        const processedFacultyStats = facultyData.faculties.map((faculty: any) => ({
+        const processedFacultyStats = facultyData.faculties.map((faculty: FacultyStats) => ({
           ...faculty,
           total_students: Number(faculty.total_students),
           excellent_count: Number(faculty.excellent_count),
@@ -141,7 +143,8 @@ export default function FacultyStats({
         }
         setClassStats(classData);
 
-      } catch (error) {
+      } catch (error: unknown) {
+        console.error('Error fetching stats:', error);
         setStats({
           total_students: 0,
           average_score: 0,
@@ -263,8 +266,8 @@ export default function FacultyStats({
       },
       tooltip: {
         callbacks: {
-          label: function(context: any) {
-            const value = context.raw;
+          label: function(context: TooltipItem<'pie'>) {
+            const value = context.raw as number;
             const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
             const percentage = ((value / total) * 100).toFixed(1);
             return `${context.label}: ${value} (${percentage}%)`;
@@ -319,7 +322,7 @@ export default function FacultyStats({
       dataIndex: 'total_students',
       key: 'total_students',
       width: '20%',
-      render: (value: any) => Number(value),
+      render: (value: number | string) => Number(value),
     },
     {
       title: 'Tỷ lệ XS & Tốt',
@@ -352,15 +355,36 @@ export default function FacultyStats({
       dataIndex: 'total_students',
       key: 'total_students',
       width: '20%',
-      render: (value: any) => Number(value),
+      render: (value: number | string) => Number(value),
     },
     {
       title: 'Xuất sắc',
-      dataIndex: 'excellent_count',
-      key: 'excellent_count',
+      key: 'excellent_rate',
       width: '20%',
-      render: (value: any) => Number(value),
+      render: (_: unknown, record: ClassStats) => {
+        const total = Number(record.excellent_count) + 
+                     Number(record.good_count) + 
+                     Number(record.fair_count) + 
+                     Number(record.average_count) + 
+                     Number(record.poor_count);
+        const rate = total > 0 ? (Number(record.excellent_count) / total) * 100 : 0;
+        return `${rate.toFixed(2)}%`;
+      },
     },
+    {
+      title: 'Tốt',
+      key: 'good_rate',
+      width: '20%',
+      render: (_: unknown, record: ClassStats) => {
+        const total = Number(record.excellent_count) + 
+                     Number(record.good_count) + 
+                     Number(record.fair_count) + 
+                     Number(record.average_count) + 
+                     Number(record.poor_count);
+        const rate = total > 0 ? (Number(record.good_count) / total) * 100 : 0;
+        return `${rate.toFixed(2)}%`;
+      },
+    }
   ];
 
   if (loading) {
@@ -534,8 +558,8 @@ export default function FacultyStats({
       },
       tooltip: {
         callbacks: {
-          label: function(context: any) {
-            const value = context.raw;
+          label: function(context: TooltipItem<'bar'>) {
+            const value = context.raw as number;
             if (value === null || value === 0) return '';
             return `${context.dataset.label}: ${Math.round(value)}`;
           }
@@ -550,9 +574,10 @@ export default function FacultyStats({
         stacked: true,
         beginAtZero: true,
         ticks: {
-          callback: function(value: any) {
-            if (Math.floor(value) === value) {
-              return value;
+          callback: function(value: string | number) {
+            const numValue = typeof value === 'string' ? parseFloat(value) : value;
+            if (Math.floor(numValue) === numValue) {
+              return numValue;
             }
             return null;
           }

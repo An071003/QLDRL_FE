@@ -45,8 +45,9 @@ export default function RoleTable({ roles, onDeleteRole, onManagePermissions, on
         toast.success("Cập nhật vai trò thành công");
         setEditingId(null);
       }
-    } catch (error) {
-      toast.error("Lỗi khi cập nhật vai trò");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Lỗi khi cập nhật vai trò";
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

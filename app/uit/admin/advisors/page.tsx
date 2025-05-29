@@ -6,11 +6,50 @@ import { toast } from 'sonner';
 import Loading from '@/components/Loading';
 import debounce from 'lodash.debounce';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
-import { Advisor, Faculty } from '@/types/advisor';
+import { Advisor } from '@/types/advisor';
 import AdvisorTable from '@/components/Table/AdvisorTable';
 import AdvisorForm from '@/components/form/AdvisorForm';
 import AdvisorImport from '@/components/Import/AdvisorImport';
 import { useData } from '@/lib/contexts/DataContext';
+
+interface AdvisorCreateData {
+  name: string;
+  faculty_id: number;
+  phone: string | null;
+  user: {
+    email: string | null;
+    username: string | null;
+  };
+}
+
+interface AdvisorImportData {
+  username: string;
+  name: string;
+  faculty_id: number | null;
+  email: string;
+  phone: string | null;
+  row_number: number;
+}
+
+interface ImportResponse {
+  status: 'success' | 'partial';
+  message?: string;
+  data?: {
+    failed?: Array<{
+      row: number;
+      errors: string[];
+    }>;
+  };
+}
+
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+  message?: string;
+}
 
 export default function AdvisorManagementPage() {
   const [advisors, setAdvisors] = useState<Advisor[]>([]);
@@ -19,7 +58,7 @@ export default function AdvisorManagementPage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [advisorIdToDelete, setAdvisorIdToDelete] = useState<number | null>(null);
   const [editingAdvisorId, setEditingAdvisorId] = useState<number | null>(null);
-  const [activeComponent, setActiveComponent] = useState<'table' | 'form' | 'import'>('table');
+  const [activeComponent, setActiveComponent] = useState<'form' | 'import' | 'table'>('table');
   const { faculties, loading: dataLoading } = useData();
   
   // Edit state for inline editing
@@ -46,25 +85,26 @@ export default function AdvisorManagementPage() {
       } else {
         setAdvisors([]);
       }
-    } catch (err) {
-      console.error('Failed to fetch advisors:', err);
+    } catch (error) {
+      console.error('Failed to fetch advisors:', error);
       toast.error('Không thể tải danh sách cố vấn học tập');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreateAdvisor = async (advisorData: any) => {
+  const handleCreateAdvisor = async (advisorData: AdvisorCreateData) => {
     try {
       await api.post('/api/advisors', advisorData);
       toast.success('Thêm cố vấn học tập thành công!');
       fetchAdvisors();
       setActiveComponent('table');
       return Promise.resolve();
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Lỗi khi thêm cố vấn học tập';
+    } catch (error: unknown) {
+      const err = error as ApiError;
+      const msg = err?.message || 'Lỗi khi thêm cố vấn học tập';
       toast.error(msg);
-      return Promise.reject(err);
+      return Promise.reject(error);
     }
   };
 
@@ -124,9 +164,9 @@ export default function AdvisorManagementPage() {
     }
   };
 
-  const handleImportAdvisors = async (advisors: any[]): Promise<{ success: boolean }> => {
+  const handleImportAdvisors = async (advisors: AdvisorImportData[]): Promise<{ success: boolean }> => {
     try {
-      const res = await api.post('/api/advisors/import', { advisors });
+      const res = await api.post<ImportResponse>('/api/advisors/import', { advisors });
       
       if (res.data.status === 'success' || res.data.status === 'partial') {
         const successMessage = res.data.status === 'success' 
@@ -140,8 +180,9 @@ export default function AdvisorManagementPage() {
         toast.error(res.data.message || 'Lỗi khi import cố vấn');
         return { success: false };
       }
-    } catch (err: any) {
-      const errorMsg = err?.response?.data?.message || 'Lỗi khi import cố vấn học tập';
+    } catch (error) {
+      const apiError = error as ApiError;
+      const errorMsg = apiError?.response?.data?.message || 'Lỗi khi import cố vấn học tập';
       toast.error(errorMsg);
       return { success: false };
     }
@@ -176,7 +217,6 @@ export default function AdvisorManagementPage() {
           <AdvisorForm 
             onAdvisorCreated={handleCreateAdvisor} 
             setLoading={setLoading} 
-            onCancel={() => setActiveComponent('table')}
           />
         );
       case 'import':

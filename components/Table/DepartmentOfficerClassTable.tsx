@@ -38,7 +38,8 @@ export default function ClassTable({
     try {
       const response = await api.get('/api/faculties');
       setFaculties(response.data.data.faculties || []);
-    } catch (err) {
+    } catch (error) {
+      console.error('Failed to fetch faculties:', error);
       toast.error('Không thể tải danh sách khoa');
     }
   };

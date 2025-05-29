@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import api from "@/lib/api";
 import { toast } from "sonner";
-import { StudentActivity } from "@/types/studentActivity";
 import Loading from "../Loading";
 
 interface Student {
@@ -23,7 +22,7 @@ export default function StudentActivitiesForm({ activityId, onAddStudents }: Pro
     const [studentLength, setStudentLength] = useState<number>(0);
     const [loading, setLoading] = useState(true);
 
-    const fetchUnjoinedStudents = async () => {
+    const fetchUnjoinedStudents = useCallback(async () => {
         setLoading(true);
         try {
             const res = await api.get(`/api/student-activities/${activityId}/not-participated`);
@@ -34,11 +33,11 @@ export default function StudentActivitiesForm({ activityId, onAddStudents }: Pro
         } finally {
             setLoading(false);
         }
-    };
+    }, [activityId]);
 
     useEffect(() => {
         fetchUnjoinedStudents();
-    }, []);
+    }, [fetchUnjoinedStudents]);
 
     const toggleSelect = (id: string) => {
         setSelected((prev) =>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import ExcelJS from "exceljs";
 import { toast } from "sonner";
 import { UploadCloud, Download, Trash, RefreshCw, Plus, SquarePen } from "lucide-react";
@@ -291,19 +291,21 @@ export default function CampaignImport({ criteria, onCampaignsImported }: Campai
 
     setImporting(true);
     try {
-      const campaignsForImport = previewCampaigns.map(({ row_number, ...campaign }) => ({
-        ...campaign,
-        created_by: 1 
-      }));
+      const campaignsForImport = previewCampaigns
+        .filter(campaign => 
+          campaign.semester_no !== undefined && 
+          campaign.academic_year !== undefined
+        )
+        .map(campaign => ({
+          name: campaign.name,
+          max_score: campaign.max_score,
+          criteria_id: campaign.criteria_id,
+          semester_no: campaign.semester_no!,
+          academic_year: campaign.academic_year!,
+          created_by: 1
+        }));
       
-      const result = await onCampaignsImported(campaignsForImport as {
-        name: string;
-        max_score: number;
-        criteria_id: number; 
-        semester_no: number;
-        academic_year: number;
-        created_by: number;
-      }[]);
+      const result = await onCampaignsImported(campaignsForImport);
       if (result.success) {
         setPreviewCampaigns([]);
         setShowErrors(false);

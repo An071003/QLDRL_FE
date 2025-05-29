@@ -368,7 +368,6 @@ export default function CriteriaImport({ onImported }: CriteriaImportProps) {
             <tbody className="bg-white divide-y divide-gray-200">
               {previewCriterias.map((criteria, index) => {
                 const { nameError, maxScoreError } = validateCriteria(criteria);
-                const hasError = nameError || maxScoreError;
                 const isEditing = editingIndex === index;
 
                 return (

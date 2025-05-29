@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import api from '@/lib/api';
 import { toast } from 'sonner';
@@ -17,18 +17,17 @@ interface DepartmentOfficer {
   };
 }
 
-export default function DepartmentOfficerDetailPage({ params }: { params: { id: string } }) {
+export default function DepartmentOfficerDetailPage() {
   const router = useRouter();
+  const params = useParams();
   const [officer, setOfficer] = useState<DepartmentOfficer | null>(null);
   const [loading, setLoading] = useState(true);
+  const officerId = params?.id as string;
 
-  useEffect(() => {
-    fetchOfficerDetail();
-  }, []);
-
-  const fetchOfficerDetail = async () => {
+  const fetchOfficerDetail = useCallback(async () => {
+    if (!officerId) return;
     try {
-      const res = await api.get(`/api/department-officers/${params.id}`);
+      const res = await api.get(`/api/department-officers/${officerId}`);
       if (res.data.officer) {
         setOfficer(res.data.officer);
       } else {
@@ -42,7 +41,11 @@ export default function DepartmentOfficerDetailPage({ params }: { params: { id: 
     } finally {
       setLoading(false);
     }
-  };
+  }, [officerId, router]);
+
+  useEffect(() => {
+    fetchOfficerDetail();
+  }, [fetchOfficerDetail]);
 
   const handleBackClick = () => {
     router.push('/uit/admin/department-officers');

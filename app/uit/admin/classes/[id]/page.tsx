@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { toast } from 'sonner';
@@ -34,17 +34,7 @@ export default function ClassDetailPage() {
     advisor_id: '',
   });
 
-  useEffect(() => {
-    fetchClassDetails();
-  }, [classId]);
-
-  useEffect(() => {
-    if (classData?.faculty_id) {
-      fetchFacultyAdvisors(classData.faculty_id);
-    }
-  }, [classData?.faculty_id]);
-
-  const fetchClassDetails = async () => {
+  const fetchClassDetails = useCallback(async () => {
     if (!classId) return;
     setLoading(true);
     try {
@@ -77,14 +67,24 @@ export default function ClassDetailPage() {
         toast.error('Không tìm thấy thông tin lớp');
         setClassData(null);
       }
-    } catch (err) {
-      console.error('Failed to fetch class details:', err);
+    } catch (error) {
+      console.error('Failed to fetch class details:', error);
       toast.error('Không thể tải thông tin lớp');
       setClassData(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [classId]);
+
+  useEffect(() => {
+    fetchClassDetails();
+  }, [classId, fetchClassDetails]);
+
+  useEffect(() => {
+    if (classData?.faculty_id) {
+      fetchFacultyAdvisors(classData.faculty_id);
+    }
+  }, [classData?.faculty_id]);
 
   const fetchFacultyAdvisors = async (facultyId: number) => {
     try {
@@ -94,7 +94,8 @@ export default function ClassDetailPage() {
       } else {
         setFacultyAdvisors([]);
       }
-    } catch (err) {
+    } catch (error) {
+      console.error('Failed to fetch faculty advisors:', error);
       toast.error('Không thể tải danh sách cố vấn học tập của khoa');
       setFacultyAdvisors([]);
     }

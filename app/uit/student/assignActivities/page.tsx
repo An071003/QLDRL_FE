@@ -3,7 +3,7 @@
 import { StudentLayout } from "@/components/layout/student";
 import type { Activity } from "@/types/activity";
 import api from "@/lib/api";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Tabs, Table, Button, message, Tooltip, Empty } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { TabsProps } from "antd";
@@ -47,12 +47,7 @@ export default function AssignActivitiesPage() {
         { title: "Điểm", dataIndex: "point", key: "point" },
     ];
 
-    useEffect(() => {
-        fetchCurrentStudent();
-    }, []);
-
-
-    const fetchCurrentStudent = async () => {
+    const fetchCurrentStudent = useCallback(async () => {
         try {
             const res = await api.get("/api/auth/me");
             const studentId = res.data.data.user.Student.student_id;
@@ -64,7 +59,11 @@ export default function AssignActivitiesPage() {
             console.error("Không thể lấy thông tin sinh viên:", err);
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        fetchCurrentStudent();
+    }, [fetchCurrentStudent]);
 
 
     const fetchAvailableActivities = async (id: string) => {
@@ -106,6 +105,7 @@ export default function AssignActivitiesPage() {
             fetchAvailableActivities(studentId);
             fetchRegisteredActivities(studentId);
         } catch (err) {
+            console.error(err);
             message.error("Lỗi khi đăng ký");
         }
     };
@@ -120,6 +120,7 @@ export default function AssignActivitiesPage() {
             fetchAvailableActivities(studentId);
             fetchRegisteredActivities(studentId);
         } catch (err) {
+            console.error(err);
             message.error("Lỗi khi hủy đăng ký");
         }
     };

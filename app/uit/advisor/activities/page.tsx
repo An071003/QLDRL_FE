@@ -24,10 +24,9 @@ export default function AdvisorActivityManagement() {
   const [sortField, setSortField] = useState<string | null>('point');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [selectedSemester, setSelectedSemester] = useState<string>("all");
-  const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState<string>("approved");
   const [activeComponent, setActiveComponent] = useState<"form" | "import" | "table">("table");
-  const itemsPerPage = 10; const tableRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function verifyToken() {
@@ -35,7 +34,7 @@ export default function AdvisorActivityManagement() {
         .split('; ')
         .find(row => row.startsWith('token='))
         ?.split('=')[1];
-  
+      
       if (token) {
         try {
           const secret = new TextEncoder().encode(process.env.NEXT_PUBLIC_JWT_SECRET as string);
@@ -152,7 +151,6 @@ export default function AdvisorActivityManagement() {
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
-    setCurrentPage(1);
   };
 
   const handleSort = (field: string) => {
@@ -194,8 +192,8 @@ export default function AdvisorActivityManagement() {
     // Apply sorting
     if (sortField) {
       return [...filtered].sort((a, b) => {
-        let valueA: any;
-        let valueB: any;
+        let valueA: string | number;
+        let valueB: string | number;
 
         switch (sortField) {
           case 'id':
@@ -310,28 +308,7 @@ export default function AdvisorActivityManagement() {
     return filtered;
   }, [createdPendingActivities, campaigns, searchTerm, selectedSemester, sortField, sortDirection]);
 
-  const totalPages = Math.ceil(
-    activeTab === "approved" 
-      ? sortedAndFilteredActivities.length / itemsPerPage
-      : sortedAndFilteredPendingActivities.length / itemsPerPage
-  );
-  
-  const paginatedActivities = activeTab === "approved"
-    ? sortedAndFilteredActivities.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-      )
-    : sortedAndFilteredPendingActivities.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
 
-  const goToPage = (page: number) => {
-    if (page > 0 && page <= totalPages) {
-      setCurrentPage(page);
-      tableRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  };
 
   if (loading) {
     return (
@@ -360,7 +337,6 @@ export default function AdvisorActivityManagement() {
                 value={selectedSemester}
                 onChange={(e) => {
                   setSelectedSemester(e.target.value);
-                  setCurrentPage(1);
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/4"
               >
@@ -393,13 +369,9 @@ export default function AdvisorActivityManagement() {
                 <ActivityTable
                   activities={sortedAndFilteredActivities}
                   campaigns={campaigns}
-                  currentPage={currentPage}
-                  itemsPerPage={itemsPerPage}
-                  totalItems={sortedAndFilteredActivities.length}
                   sortField={sortField}
                   sortDirection={sortDirection}
                   onSort={handleSort}
-                  onPageChange={setCurrentPage}
                   onViewDetails={(id) => router.push(`/uit/advisor/activities/${id}`)}
                 />
               </Tab>
@@ -407,13 +379,9 @@ export default function AdvisorActivityManagement() {
                 <ActivityTable
                   activities={sortedAndFilteredPendingActivities}
                   campaigns={campaigns}
-                  currentPage={currentPage}
-                  itemsPerPage={itemsPerPage}
-                  totalItems={sortedAndFilteredPendingActivities.length}
                   sortField={sortField}
                   sortDirection={sortDirection}
                   onSort={handleSort}
-                  onPageChange={setCurrentPage}
                   onViewDetails={(id) => router.push(`/uit/advisor/activities/${id}`)}
                   isPending={true}
                 />

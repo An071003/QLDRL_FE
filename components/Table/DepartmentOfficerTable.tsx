@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ReceiptText, SquarePen, Trash } from 'lucide-react';
 import { Tooltip } from 'antd';
@@ -14,18 +13,20 @@ interface DepartmentOfficer {
   };
 }
 
+interface EditData {
+  officer_name: string;
+  officer_phone: string;
+}
+
 interface DepartmentOfficerTableProps {
   officers: DepartmentOfficer[];
   editingOfficerId: number | null;
-  editData: {
-    officer_name: string;
-    officer_phone: string;
-  };
+  editData: EditData;
   onDeleteOfficer: (id: number) => void;
   onEditClick: (officer: DepartmentOfficer) => void;
   onSaveEdit: (id: number) => void;
   onCancelEdit: () => void;
-  onEditDataChange: (data: any) => void;
+  onEditDataChange: (data: EditData) => void;
 }
 
 export default function DepartmentOfficerTable({

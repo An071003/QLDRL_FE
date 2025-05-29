@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import { Class } from '@/types/class';
@@ -13,9 +13,8 @@ import debounce from 'lodash.debounce';
 import { useData } from '@/lib/contexts/DataContext';
 
 export default function ClassManagementPage() {
-  const { classes: contextClasses, faculties, loading: dataLoading, refreshData } = useData();
+  const { classes: contextClasses, loading: dataLoading, refreshData } = useData();
   const [classes, setClasses] = useState<Class[]>([]);
-  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [classIdToDelete, setClassIdToDelete] = useState<number | null>(null);

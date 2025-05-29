@@ -7,23 +7,40 @@ import { toast } from 'sonner';
 import { Tooltip } from 'antd';
 import { useData } from '@/lib/contexts/DataContext';
 
+interface Advisor {
+  username: string;
+  name: string;
+  faculty_id: number | null;
+  email: string;
+  phone: string | null;
+  row_number: number;
+}
+
+interface ValidationErrors {
+  usernameError: boolean;
+  nameError: boolean;
+  facultyIdError: boolean;
+  emailError: boolean;
+  phoneError: boolean;
+}
+
 export default function AdvisorImport({
   onAdvisorsImported,
   setLoadingManager
 }: {
-  onAdvisorsImported: (advisors: any[]) => Promise<{ success: boolean }>;
+  onAdvisorsImported: (advisors: Advisor[]) => Promise<{ success: boolean }>;
   setLoadingManager: (value: boolean) => void;
 }) {
   const { faculties, loading: dataLoading } = useData();
   
   const [loading, setLoading] = useState(false);
-  const [previewAdvisors, setPreviewAdvisors] = useState<any[]>([]);
+  const [previewAdvisors, setPreviewAdvisors] = useState<Advisor[]>([]);
   const [showErrors, setShowErrors] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editErrors, setEditErrors] = useState<{ [key: string]: boolean }>({});
   const [fileKey, setFileKey] = useState<string>(Date.now().toString());
   const [lastUpdated, setLastUpdated] = useState<string>("");
-  const [originalAdvisorBeforeEdit, setOriginalAdvisorBeforeEdit] = useState<any>(null);
+  const [originalAdvisorBeforeEdit, setOriginalAdvisorBeforeEdit] = useState<Advisor | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isValidEmail = (email: string) => {
@@ -36,7 +53,7 @@ export default function AdvisorImport({
     return /^\d{10}$/.test(phone);
   };
 
-  const validateAdvisor = (advisor: any) => {
+  const validateAdvisor = (advisor: Advisor): ValidationErrors => {
     return {
       usernameError: !advisor.username || advisor.username.trim() === '',
       nameError: !advisor.name || advisor.name.trim() === '',
@@ -50,7 +67,7 @@ export default function AdvisorImport({
     if (!file) return;
 
     setLoading(true);
-    const advisors: any[] = [];
+    const advisors: Advisor[] = [];
 
     try {
       const buffer = await file.arrayBuffer();
@@ -155,9 +172,9 @@ export default function AdvisorImport({
       
       // Convert faculty_id to number when storing
       if (key === 'faculty_id') {
-        updated[index][key] = value ? Number(value) : null;
+        (updated[index] as unknown as Record<string, unknown>)[key] = value ? Number(value) : null;
       } else {
-        updated[index][key] = value;
+        (updated[index] as unknown as Record<string, unknown>)[key] = value;
       }
 
       return updated;

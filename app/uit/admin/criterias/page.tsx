@@ -15,7 +15,6 @@ import { useData } from "@/lib/contexts/DataContext";
 export default function CriteriaManagement() {
   const { criteria: contextCriteria, loading: dataLoading, refreshData } = useData();
   const [criterias, setCriterias] = useState<Criteria[]>([]);
-  const [loading, setLoading] = useState(false);
   const [activeComponent, setActiveComponent] = useState<'form' | 'import' | 'table'>("table");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -76,10 +75,12 @@ export default function CriteriaManagement() {
     }
   };
 
-  const handleCriteriasImported = async (importedCriterias: { 
-    name: string; 
+  const handleCriteriasImported = async (importedCriterias: {
+    name: string;
     max_score: number;
-    created_by: number; 
+    created_by?: number;
+    row_number?: number;
+    error?: string;
   }[]) => {
     try {
       console.log("Attempting to import criteria:", importedCriterias);

@@ -34,12 +34,16 @@ interface Faculty {
 interface ScoreListProps {
   scores: StudentScore[];
   faculties: Faculty[];
+  page?: number;
+  limit?: number;
+  selectedSemester: string;
 }
 
-export default function ScoreList({ scores, faculties }: ScoreListProps) {
+export default function ScoreList({ scores, faculties, page = 1, limit = 10, selectedSemester }: ScoreListProps) {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedFacultyAbbr, setSelectedFacultyAbbr] = useState<string | null>(null);
   const [selectedClassName, setSelectedClassName] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(page);
 
   const handleFacultyChange = (value: string | undefined) => {
     setSelectedFacultyAbbr(value || null);
@@ -78,6 +82,12 @@ export default function ScoreList({ scores, faculties }: ScoreListProps) {
 
   const scoreColumns = [
     {
+      title: 'STT',
+      key: 'index',
+      width: '70px',
+      render: (_: unknown, __: unknown, index: number) => ((currentPage - 1) * limit) + index + 1,
+    },
+    {
       title: 'Mã sinh viên',
       dataIndex: 'student_id',
       key: 'student_id',
@@ -98,9 +108,10 @@ export default function ScoreList({ scores, faculties }: ScoreListProps) {
       render: (record: StudentScore) => record.Student?.Class?.name || '',
     },
     {
-      title: 'Điểm',
+      title: selectedSemester === 'all' ? 'Tổng điểm' : 'Điểm',
       dataIndex: 'score',
       key: 'score',
+      render: (score: number) => score.toFixed(2),
       sorter: (a: StudentScore, b: StudentScore) => a.score - b.score,
     },
     {
@@ -163,7 +174,12 @@ export default function ScoreList({ scores, faculties }: ScoreListProps) {
         dataSource={filteredScores} 
         columns={scoreColumns} 
         rowKey={(record) => `${record.student_id}_${record.semester_no}_${record.academic_year}`}
-        pagination={{ pageSize: 10 }}
+        pagination={{ 
+          pageSize: limit,
+          current: currentPage,
+          onChange: (page) => setCurrentPage(page),
+          showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} sinh viên`
+        }}
       />
     </div>
   );

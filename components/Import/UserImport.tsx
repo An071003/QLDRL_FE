@@ -1,29 +1,43 @@
 "use client";
 
 import { useState, useRef, useCallback, useMemo, memo } from 'react';
-import { UploadCloud, Trash, Check, X, RefreshCw, Plus, SquarePen, Download } from "lucide-react";
+import { UploadCloud, Trash, RefreshCw, Plus, SquarePen, Download } from "lucide-react";
 import ExcelJS from 'exceljs';
 import { toast } from 'sonner';
 import { Tooltip } from 'antd';
+
+interface User {
+  user_name: string;
+  email: string;
+  role: string;
+  role_id: number | null;
+  row_number: number;
+}
+
+interface ValidationErrors {
+  emailError: boolean;
+  roleError: boolean;
+  nameError: boolean;
+}
 
 const UserImport = memo(function UserImport({
   onUsersImported,
   setLoadingManager,
   roles
 }: {
-  onUsersImported: (users: any[]) => Promise<{ success: boolean }>;
+  onUsersImported: (users: User[]) => Promise<{ success: boolean }>;
   setLoadingManager: (value: boolean) => void;
   roles: { id: number; name: string }[];
 }) {
   
   const [loading, setLoading] = useState(false);
-  const [previewUsers, setPreviewUsers] = useState<any[]>([]);
+  const [previewUsers, setPreviewUsers] = useState<User[]>([]);
   const [showErrors, setShowErrors] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editErrors, setEditErrors] = useState<{ [key: string]: boolean }>({});
   const [fileKey, setFileKey] = useState<string>(Date.now().toString());
   const [lastUpdated, setLastUpdated] = useState<string>("");
-  const [originalUserBeforeEdit, setOriginalUserBeforeEdit] = useState<any>(null);
+  const [originalUserBeforeEdit, setOriginalUserBeforeEdit] = useState<User | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isValidEmail = useCallback((email: string) => {
@@ -31,7 +45,7 @@ const UserImport = memo(function UserImport({
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }, []);
 
-  const validateUser = useCallback((user: any) => {
+  const validateUser = useCallback((user: User): ValidationErrors => {
     return {
       emailError: !isValidEmail(user.email),
       roleError: !user.role || !roles.some(r => r.name === user.role),
@@ -43,7 +57,7 @@ const UserImport = memo(function UserImport({
     if (!file) return;
 
     setLoading(true);
-    const users: any[] = [];
+    const users: User[] = [];
 
     try {
       const buffer = await file.arrayBuffer();
@@ -102,20 +116,20 @@ const UserImport = memo(function UserImport({
     }
   }, [roles]);
 
-  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    await processExcelFile(file);
-    resetFileInput();
-  }, [processExcelFile]);
-
   const resetFileInput = useCallback(() => {
     setFileKey(Date.now().toString());
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   }, []);
+
+  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    await processExcelFile(file);
+    resetFileInput();
+  }, [processExcelFile, resetFileInput]);
 
   const handleReselect = useCallback(() => {
     if (fileInputRef.current) {
@@ -143,7 +157,7 @@ const UserImport = memo(function UserImport({
     setPreviewUsers(prev => {
       const updated = [...prev];
       
-      updated[index][key] = value;
+      (updated[index] as unknown as Record<string, unknown>)[key] = value;
 
       if (key === 'role') {
         const matched = roles.find(r => r.name === value);
@@ -214,17 +228,12 @@ const UserImport = memo(function UserImport({
     }
 
     setLoadingManager(true);
-    const usersToImport = previewUsers.map(({ user_name, email, role_id }) => ({
-      user_name,
-      email,
-      role_id
-    }));
 
     try {
-      const result = await onUsersImported(usersToImport);
+      const result = await onUsersImported(previewUsers);
 
       if (result.success) {
-        toast.success(`Import thành công ${usersToImport.length} người dùng!`);
+        toast.success(`Import thành công ${previewUsers.length} người dùng!`);
         setPreviewUsers([]);
         setShowErrors(false);
         setLastUpdated("");
@@ -240,7 +249,7 @@ const UserImport = memo(function UserImport({
     }
   }, [previewUsers, validateUser, onUsersImported, resetFileInput, setLoadingManager]);
 
-  const renderEmail = useCallback((email: any, isError: boolean) => {
+  const renderEmail = useCallback((email: string, isError: boolean) => {
     if (!email || typeof email !== 'string' || isError) {
       return "-";
     }
@@ -461,7 +470,7 @@ const UserImport = memo(function UserImport({
                         <span className={roleError && showErrors ? "text-red-700 font-semibold border-b-2 border-red-500" : ""}>
                           {user.role ? (
                             <span
-                              className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${roleColors[user.role.toLowerCase()] || 'bg-gray-100 text-gray-800'}`}
+                              className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${(roleColors as Record<string, string>)[user.role.toLowerCase()] || 'bg-gray-100 text-gray-800'}`}
                             >
                               {user.role}
                             </span>

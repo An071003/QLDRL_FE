@@ -5,11 +5,21 @@ import { toast } from 'sonner';
 import { useData } from '@/lib/contexts/DataContext';
 import Loading from '../Loading';
 
+interface Student {
+  student_id: string;
+  student_name: string;
+  email: string;
+  phone: string | null;
+  birthdate: string | null;
+  faculty_id: number;
+  class_id: number;
+}
+
 export default function StudentForm({
   onStudentCreated,
   setLoading
 }: {
-  onStudentCreated: (student: any) => Promise<void>;
+  onStudentCreated: (student: Student) => Promise<void>;
   setLoading: (value: boolean) => void;
 }) {
   const [formData, setFormData] = useState({
@@ -22,7 +32,7 @@ export default function StudentForm({
     class_id: '',
   });
   
-  const { faculties, classes, loading: dataLoading, getFilteredClasses } = useData();
+  const { faculties, loading: dataLoading, getFilteredClasses } = useData();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

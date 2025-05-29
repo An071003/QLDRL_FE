@@ -5,7 +5,6 @@ import api from '@/lib/api';
 import Loading from '@/components/Loading';
 import { toast } from 'sonner';
 import debounce from 'lodash.debounce';
-import { useRouter } from 'next/navigation';
 
 interface Faculty {
   id: number;
@@ -19,7 +18,6 @@ interface Faculty {
 }
 
 export default function AdvisorFacultiesPage() {
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -81,8 +79,8 @@ export default function AdvisorFacultiesPage() {
     // Sort faculties
     if (sortField) {
       return [...filtered].sort((a, b) => {
-        let valueA: any;
-        let valueB: any;
+        let valueA: string | number;
+        let valueB: string | number;
 
         switch (sortField) {
           case 'faculty_abbr': valueA = a.faculty_abbr || ''; valueB = b.faculty_abbr || ''; break;

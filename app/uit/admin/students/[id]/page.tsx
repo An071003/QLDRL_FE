@@ -32,7 +32,8 @@ export default function StudentActivitiesPage() {
         } else {
           setActivities([]);
         }
-      } catch (err) {
+      } catch (error) {
+        console.error('Failed to fetch student activities:', error);
         toast.error("Không thể tải hoạt động sinh viên ❌");
         setActivities([]);
       } finally {

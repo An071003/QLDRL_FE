@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 interface RoleFormProps {
-  onRoleCreated: (newRole: { name: string }) => Promise<{ success: boolean; message: any }>;
+  onRoleCreated: (newRole: { name: string }) => Promise<{ success: boolean; message: string }>;
   setLoading: (value: boolean) => void;
 }
 
@@ -28,6 +28,7 @@ export default function RoleForm({ onRoleCreated, setLoading }: RoleFormProps) {
         toast.error(result.message || "Lỗi tạo vai trò");
       }
     } catch (error) {
+      console.error(error)
       toast.error("Lỗi tạo vai trò");
     } finally {
       setLoading(false);

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import Loading from "@/components/Loading";
-import { useRouter } from 'next/navigation';
+
 import { Tabs, Tab } from "@/components/Tabs";
 import { Activity } from "@/types/activity";
 import { Campaign } from "@/types/campaign";
@@ -14,7 +14,6 @@ import ActivityImport from "@/components/Import/ActivityImport";
 import ActivityTable from "@/components/activities/ActivityTable";
 
 export default function DPOActivityManagement() {
-  const router = useRouter();
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [pendingActivities, setPendingActivities] = useState<Activity[]>([]);
@@ -24,10 +23,8 @@ export default function DPOActivityManagement() {
   const [sortField, setSortField] = useState<string | null>('point');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [selectedSemester, setSelectedSemester] = useState<string>("all");
-  const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState<string>("approved");
   const [activeComponent, setActiveComponent] = useState<"form" | "import" | "table">("table");
-  const itemsPerPage = 10;
   const tableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -63,12 +60,12 @@ export default function DPOActivityManagement() {
       setCampaigns(campaignsData);
       
       const activitiesRes = await api.get("/api/activities");
-      let allActivities = activitiesRes.data.data.activities || activitiesRes.data.data || [];
+      const allActivities = activitiesRes.data.data.activities || activitiesRes.data.data || [];
       const approved = allActivities.filter((activity: Activity) => activity.approver_id !== null);
       setActivities(approved);
       
       const createdPendingRes = await api.get("/api/activities/created-pending");
-      let pendingData = createdPendingRes.data.data.activities || createdPendingRes.data.data || [];
+      const pendingData = createdPendingRes.data.data.activities || createdPendingRes.data.data || [];
       setPendingActivities(pendingData);
     } catch (error) {
       toast.error("Không thể tải dữ liệu");
@@ -138,7 +135,6 @@ export default function DPOActivityManagement() {
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
-    setCurrentPage(1);
   };
 
   const handleSort = (field: string) => {
@@ -179,8 +175,8 @@ export default function DPOActivityManagement() {
 
     if (sortField) {
       return [...filtered].sort((a, b) => {
-        let valueA: any;
-        let valueB: any;
+        let valueA: string | number;
+        let valueB: string | number;
 
         switch (sortField) {
           case 'id':
@@ -232,8 +228,8 @@ export default function DPOActivityManagement() {
 
     if (sortField) {
       return [...filtered].sort((a, b) => {
-        let valueA: any;
-        let valueB: any;
+        let valueA: string | number;
+        let valueB: string | number;
 
         switch (sortField) {
           case 'id':
@@ -271,10 +267,6 @@ export default function DPOActivityManagement() {
     return filtered;
   }, [pendingActivities, campaigns, searchTerm, selectedSemester, sortField, sortDirection]);
 
-  const handleViewDetails = (id: number) => {
-    router.push(`/uit/department-officers/activities/${id}`);
-  };
-
   if (loading) {
     return <Loading />;
   }
@@ -300,7 +292,6 @@ export default function DPOActivityManagement() {
                 value={selectedSemester}
                 onChange={(e) => {
                   setSelectedSemester(e.target.value);
-                  setCurrentPage(1);
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/4"
               >
@@ -333,26 +324,21 @@ export default function DPOActivityManagement() {
                 <ActivityTable
                   activities={sortedAndFilteredActivities}
                   campaigns={campaigns}
-                  currentPage={currentPage}
-                  itemsPerPage={itemsPerPage}
                   sortField={sortField}
                   sortDirection={sortDirection}
                   onSort={handleSort}
-                  onPageChange={setCurrentPage}
-                  onViewDetails={handleViewDetails}
+                  onViewDetails={(id) => window.open(`/uit/department-officers/activities/${id}`, '_blank')}
                 />
               </Tab>
               <Tab value="pending" title="Chờ phê duyệt">
                 <ActivityTable
                   activities={sortedAndFilteredPendingActivities}
                   campaigns={campaigns}
-                  currentPage={currentPage}
-                  itemsPerPage={itemsPerPage}
                   sortField={sortField}
                   sortDirection={sortDirection}
                   onSort={handleSort}
-                  onPageChange={setCurrentPage}
-                  onViewDetails={handleViewDetails}
+                  onViewDetails={(id) => window.open(`/uit/department-officers/activities/${id}`, '_blank')}
+                  isPending={true}
                 />
               </Tab>
             </Tabs>

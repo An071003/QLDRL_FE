@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
-import { toast } from "sonner";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import Loading from '@/components/Loading';
 import { Table, Button, Form, InputNumber, Select, Modal, message } from 'antd';
@@ -57,9 +56,10 @@ export default function SemestersPage() {
       form.resetFields();
       setIsModalOpen(false);
       fetchSemesters();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       console.error('Error creating semester:', error);
-      message.error(error.response?.data?.message || 'Không thể tạo học kỳ mới');
+      message.error(err.response?.data?.message || 'Không thể tạo học kỳ mới');
     } finally {
       setSubmitting(false);
     }
@@ -108,9 +108,10 @@ export default function SemestersPage() {
       await api.delete(`/api/student-scores/semester/${semesterToDelete.semester_no}/${semesterToDelete.academic_year}`);
       message.success('Xóa học kỳ thành công');
       fetchSemesters();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       console.error('Error deleting semester:', error);
-      message.error(error.response?.data?.message || 'Không thể xóa học kỳ');
+      message.error(err.response?.data?.message || 'Không thể xóa học kỳ');
     } finally {
       setModalOpen(false);
       setSemesterToDelete(null);

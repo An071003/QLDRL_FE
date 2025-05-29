@@ -6,22 +6,23 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Student } from "@/types/student";
 import { toast } from "sonner";
-import api from "@/lib/api";
 import { useData } from '@/lib/contexts/DataContext';
 
 interface Props {
   students: Student[];
   onDeleteStudent: (id: string) => void;
   onUpdateStudent: (id: string, updatedData: Partial<Student>) => void;
+  role: "admin" | "department-officers";
 }
 
 export default function StudentTable({
   students,
   onDeleteStudent,
   onUpdateStudent,
+  role,
 }: Props) {
   const router = useRouter();
-  const { faculties, classes, getFilteredClasses } = useData();
+  const { faculties, getFilteredClasses } = useData();
   
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
@@ -42,7 +43,7 @@ export default function StudentTable({
   }, [editFacultyId, getFilteredClasses]);
 
   const handleViewActivities = (id: string) => {
-    router.push(`/uit/admin/students/${id}`);
+    router.push(`/uit/${role}/students/${id}`);
   };
 
   const handleEdit = (student: Student) => {

@@ -1,4 +1,7 @@
+"use client"
 import Link from 'next/link';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import ClassleaderDropdown from "@/components/class-leader/ClassleaderDropdown";
 
 export const metadata = {
@@ -6,18 +9,43 @@ export const metadata = {
 };
 
 export function ClassleaderLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        router.push('/login');
+      }
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
+  };
+
   return (
     <div>
       <header className="flex items-center justify-between py-4 px-6 border-b bg-[#0b3c65] border-blue-900 text-white">
         <div className="flex items-center space-x-4">
-          <img src="/banner.png" alt="Logo" className="w-[90%] h-auto text-[50px] object-contain" />
-
+          <Image 
+            src="/banner.png" 
+            alt="Logo" 
+            width={400}
+            height={80}
+            className="w-[90%] h-auto text-[50px] object-contain"
+            priority
+          />
         </div>
         <div className="flex items-center space-x-4">
           <div className="text-sm">
-            <Link href="/login" className="hover:underline">Tài khoản</Link>
+            <button onClick={handleLogout} className="hover:underline">Tài khoản</button>
             <span className="text-sm"> | </span>
-            <Link href="/login" className="hover:underline">Thoát</Link>
+            <button onClick={handleLogout} className="hover:underline">Thoát</button>
           </div>
           <div className="relative">
             <input
@@ -34,12 +62,17 @@ export function ClassleaderLayout({ children }: { children: React.ReactNode }) {
 
       <nav className="flex items-center p-2 bg-[#0a3a60]">
         <Link href="/uit/class-leader" className="flex items-center space-x-2">
-          <img src="/house-user-solid.svg" alt="Home" className="w-8 h-8" />
+          <Image 
+            src="/house-user-solid.svg" 
+            alt="Home" 
+            width={32}
+            height={32}
+            className="w-8 h-8"
+          />
         </Link>
         <div className="ml-4 mt-1.5">
           <ClassleaderDropdown />
         </div>
-
       </nav>
 
       <main className="p-4">

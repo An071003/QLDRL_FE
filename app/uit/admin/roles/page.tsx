@@ -14,6 +14,15 @@ import { Role } from '@/types/role';
 import { Permission } from '@/types/permission';
 import { useRouter } from 'next/navigation';
 
+interface ErrorResponse {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+  message?: string;
+}
+
 export default function RoleManagement() {
   const router = useRouter();
   const [roles, setRoles] = useState<Role[]>([]);
@@ -31,7 +40,8 @@ export default function RoleManagement() {
     try {
       const response = await api.get('/api/roles');
       setRoles(response.data.roles);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      console.error(err);
       toast.error('Lỗi tải dữ liệu vai trò');
     } finally {
       setLoading(false);
@@ -49,7 +59,8 @@ export default function RoleManagement() {
         if (p.action) actionsSet.add(p.action as string);
       });
       setUniqueActions(Array.from(actionsSet));
-    } catch (err: any) {
+    } catch (error: unknown) {
+      console.error('Failed to fetch permissions:', error);
       toast.error('Lỗi tải dữ liệu quyền hạn');
     } finally {
       setLoading(false);
@@ -68,7 +79,8 @@ export default function RoleManagement() {
       setRoles(prev => [...prev, createdRole]);
       setActiveComponent('roleTable');
       return { success: true, message: 'Tạo vai trò thành công!' };
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const err = error as ErrorResponse;
       const msg = err?.response?.data?.message || 'Lỗi tạo vai trò.';
       return { success: false, message: msg };
     }
@@ -82,7 +94,8 @@ export default function RoleManagement() {
       ));
       
       return true;
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const err = error as ErrorResponse;
       const msg = err?.response?.data?.message || 'Lỗi cập nhật vai trò.';
       toast.error(msg);
       return false;
@@ -102,7 +115,8 @@ export default function RoleManagement() {
       
       setActiveComponent('permissionTable');
       return { success: true, message: 'Tạo quyền hạn thành công!' };
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const err = error as ErrorResponse;
       const msg = err?.response?.data?.message || 'Lỗi tạo quyền hạn.';
       return { success: false, message: msg };
     }
@@ -130,7 +144,8 @@ export default function RoleManagement() {
         setPermissions(prev => prev.filter(permission => permission.id !== itemToDelete.id));
         toast.success('Xóa quyền hạn thành công!');
       }
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const err = error as ErrorResponse;
       const msg = err?.response?.data?.message || `Lỗi xóa ${itemToDelete.type === 'role' ? 'vai trò' : 'quyền hạn'}`;
       toast.error(msg);
     } finally {
@@ -195,6 +210,8 @@ export default function RoleManagement() {
         />;
     }
   };
+
+
 
   if (loading && roles.length === 0 && permissions.length === 0) return <Loading />;
 

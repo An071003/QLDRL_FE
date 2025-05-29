@@ -7,6 +7,10 @@ import { toast } from "sonner";
 import { Tooltip } from 'antd';
 import { Faculty } from "@/types/faculty";
 
+interface FacultyImportItem extends Partial<Faculty> {
+  row_number?: number;
+}
+
 type FacultyImportProps = {
   onFacultiesImported: (faculties: Partial<Faculty>[]) => Promise<{ success: boolean }>;
   setLoadingManager: (value: boolean) => void;
@@ -14,16 +18,16 @@ type FacultyImportProps = {
 
 export default function FacultyImport({ onFacultiesImported, setLoadingManager }: FacultyImportProps) {
   const [loading, setLoading] = useState(false);
-  const [previewFaculties, setPreviewFaculties] = useState<Partial<Faculty>[]>([]);
+  const [previewFaculties, setPreviewFaculties] = useState<FacultyImportItem[]>([]);
   const [showErrors, setShowErrors] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editErrors, setEditErrors] = useState<{ [key: string]: boolean }>({});
   const [fileKey, setFileKey] = useState<string>(Date.now().toString());
   const [lastUpdated, setLastUpdated] = useState<string>("");
-  const [originalFacultyBeforeEdit, setOriginalFacultyBeforeEdit] = useState<Partial<Faculty> | null>(null);
+  const [originalFacultyBeforeEdit, setOriginalFacultyBeforeEdit] = useState<FacultyImportItem | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const validateFaculty = (faculty: Partial<Faculty>) => {
+  const validateFaculty = (faculty: FacultyImportItem) => {
     return {
       nameError: !faculty.name || faculty.name.trim() === '',
       abbrError: !faculty.faculty_abbr || faculty.faculty_abbr.trim() === ''
@@ -34,7 +38,7 @@ export default function FacultyImport({ onFacultiesImported, setLoadingManager }
     if (!file) return;
 
     setLoading(true);
-    const faculties: Partial<Faculty>[] = [];
+    const faculties: FacultyImportItem[] = [];
 
     try {
       const buffer = await file.arrayBuffer();

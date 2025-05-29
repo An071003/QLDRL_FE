@@ -14,6 +14,15 @@ interface LoginFormValues {
   password: string;
 }
 
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+  message?: string;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [form] = Form.useForm();
@@ -24,8 +33,12 @@ export default function LoginPage() {
     try {
       await api.post("/api/auth/login", values);
       router.push("/uit");
+      setLoading(false);
     } catch (err: unknown) {
-      toast.error(err.response.data.message || "Đăng nhập không thành công.");
+      const error = err as ApiError;
+      toast.error(error?.response?.data?.message || "Đăng nhập không thành công.");
+      setLoading(false);
+    } finally {
       setLoading(false);
     }
   };
