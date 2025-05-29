@@ -3,20 +3,25 @@ import { jwtVerify } from 'jose';
 
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get("token")?.value;
-  console.log(request.nextUrl.pathname);
-  if (request.nextUrl.pathname === "/logout" && request.method === "POST") {
-    const response = NextResponse.json({ success: true });
-    response.cookies.delete("token");
-    return response;
-  }
+  console.log('Request path:', request.nextUrl.pathname);
+  console.log('Token present:', !!token);
 
-  if (request.nextUrl.pathname === "/logout" && request.method === "GET") {
+  // Handle logout
+  if (request.nextUrl.pathname === "/logout") {
+    if (request.method === "POST") {
+      const response = NextResponse.json({ success: true });
+      response.cookies.delete("token");
+      return response;
+    }
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
+  // Handle no token case
   if (!token) {
     if (request.nextUrl.pathname !== "/login") {
-      return NextResponse.redirect(new URL("/login", request.url));
+      const response = NextResponse.redirect(new URL("/login", request.url));
+      response.cookies.delete("token");
+      return response;
     }
     return NextResponse.next();
   }
@@ -29,11 +34,10 @@ export async function middleware(request: NextRequest) {
 
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const { payload } = await jwtVerify(token, secret);
-
     const { role } = payload as { role: string };
     const pathname = request.nextUrl.pathname;
 
-    // Role-based access control with logging
+    // Role-based access control
     if (pathname.startsWith("/uit/admin") && role !== "admin") {
       return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
@@ -53,10 +57,23 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith("/uit/class-leader") && role !== "classleader") {
       return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
-    return NextResponse.next();
+
+    const response = NextResponse.next();
+    // Preserve token with proper settings
+    response.cookies.set({
+      name: "token",
+      value: token,
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      path: '/'
+    });
+    return response;
   } catch (error) {
     console.error('Error in middleware:', error);
-    return NextResponse.redirect(new URL("/login", request.url));
+    const response = NextResponse.redirect(new URL("/login", request.url));
+    response.cookies.delete("token");
+    return response;
   }
 }
 

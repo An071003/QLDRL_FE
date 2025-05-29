@@ -6,24 +6,18 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  // Ensure cookies are sent with every request
   xsrfCookieName: 'XSRF-TOKEN',
-  xsrfHeaderName: 'X-XSRF-TOKEN',
+  xsrfHeaderName: 'X-XSRF-TOKEN'
 });
 
 // Add response interceptor to handle cookie updates
-api.interceptors.response.use(
-  (response) => {
-    // Check for and handle any cookie updates in response headers
-    const cookies = response.headers['set-cookie'];
-    if (cookies) {
-      console.log('Received new cookies from server');
-    }
-    return response;
-  },
-  (error) => {
-    return Promise.reject(error);
+api.interceptors.response.use(response => {
+  const setCookie = response.headers['set-cookie'];
+  if (setCookie) {
+    // Handle any cookie-related logic if needed
+    console.log('Received new cookies');
   }
-);
+  return response;
+});
 
 export default api;
