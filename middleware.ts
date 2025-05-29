@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from 'jose';
 
 export async function middleware(request: NextRequest) {
+  // Skip middleware for RSC requests
+  if (request.nextUrl.searchParams.has('_rsc') || 
+      request.headers.get('RSC') === '1' || 
+      request.headers.get('Next-Router-State-Tree')) {
+    return NextResponse.next();
+  }
+
   const token = request.cookies.get("token")?.value;
   const { pathname } = request.nextUrl;
 
@@ -77,7 +84,17 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
 
-    return NextResponse.next();
+    const response = NextResponse.next();
+    // Ensure token is preserved in the response
+    if (token && !response.cookies.get('token')) {
+      response.cookies.set('token', token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        path: '/'
+      });
+    }
+    return response;
   } catch (error) {
     console.error('Error in middleware:', error);
     const response = NextResponse.redirect(new URL("/login", request.url));
@@ -92,6 +109,7 @@ export const config = {
     '/login',
     '/logout',
     '/uit/:path*',
-    '/unauthorized'
+    '/unauthorized',
+    '/_next/data/:path*'
   ]
 };
