@@ -31,7 +31,7 @@ export default function LoginPage() {
   const handleSubmit = async (values: LoginFormValues) => {
     setLoading(true);
     try {
-      await api.post("/api/auth/login", values);
+      await api.post("/", values);
       router.push("/uit");
       setLoading(false);
     } catch (err: unknown) {
