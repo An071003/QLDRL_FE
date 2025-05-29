@@ -29,7 +29,7 @@ export default function ActivityTable({ activities, totalScore, maxScore, campai
       ]}
       summary={() => (
         <Table.Summary.Row>
-          <Table.Summary.Cell colSpan={8}>
+          <Table.Summary.Cell index={0} colSpan={8}>
             <span className="font-bold text-blue-700">Tổng điểm phong trào {campaignIndex + 1}: {totalScore} / {maxScore}</span>
           </Table.Summary.Cell>
         </Table.Summary.Row>

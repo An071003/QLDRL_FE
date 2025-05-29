@@ -2,12 +2,11 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Table, Space, Button, Tag, Tooltip, Select } from 'antd';
-import { EyeOutlined, EditOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
+import { Table, Space, Button, Tag, Tooltip, Select, Modal } from 'antd';
+import { EyeOutlined, EditOutlined, CheckOutlined, CloseOutlined, StopOutlined, CrownOutlined } from '@ant-design/icons';
 import api from '@/lib/api';
 import Loading from '@/components/Loading';
 import { toast } from 'sonner';
-// @ts-expect-error Missing types for lodash.debounce
 import debounce from 'lodash.debounce';
 
 interface Student {
@@ -24,10 +23,18 @@ interface Class {
   name: string;
   cohort: string;
   faculty_id: number;
-  class_leader_id?: string;
+  class_leader_id?: string | null;
   Faculty?: {
     id: number;
     name: string;
+  };
+}
+
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
   };
 }
 
@@ -45,6 +52,10 @@ export default function AdvisorClassStudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLeaderId, setSelectedLeaderId] = useState<string>('');
+  const [currentStudent, setCurrentStudent] = useState<Student | null>(null);
+  const [isSettingLeader, setIsSettingLeader] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const fetchClassAndStudents = useCallback(async () => {
     setLoading(true);

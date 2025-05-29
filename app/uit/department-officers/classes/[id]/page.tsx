@@ -36,6 +36,12 @@ export default function ClassDetailPage() {
     advisor_id: '',
   });
 
+  // State for modal and class leader management
+  const [currentStudent, setCurrentStudent] = useState<Student | null>(null);
+  const [isSettingLeader, setIsSettingLeader] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+
   const fetchClassDetails = useCallback(async () => {
     if (!classId) return;
     setLoading(true);

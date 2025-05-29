@@ -197,9 +197,6 @@ export default function FinalScorePage() {
 
   // Statistics calculations
   const totalSemesters = filteredScores.length;
-  const averageScore = totalSemesters > 0 
-    ? filteredScores.reduce((sum, score) => sum + score.score, 0) / totalSemesters 
-    : 0;
   const highestScore = totalSemesters > 0 
     ? Math.max(...filteredScores.map(score => score.score)) 
     : 0;
@@ -405,10 +402,6 @@ export default function FinalScorePage() {
                   <span className="font-bold text-blue-600">{totalSemesters}</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                  <span>Điểm trung bình:</span>
-                  <span className="font-bold text-green-600">{averageScore.toFixed(1)}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
                   <span>Điểm cao nhất:</span>
                   <span className="font-bold text-yellow-600">{highestScore.toFixed(1)}</span>
                 </div>
@@ -488,17 +481,6 @@ export default function FinalScorePage() {
                 value={totalSemesters}
                 valueStyle={{ color: '#722ed1', fontSize: '2rem' }}
                 prefix={<CalendarOutlined />}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card className="text-center bg-gradient-to-r from-orange-50 to-orange-100">
-              <Statistic
-                title="Điểm TB"
-                value={averageScore}
-                precision={1}
-                valueStyle={{ color: '#fa8c16', fontSize: '2rem' }}
-                prefix={<LineChartOutlined />}
               />
             </Card>
           </Col>
