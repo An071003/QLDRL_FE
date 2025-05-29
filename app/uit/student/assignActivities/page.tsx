@@ -70,7 +70,8 @@ export default function AssignActivitiesPage() {
         setLoading(true);
         try {
             const res = await api.get(`/api/student-activities/${id}/available`);
-            setAvailableActivities(res.data.data);
+            console.log("Available activities response:", res.data);
+            setAvailableActivities(res.data.data || []);
         } catch (err) {
             console.error("Lỗi khi lấy hoạt động chưa đăng ký:", err);
             message.error("Không thể tải hoạt động khả dụng");
@@ -82,6 +83,7 @@ export default function AssignActivitiesPage() {
     const fetchRegisteredActivities = async (id: string) => {
         try {
             const res = await api.get(`/api/student-activities/student/${id}`);
+            console.log("Registered activities response:", res.data);
             const activities = res.data.data;
             const filtered = Array.isArray(activities) ? activities.filter(a => a.status === "ongoing") : [];
             setRegisteredActivities(filtered);

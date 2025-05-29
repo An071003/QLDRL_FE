@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Form, Input, Select, Button, Typography, notification } from 'antd';
 import api from '@/lib/api';
-import { MainLayout } from '@/components/layout';
+import { MainLayout } from '@/components/layout/main';
 import { toast } from 'sonner';
 const { Title } = Typography;
 const { Option } = Select;

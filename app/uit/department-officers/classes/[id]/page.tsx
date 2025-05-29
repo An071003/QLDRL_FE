@@ -9,6 +9,8 @@ import { Class } from '@/types/class';
 import { Student } from '@/types/student';
 import { Advisor } from '@/types/advisor';
 import { Faculty } from '@/types/faculty';
+import { Modal, Button } from 'antd';
+import { CrownOutlined, StopOutlined } from '@ant-design/icons';
 
 export default function ClassDetailPage() {
   const params = useParams();
@@ -33,6 +35,12 @@ export default function ClassDetailPage() {
     class_leader_id: '',
     advisor_id: '',
   });
+
+  // State for modal and class leader management
+  const [currentStudent, setCurrentStudent] = useState<Student | null>(null);
+  const [isSettingLeader, setIsSettingLeader] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const fetchClassDetails = useCallback(async () => {
     if (!classId) return;
@@ -135,6 +143,47 @@ export default function ClassDetailPage() {
       toast.error('Cập nhật thông tin lớp thất bại');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const showSetLeaderModal = (student: Student, isSettingAction: boolean) => {
+    setCurrentStudent(student);
+    setIsSettingLeader(isSettingAction);
+    setModalVisible(true);
+  };
+
+  const handleSetClassLeader = async () => {
+    if (!currentStudent || !classId) return;
+    
+    setActionLoading(true);
+    try {
+      const action = isSettingLeader ? 'set' : 'unset';
+      const response = await api.post(`/api/classes/${classId}/set-class-leader`, {
+        studentId: currentStudent.student_id,
+        action
+      });
+
+      if (response.data.status === 'success') {
+        toast.success(response.data.message);
+        
+        // Update local state to reflect changes
+        if (isSettingLeader) {
+          setClassData(prev => prev ? { ...prev, class_leader_id: currentStudent.student_id } : prev);
+        } else {
+          setClassData(prev => prev ? { ...prev, class_leader_id: null } : prev);
+        }
+        
+        // Refresh the data
+        fetchClassDetails();
+      } else {
+        toast.error(response.data.message || 'Không thể cập nhật lớp trưởng');
+      }
+    } catch (error) {
+      console.error('Error setting class leader:', error);
+      toast.error('Lỗi khi cập nhật lớp trưởng');
+    } finally {
+      setActionLoading(false);
+      setModalVisible(false);
     }
   };
 
@@ -282,17 +331,18 @@ export default function ClassDetailPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số điện thoại</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày sinh</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {students.map((student, index) => (
-                  <tr key={student.student_id} className={`hover:bg-gray-50 ${student.student_id === classData.class_leader_id ? 'bg-blue-50' : ''}`}>
+                  <tr key={student.student_id} className={`hover:bg-gray-50 ${student.student_id === classData.class_leader_id ? 'bg-yellow-100' : ''}`}>
                     <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
                     <td className="px-6 py-4 whitespace-nowrap">{student.student_id}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {student.student_name}
                       {student.student_id === classData.class_leader_id && (
-                        <span className="ml-2 text-xs text-white bg-blue-500 px-2 py-1 rounded">Lớp trưởng</span>
+                        <span className="ml-2 text-xs text-yellow-800 bg-yellow-100 px-2 py-1 rounded">Lớp trưởng</span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">{student.phone || 'N/A'}</td>
@@ -306,6 +356,26 @@ export default function ClassDetailPage() {
                         <span className="text-green-600">Bình thường</span>
                       )}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {student.student_id === classData.class_leader_id ? (
+                        <Button
+                          type="default"
+                          danger
+                          icon={<StopOutlined />}
+                          onClick={() => showSetLeaderModal(student, false)}
+                        >
+                          Bỏ lớp trưởng
+                        </Button>
+                      ) : (
+                        <Button
+                          type="default"
+                          icon={<CrownOutlined />}
+                          onClick={() => showSetLeaderModal(student, true)}
+                        >
+                          Thiết lập làm lớp trưởng
+                        </Button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -317,6 +387,28 @@ export default function ClassDetailPage() {
           </div>
         )}
       </div>
+
+      <Modal
+        title={isSettingLeader ? "Thiết lập lớp trưởng" : "Bỏ lớp trưởng"}
+        open={modalVisible}
+        onOk={handleSetClassLeader}
+        onCancel={() => setModalVisible(false)}
+        confirmLoading={actionLoading}
+        okText={isSettingLeader ? "Thiết lập" : "Bỏ vai trò"}
+        cancelText="Hủy"
+      >
+        <p>
+          {isSettingLeader 
+            ? `Bạn có chắc chắn muốn thiết lập sinh viên "${currentStudent?.student_name}" làm lớp trưởng không?`
+            : `Bạn có chắc chắn muốn bỏ vai trò lớp trưởng của sinh viên "${currentStudent?.student_name}" không?`
+          }
+        </p>
+        {isSettingLeader && classData?.class_leader_id && (
+          <p className="text-yellow-600 mt-2">
+            Lưu ý: Sinh viên đang là lớp trưởng hiện tại sẽ trở lại vai trò sinh viên thông thường.
+          </p>
+        )}
+      </Modal>
     </div>
   );
 } 
