@@ -1,13 +1,11 @@
 "use client";
 
 import { StudentLayout } from "@/components/layout/student";
+import { ActivityRegistrationTabs } from "@/components/student";
 import type { Activity } from "@/types/activity";
 import api from "@/lib/api";
 import { useEffect, useState, useCallback } from "react";
-import { Tabs, Table, Button, message, Tooltip, Empty } from "antd";
-import type { ColumnsType } from "antd/es/table";
-import type { TabsProps } from "antd";
-
+import { message } from "antd";
 
 export default function AssignActivitiesPage() {
     const [studentId, setStudentId] = useState<string>("");
@@ -16,36 +14,6 @@ export default function AssignActivitiesPage() {
     const [selectedToRegister, setSelectedToRegister] = useState<number[]>([]);
     const [selectedToCancel, setSelectedToCancel] = useState<number[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
-
-    const columns: ColumnsType<Activity> = [
-        { 
-            title: "Tên hoạt động", 
-            dataIndex: "name", 
-            key: "name",
-            ellipsis: {
-                showTitle: false,
-            },
-            render: (name) => (
-                <Tooltip placement="topLeft" title={name}>
-                    <span>{name}</span>
-                </Tooltip>
-            )
-        },
-        { 
-            title: "Phong trào", 
-            dataIndex: ["Campaign", "name"], 
-            key: "campaign_name",
-            ellipsis: {
-                showTitle: false,
-            },
-            render: (text, record) => (
-                <Tooltip placement="topLeft" title={record.Campaign?.name}>
-                    <span>{record.Campaign?.name}</span>
-                </Tooltip>
-            )
-        },
-        { title: "Điểm", dataIndex: "point", key: "point" },
-    ];
 
     const fetchCurrentStudent = useCallback(async () => {
         try {
@@ -64,7 +32,6 @@ export default function AssignActivitiesPage() {
     useEffect(() => {
         fetchCurrentStudent();
     }, [fetchCurrentStudent]);
-
 
     const fetchAvailableActivities = async (id: string) => {
         setLoading(true);
@@ -125,79 +92,21 @@ export default function AssignActivitiesPage() {
         }
     };
 
-    const tabItems: TabsProps["items"] = [
-        {
-            key: "register",
-            label: "Đăng ký",
-            children: (
-                <>
-                    {availableActivities.length > 0 ? (
-                        <>
-                            <Table
-                                rowKey="id"
-                                columns={columns}
-                                dataSource={availableActivities}
-                                rowSelection={{
-                                    selectedRowKeys: selectedToRegister,
-                                    onChange: (keys) => setSelectedToRegister(keys as number[]),
-                                }}
-                                pagination={false}
-                                loading={loading}
-                            />
-                            <div className="text-right mt-4">
-                                <Button type="primary" disabled={!selectedToRegister.length} onClick={handleRegister}>
-                                    Đăng ký
-                                </Button>
-                            </div>
-                        </>
-                    ) : (
-                        <Empty 
-                            description={loading ? "Đang tải..." : "Không có hoạt động nào khả dụng để đăng ký"} 
-                            className="py-12"
-                        />
-                    )}
-                </>
-            ),
-        },
-        {
-            key: "cancel",
-            label: "Hủy",
-            children: (
-                <>
-                    {registeredActivities.length > 0 ? (
-                        <>
-                            <Table
-                                rowKey="id"
-                                columns={columns}
-                                dataSource={registeredActivities}
-                                rowSelection={{
-                                    selectedRowKeys: selectedToCancel,
-                                    onChange: (keys) => setSelectedToCancel(keys as number[]),
-                                }}
-                                pagination={false}
-                                loading={loading}
-                            />
-                            <div className="text-right mt-4">
-                                <Button danger disabled={!selectedToCancel.length} onClick={handleCancel}>
-                                    Hủy đăng ký
-                                </Button>
-                            </div>
-                        </>
-                    ) : (
-                        <Empty 
-                            description={loading ? "Đang tải..." : "Bạn chưa đăng ký hoạt động nào"} 
-                            className="py-12"
-                        />
-                    )}
-                </>
-            ),
-        },
-    ];
     return (
         <StudentLayout>
             <div className="p-4">
                 <h1 className="text-xl font-semibold mb-4">Đăng ký tham gia hoạt động</h1>
-                <Tabs items={tabItems} />
+                <ActivityRegistrationTabs
+                    availableActivities={availableActivities}
+                    registeredActivities={registeredActivities}
+                    selectedToRegister={selectedToRegister}
+                    selectedToCancel={selectedToCancel}
+                    loading={loading}
+                    onRegisterSelectionChange={setSelectedToRegister}
+                    onCancelSelectionChange={setSelectedToCancel}
+                    onRegister={handleRegister}
+                    onCancel={handleCancel}
+                />
             </div>
         </StudentLayout>
     );

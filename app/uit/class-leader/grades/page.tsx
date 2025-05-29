@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Alert, Spin } from 'antd';
-import { StudentLayout } from '@/components/layout/student';
+import { ClassleaderLayout } from '@/components/layout/class-leader';
 import {
   ScoreStatistics,
   ScoreCharts,
@@ -41,7 +41,7 @@ interface StudentSummary {
   classification: string;
 }
 
-export default function FinalScorePage() {
+export default function ClassLeaderGradesPage() {
   const [loading, setLoading] = useState(true);
   const [scores, setScores] = useState<StudentScore[]>([]);
   const [profile, setProfile] = useState<StudentProfile | null>(null);
@@ -86,10 +86,10 @@ export default function FinalScorePage() {
       } else {
         // Fallback demo data
         setProfile({
-          student_id: "21520001",
-          student_name: "Nguyễn Văn A",
-          classification: "Giỏi",
-          sumscore: 85.5,
+          student_id: "21520002",
+          student_name: "Nguyễn Văn B - Lớp trưởng",
+          classification: "Xuất sắc",
+          sumscore: 92.5,
           Faculty: { name: "Công nghệ thông tin", faculty_abbr: "CNTT" },
           Class: { name: "21CNTT1" }
         });
@@ -101,7 +101,7 @@ export default function FinalScorePage() {
       if (summaryResponse.data?.status === "success" && summaryResponse.data?.data) {
         setSummary(summaryResponse.data.data);
       } else {
-        setSummary({ sumscore: 85.5, classification: "Giỏi" });
+        setSummary({ sumscore: 92.5, classification: "Xuất sắc" });
       }
 
       // Fetch student scores
@@ -111,10 +111,10 @@ export default function FinalScorePage() {
       } else {
         // Fallback demo scores
         const demoScores: StudentScore[] = [
-          { student_id: "21520001", semester_no: 1, academic_year: 2023, score: 88.5, classification: "Giỏi", status: 'none' },
-          { student_id: "21520001", semester_no: 2, academic_year: 2023, score: 82.0, classification: "Giỏi", status: 'none' },
-          { student_id: "21520001", semester_no: 1, academic_year: 2024, score: 90.5, classification: "Xuất sắc", status: 'none' },
-          { student_id: "21520001", semester_no: 2, academic_year: 2024, score: 85.0, classification: "Giỏi", status: 'none' },
+          { student_id: "21520002", semester_no: 1, academic_year: 2023, score: 95.0, classification: "Xuất sắc", status: 'none' },
+          { student_id: "21520002", semester_no: 2, academic_year: 2023, score: 88.5, classification: "Giỏi", status: 'none' },
+          { student_id: "21520002", semester_no: 1, academic_year: 2024, score: 94.0, classification: "Xuất sắc", status: 'none' },
+          { student_id: "21520002", semester_no: 2, academic_year: 2024, score: 92.5, classification: "Xuất sắc", status: 'none' },
         ];
         setScores(demoScores);
         setIsDemoMode(true);
@@ -124,19 +124,19 @@ export default function FinalScorePage() {
       console.error('Error fetching data:', error);
       // Use demo data on error
       setProfile({
-        student_id: "21520001",
-        student_name: "Nguyễn Văn A",
-        classification: "Giỏi",
-        sumscore: 85.5,
+        student_id: "21520002",
+        student_name: "Nguyễn Văn B - Lớp trưởng",
+        classification: "Xuất sắc",
+        sumscore: 92.5,
         Faculty: { name: "Công nghệ thông tin", faculty_abbr: "CNTT" },
         Class: { name: "21CNTT1" }
       });
-      setSummary({ sumscore: 85.5, classification: "Giỏi" });
+      setSummary({ sumscore: 92.5, classification: "Xuất sắc" });
       const demoScores: StudentScore[] = [
-        { student_id: "21520001", semester_no: 1, academic_year: 2023, score: 88.5, classification: "Giỏi", status: 'none' },
-        { student_id: "21520001", semester_no: 2, academic_year: 2023, score: 82.0, classification: "Giỏi", status: 'none' },
-        { student_id: "21520001", semester_no: 1, academic_year: 2024, score: 90.5, classification: "Xuất sắc", status: 'none' },
-        { student_id: "21520001", semester_no: 2, academic_year: 2024, score: 85.0, classification: "Giỏi", status: 'none' },
+        { student_id: "21520002", semester_no: 1, academic_year: 2023, score: 95.0, classification: "Xuất sắc", status: 'none' },
+        { student_id: "21520002", semester_no: 2, academic_year: 2023, score: 88.5, classification: "Giỏi", status: 'none' },
+        { student_id: "21520002", semester_no: 1, academic_year: 2024, score: 94.0, classification: "Xuất sắc", status: 'none' },
+        { student_id: "21520002", semester_no: 2, academic_year: 2024, score: 92.5, classification: "Xuất sắc", status: 'none' },
       ];
       setScores(demoScores);
       setIsDemoMode(true);
@@ -167,11 +167,11 @@ export default function FinalScorePage() {
 
   if (loading) {
     return (
-      <StudentLayout>
+      <ClassleaderLayout>
         <div className="flex justify-center items-center h-64">
           <Spin size="large" />
         </div>
-      </StudentLayout>
+      </ClassleaderLayout>
     );
   }
 
@@ -179,18 +179,18 @@ export default function FinalScorePage() {
   const currentClassification = summary?.classification || profile?.classification || 'Chưa xếp loại';
 
   return (
-    <StudentLayout>
+    <ClassleaderLayout>
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Thống kê điểm rèn luyện</h1>
-          <p className="text-gray-600">Xem chi tiết và phân tích điểm rèn luyện của bạn</p>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Bảng điểm rèn luyện - Lớp trưởng</h1>
+          <p className="text-gray-600">Xem chi tiết điểm rèn luyện cá nhân của bạn</p>
         </div>
 
         {/* Demo Mode Banner */}
         {isDemoMode && (
           <Alert
             message="Chế độ Demo"
-            description="Bạn đang xem dữ liệu demo. Vui lòng đăng nhập với tài khoản sinh viên để xem thông tin thực."
+            description="Bạn đang xem dữ liệu demo. Vui lòng đăng nhập với tài khoản lớp trưởng để xem thông tin thực."
             type="warning"
             showIcon
             className="mb-6"
@@ -198,7 +198,7 @@ export default function FinalScorePage() {
           />
         )}
 
-        {/* Header Stats */}
+        {/* Score Statistics */}
         <ScoreStatistics
           currentScore={currentScore}
           currentClassification={currentClassification}
@@ -226,6 +226,6 @@ export default function FinalScorePage() {
         {/* Performance Analysis */}
         <PerformanceAnalysis scores={sortedScores} />
       </div>
-    </StudentLayout>
+    </ClassleaderLayout>
   );
-}
+} 
