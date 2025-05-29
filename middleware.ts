@@ -14,7 +14,7 @@ export async function middleware(request: NextRequest) {
         const { payload } = await jwtVerify(token, secret);
         const { role } = payload as { role: string };
         
-        let redirectPath = "/uit/student"; // default path
+        let redirectPath = "/uit/student"; 
         switch(role) {
           case "admin":
             redirectPath = "/uit/admin";
@@ -31,7 +31,6 @@ export async function middleware(request: NextRequest) {
         }
         return NextResponse.redirect(new URL(redirectPath, request.url));
       } catch (error) {
-        // If token is invalid, clear it and continue to login
         const response = NextResponse.redirect(new URL("/login", request.url));
         response.cookies.delete("token");
         return response;
@@ -40,7 +39,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Handle logout
   if (pathname === "/logout") {
     if (request.method === "POST") {
       const response = NextResponse.json({ success: true });
@@ -50,7 +48,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Protected routes
   if (!token) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
@@ -64,7 +61,6 @@ export async function middleware(request: NextRequest) {
     const { payload } = await jwtVerify(token, secret);
     const { role } = payload as { role: string };
 
-    // Role-based access control
     if (pathname.startsWith("/uit/admin") && role !== "admin") {
       return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
