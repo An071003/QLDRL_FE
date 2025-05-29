@@ -6,15 +6,12 @@ const nextConfig = {
     serverActions: {},
   },
   async rewrites() {
-    if (process.env.NODE_ENV === 'development') {
-      return [
-        {
-          source: '/api/:path*',
-          destination: 'http://localhost:5000/api/:path*',
-        },
-      ];
-    }
-    return [];
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'https://qldrlbe-e8grfucshahbe2d4.eastasia-01.azurewebsites.net/api/:path*',
+      },
+    ];
   },
 };
 
