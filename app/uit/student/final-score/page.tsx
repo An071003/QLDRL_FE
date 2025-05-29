@@ -192,6 +192,14 @@ export default function FinalScorePage() {
     ? scores 
     : scores.filter(score => score.academic_year.toString() === selectedYear);
 
+  // Sort scores by year and semester correctly (ascending order: HK1 before HK2)
+  const sortedScores = [...filteredScores].sort((a, b) => {
+    if (a.academic_year !== b.academic_year) {
+      return a.academic_year - b.academic_year;
+    }
+    return a.semester_no - b.semester_no;
+  });
+
   // Get unique years
   const years = [...new Set(scores.map(score => score.academic_year))].sort((a, b) => b - a);
 
@@ -204,13 +212,13 @@ export default function FinalScorePage() {
     ? Math.min(...filteredScores.map(score => score.score)) 
     : 0;
 
-  // Chart data
+  // Chart data - use sorted scores
   const lineChartData = {
-    labels: filteredScores.map(score => `HK${score.semester_no}/${score.academic_year}`),
+    labels: sortedScores.map(score => `HK${score.semester_no}/${score.academic_year}`),
     datasets: [
       {
         label: 'Điểm rèn luyện',
-        data: filteredScores.map(score => score.score),
+        data: sortedScores.map(score => score.score),
         borderColor: '#1890ff',
         backgroundColor: 'rgba(24, 144, 255, 0.1)',
         tension: 0.4,
@@ -220,13 +228,13 @@ export default function FinalScorePage() {
   };
 
   const barChartData = {
-    labels: filteredScores.map(score => `HK${score.semester_no}/${score.academic_year}`),
+    labels: sortedScores.map(score => `HK${score.semester_no}/${score.academic_year}`),
     datasets: [
       {
         label: 'Điểm rèn luyện',
-        data: filteredScores.map(score => score.score),
-        backgroundColor: filteredScores.map(score => getScoreColor(score.score)),
-        borderColor: filteredScores.map(score => getScoreColor(score.score)),
+        data: sortedScores.map(score => score.score),
+        backgroundColor: sortedScores.map(score => getScoreColor(score.score)),
+        borderColor: sortedScores.map(score => getScoreColor(score.score)),
         borderWidth: 1,
       },
     ],
@@ -343,7 +351,7 @@ export default function FinalScorePage() {
       ),
       children: (
         <Card title="Xu hướng điểm rèn luyện theo học kỳ">
-          {filteredScores.length > 0 && chartReady ? (
+          {sortedScores.length > 0 && chartReady ? (
             <div style={{ height: '400px' }}>
               <Line data={lineChartData} options={chartOptions} />
             </div>
@@ -363,7 +371,7 @@ export default function FinalScorePage() {
       ),
       children: (
         <Card title="Điểm rèn luyện theo học kỳ">
-          {filteredScores.length > 0 && chartReady ? (
+          {sortedScores.length > 0 && chartReady ? (
             <div style={{ height: '400px' }}>
               <Bar data={barChartData} options={chartOptions} />
             </div>
@@ -452,7 +460,7 @@ export default function FinalScorePage() {
 
         {/* Header Stats */}
         <Row gutter={[24, 24]} className="mb-6">
-          <Col xs={24} sm={12} lg={6}>
+          <Col xs={24} sm={8}>
             <Card className="text-center bg-gradient-to-r from-blue-50 to-blue-100">
               <Statistic
                 title="Điểm hiện tại"
@@ -464,7 +472,7 @@ export default function FinalScorePage() {
               />
             </Card>
           </Col>
-          <Col xs={24} sm={12} lg={6}>
+          <Col xs={24} sm={8}>
             <Card className="text-center bg-gradient-to-r from-green-50 to-green-100">
               <Statistic
                 title="Xếp loại"
@@ -474,7 +482,7 @@ export default function FinalScorePage() {
               />
             </Card>
           </Col>
-          <Col xs={24} sm={12} lg={6}>
+          <Col xs={24} sm={8}>
             <Card className="text-center bg-gradient-to-r from-purple-50 to-purple-100">
               <Statistic
                 title="Số học kỳ"
@@ -510,9 +518,9 @@ export default function FinalScorePage() {
 
         {/* Score History Table */}
         <Card title="Lịch sử điểm rèn luyện" className="mb-6">
-          {filteredScores.length > 0 ? (
+          {sortedScores.length > 0 ? (
             <Table
-              dataSource={filteredScores}
+              dataSource={sortedScores}
               columns={columns}
               rowKey={(record) => `${record.academic_year}_${record.semester_no}`}
               pagination={{
@@ -533,14 +541,14 @@ export default function FinalScorePage() {
             <Col xs={24} md={8}>
               <div className="text-center p-4 bg-blue-50 rounded-lg">
                 <h4 className="text-lg font-semibold text-blue-800 mb-2">Xu hướng</h4>
-                {filteredScores.length >= 2 ? (
+                {sortedScores.length >= 2 ? (
                   <div>
-                    {filteredScores[0].score > filteredScores[filteredScores.length - 1].score ? (
+                    {sortedScores[sortedScores.length - 1].score > sortedScores[0].score ? (
                       <div className="text-green-600">
                         <span className="text-2xl">↗</span>
                         <p>Điểm đang tăng</p>
                       </div>
-                    ) : filteredScores[0].score < filteredScores[filteredScores.length - 1].score ? (
+                    ) : sortedScores[sortedScores.length - 1].score < sortedScores[0].score ? (
                       <div className="text-red-600">
                         <span className="text-2xl">↘</span>
                         <p>Điểm đang giảm</p>
@@ -562,7 +570,7 @@ export default function FinalScorePage() {
                 <h4 className="text-lg font-semibold text-green-800 mb-2">Thành tích</h4>
                 <div className="text-green-600">
                   <span className="text-2xl font-bold">
-                    {filteredScores.filter(s => s.classification === 'Xuất sắc').length}
+                    {sortedScores.filter(s => s.classification === 'Xuất sắc').length}
                   </span>
                   <p>Học kỳ xuất sắc</p>
                 </div>

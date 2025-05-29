@@ -20,14 +20,6 @@ const items: MenuProps["items"] = [
   },
   {
     key: "4",
-    label: <Link href="/student/committee">Ban chấp hành</Link>,
-  },
-  {
-    key: "5",
-    label: <Link href="/student/youth-info">Thông tin CS Đoàn</Link>,
-  },
-  {
-    key: "6",
     label: <Link href="/uit/student/final-score">Bảng Điểm Tổng Kết Sinh Viên</Link>,
   },
 ];
