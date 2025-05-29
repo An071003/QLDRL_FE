@@ -8,11 +8,11 @@ import { DownOutlined } from "@ant-design/icons";
 const items: MenuProps["items"] = [
   {
     key: "1",
-    label: <Link href="/class-leaderleader/profile">Thông tin cá nhân</Link>,
+    label: <Link href="/uit/class-leader/profile">Thông tin cá nhân</Link>,
   },
   {
     key: "2",
-    label: <Link href="/class-leader/grades">Bảng điểm</Link>,
+    label: <Link href="/uit/class-leader/grades">Bảng điểm</Link>,
   },
   {
     key: "3",
@@ -27,25 +27,17 @@ const items: MenuProps["items"] = [
     label: <Link href="/uit/class-leader/activities">Quản lý hoạt động</Link>,
   },
   {
-    key: "66",
-    label: <Link href="/uit/class-leader/committee">Ban chấp hành</Link>,
-  },
-  {
-    key: "7",
-    label: <Link href="/uit/class-leader/youth-info">Thông tin CS Đoàn</Link>,
-  },
-  {
-    key: "8",
+    key: "6",
     label: <Link href="/uit/class-leader/final-score">Bảng Điểm Tổng Kết Sinh Viên</Link>,
   },
 ];
 
-export default function ClassleaderClassleaderDropdown() {
+export default function ClassleaderDropdown() {
   return (
     <Dropdown menu={{ items }} trigger={["click"]}>
       <a onClick={(e) => e.preventDefault()} className="text-white cursor-pointer ml-4">
         <Space>
-          SINH VIÊN
+          LỚP TRƯỞNG
           <DownOutlined />
         </Space>
       </a>

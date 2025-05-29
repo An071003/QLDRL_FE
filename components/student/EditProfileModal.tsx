@@ -39,8 +39,8 @@ export default function EditProfileModal({
     await onSubmit(values);
   };
 
-  // Set form values when modal opens
-  const handleModalOpen = () => {
+  // Use effect to handle modal opening
+  useEffect(() => {
     if (visible) {
       form.setFieldsValue({
         student_name: initialValues.student_name,
@@ -48,12 +48,7 @@ export default function EditProfileModal({
         birthdate: initialValues.birthdate ? dayjs(initialValues.birthdate) : null,
       });
     }
-  };
-
-  // Use effect to handle modal opening
-  useEffect(() => {
-    handleModalOpen();
-  }, [visible, initialValues]);
+  }, [visible, initialValues, form]);
 
   return (
     <Modal
