@@ -1,51 +1,19 @@
 "use client";
 
 import { ClassleaderLayout } from "@/components/layout/class-leader";
+import { ActivityRegistrationTabs } from "@/components/class-leader";
 import type { Activity } from "@/types/activity";
 import api from "@/lib/api";
 import { useEffect, useState, useCallback } from "react";
-import { Tabs, Table, Button, message, Tooltip, Empty } from "antd";
-import type { ColumnsType } from "antd/es/table";
-import type { TabsProps } from "antd";
+import { message } from "antd";
 
-
-export default function AssignActivitiesPage() {
+export default function ClassLeaderAssignActivitiesPage() {
     const [studentId, setStudentId] = useState<string>("");
     const [availableActivities, setAvailableActivities] = useState<Activity[]>([]);
     const [registeredActivities, setRegisteredActivities] = useState<Activity[]>([]);
     const [selectedToRegister, setSelectedToRegister] = useState<number[]>([]);
     const [selectedToCancel, setSelectedToCancel] = useState<number[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
-
-    const columns: ColumnsType<Activity> = [
-        { 
-            title: "Tên hoạt động", 
-            dataIndex: "name", 
-            key: "name",
-            ellipsis: {
-                showTitle: false,
-            },
-            render: (name) => (
-                <Tooltip placement="topLeft" title={name}>
-                    <span>{name}</span>
-                </Tooltip>
-            )
-        },
-        { 
-            title: "Phong trào", 
-            dataIndex: ["Campaign", "name"], 
-            key: "campaign_name",
-            ellipsis: {
-                showTitle: false,
-            },
-            render: (text, record) => (
-                <Tooltip placement="topLeft" title={record.Campaign?.name}>
-                    <span>{record.Campaign?.name}</span>
-                </Tooltip>
-            )
-        },
-        { title: "Điểm", dataIndex: "point", key: "point" },
-    ];
 
     const fetchCurrentStudent = useCallback(async () => {
         try {
@@ -69,7 +37,8 @@ export default function AssignActivitiesPage() {
         setLoading(true);
         try {
             const res = await api.get(`/api/student-activities/${id}/available`);
-            setAvailableActivities(res.data.data);
+            console.log("Available activities response:", res.data);
+            setAvailableActivities(res.data.data || []);
         } catch (err) {
             console.error("Lỗi khi lấy hoạt động chưa đăng ký:", err);
             message.error("Không thể tải hoạt động khả dụng");
@@ -81,6 +50,7 @@ export default function AssignActivitiesPage() {
     const fetchRegisteredActivities = async (id: string) => {
         try {
             const res = await api.get(`/api/student-activities/student/${id}`);
+            console.log("Registered activities response:", res.data);
             const activities = res.data.data;
             const filtered = Array.isArray(activities) ? activities.filter(a => a.status === "ongoing") : [];
             setRegisteredActivities(filtered);
@@ -122,79 +92,25 @@ export default function AssignActivitiesPage() {
         }
     };
 
-    const tabItems: TabsProps["items"] = [
-        {
-            key: "register",
-            label: "Đăng ký",
-            children: (
-                <>
-                    {availableActivities.length > 0 ? (
-                        <>
-                            <Table
-                                rowKey="id"
-                                columns={columns}
-                                dataSource={availableActivities}
-                                rowSelection={{
-                                    selectedRowKeys: selectedToRegister,
-                                    onChange: (keys) => setSelectedToRegister(keys as number[]),
-                                }}
-                                pagination={false}
-                                loading={loading}
-                            />
-                            <div className="text-right mt-4">
-                                <Button type="primary" disabled={!selectedToRegister.length} onClick={handleRegister}>
-                                    Đăng ký
-                                </Button>
-                            </div>
-                        </>
-                    ) : (
-                        <Empty 
-                            description={loading ? "Đang tải..." : "Không có hoạt động nào khả dụng để đăng ký"} 
-                            className="py-12"
-                        />
-                    )}
-                </>
-            ),
-        },
-        {
-            key: "cancel",
-            label: "Hủy",
-            children: (
-                <>
-                    {registeredActivities.length > 0 ? (
-                        <>
-                            <Table
-                                rowKey="id"
-                                columns={columns}
-                                dataSource={registeredActivities}
-                                rowSelection={{
-                                    selectedRowKeys: selectedToCancel,
-                                    onChange: (keys) => setSelectedToCancel(keys as number[]),
-                                }}
-                                pagination={false}
-                                loading={loading}
-                            />
-                            <div className="text-right mt-4">
-                                <Button danger disabled={!selectedToCancel.length} onClick={handleCancel}>
-                                    Hủy đăng ký
-                                </Button>
-                            </div>
-                        </>
-                    ) : (
-                        <Empty 
-                            description={loading ? "Đang tải..." : "Bạn chưa đăng ký hoạt động nào"} 
-                            className="py-12"
-                        />
-                    )}
-                </>
-            ),
-        },
-    ];
     return (
         <ClassleaderLayout>
-            <div className="p-4">
-                <h1 className="text-xl font-semibold mb-4">Đăng ký tham gia hoạt động</h1>
-                <Tabs items={tabItems} />
+            <div className="max-w-7xl mx-auto">
+                <div className="mb-6">
+                    <h1 className="text-3xl font-bold text-gray-800 mb-2">Đăng ký hoạt động - Lớp trưởng</h1>
+                    <p className="text-gray-600">Đăng ký tham gia các hoạt động rèn luyện</p>
+                </div>
+                
+                <ActivityRegistrationTabs
+                    availableActivities={availableActivities}
+                    registeredActivities={registeredActivities}
+                    selectedToRegister={selectedToRegister}
+                    selectedToCancel={selectedToCancel}
+                    loading={loading}
+                    onRegisterSelectionChange={setSelectedToRegister}
+                    onCancelSelectionChange={setSelectedToCancel}
+                    onRegister={handleRegister}
+                    onCancel={handleCancel}
+                />
             </div>
         </ClassleaderLayout>
     );

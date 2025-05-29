@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Row, Col, Button, message, Alert } from "antd";
-import { StudentLayout } from "@/components/layout/student";
+import { ClassleaderLayout } from "@/components/layout/class-leader";
 import {
   ProfileHeader,
   ProfileDetails,
@@ -47,7 +47,7 @@ interface UpdateProfileFormValues {
   birthdate?: dayjs.Dayjs;
 }
 
-export default function StudentProfilePage() {
+export default function ClassLeaderProfilePage() {
   const [loading, setLoading] = useState(true);
   const [student, setStudent] = useState<StudentProfile | null>(null);
   const [summary, setSummary] = useState<StudentSummary | null>(null);
@@ -71,13 +71,13 @@ export default function StudentProfilePage() {
         console.log('No student data found, using fallback');
         // Fallback data for testing
         const fallbackStudent: StudentProfile = {
-          student_id: "21520001",
-          student_name: "Nguyễn Văn A",
-          phone: "0123456789",
-          birthdate: "2003-01-01",
-          classification: "Giỏi",
+          student_id: "21520002",
+          student_name: "Nguyễn Văn B",
+          phone: "0123456790",
+          birthdate: "2003-02-15",
+          classification: "Xuất sắc",
           status: 'none',
-          sumscore: 85.5,
+          sumscore: 92.5,
           Faculty: {
             id: 1,
             name: "Công nghệ thông tin",
@@ -88,12 +88,12 @@ export default function StudentProfilePage() {
             name: "21CNTT1"
           },
           User: {
-            email: "student@example.com"
+            email: "classleader@example.com"
           }
         };
         setStudent(fallbackStudent);
         setIsDemoMode(true);
-        toast.error("Đang sử dụng dữ liệu demo - Không thể tải thông tin sinh viên thực");
+        toast.error("Đang sử dụng dữ liệu demo - Không thể tải thông tin lớp trưởng thực");
       }
     } catch (err) {
       console.error("Failed to fetch student profile:", err);
@@ -101,13 +101,13 @@ export default function StudentProfilePage() {
       
       // Fallback data for testing
       const fallbackStudent: StudentProfile = {
-        student_id: "21520001",
-        student_name: "Nguyễn Văn A",
-        phone: "0123456789",
-        birthdate: "2003-01-01",
-        classification: "Giỏi",
+        student_id: "21520002",
+        student_name: "Nguyễn Văn B",
+        phone: "0123456790",
+        birthdate: "2003-02-15",
+        classification: "Xuất sắc",
         status: 'none',
-        sumscore: 85.5,
+        sumscore: 92.5,
         Faculty: {
           id: 1,
           name: "Công nghệ thông tin",
@@ -118,7 +118,7 @@ export default function StudentProfilePage() {
           name: "21CNTT1"
         },
         User: {
-          email: "student@example.com"
+          email: "classleader@example.com"
         }
       };
       setStudent(fallbackStudent);
@@ -137,16 +137,16 @@ export default function StudentProfilePage() {
       } else {
         console.log('No summary data found, using fallback');
         setSummary({
-          sumscore: 85.5,
-          classification: "Giỏi"
+          sumscore: 92.5,
+          classification: "Xuất sắc"
         });
       }
     } catch (err) {
       console.error("Failed to fetch student summary:", err);
       console.log('Using fallback summary data due to error');
       setSummary({
-        sumscore: 85.5,
-        classification: "Giỏi"
+        sumscore: 92.5,
+        classification: "Xuất sắc"
       });
     } finally {
       setLoading(false);
@@ -191,14 +191,14 @@ export default function StudentProfilePage() {
 
   if (!student) {
     return (
-      <StudentLayout>
+      <ClassleaderLayout>
         <div className="text-center py-8">
-          <h1 className="text-2xl font-bold mb-4">Không tìm thấy thông tin sinh viên</h1>
+          <h1 className="text-2xl font-bold mb-4">Không tìm thấy thông tin lớp trưởng</h1>
           <Button type="primary" onClick={() => window.location.reload()}>
             Thử lại
           </Button>
         </div>
-      </StudentLayout>
+      </ClassleaderLayout>
     );
   }
 
@@ -206,10 +206,10 @@ export default function StudentProfilePage() {
   const currentClassification = summary?.classification || student?.classification || 'Chưa xếp loại';
 
   return (
-    <StudentLayout>
+    <ClassleaderLayout>
       <div className="max-w-6xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Thông tin cá nhân</h1>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Thông tin cá nhân - Lớp trưởng</h1>
           <p className="text-gray-600">Quản lý và xem thông tin cá nhân của bạn</p>
         </div>
 
@@ -217,7 +217,7 @@ export default function StudentProfilePage() {
         {isDemoMode && (
           <Alert
             message="Chế độ Demo"
-            description="Bạn đang xem dữ liệu demo. Vui lòng đăng nhập với tài khoản sinh viên để xem thông tin thực."
+            description="Bạn đang xem dữ liệu demo. Vui lòng đăng nhập với tài khoản lớp trưởng để xem thông tin thực."
             type="warning"
             showIcon
             className="mb-6"
@@ -261,6 +261,6 @@ export default function StudentProfilePage() {
           onSubmit={handleUpdateProfile}
         />
       </div>
-    </StudentLayout>
+    </ClassleaderLayout>
   );
-}
+} 
