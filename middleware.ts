@@ -3,9 +3,8 @@ import { jwtVerify } from 'jose';
 
 export async function middleware(request: NextRequest) {
   // Skip middleware for RSC requests
-  if (request.nextUrl.searchParams.has('_rsc') || 
-      request.headers.get('RSC') === '1' || 
-      request.headers.get('Next-Router-State-Tree')) {
+  const isRsc = request.headers.get('accept')?.includes('application/json');
+  if (isRsc) {
     return NextResponse.next();
   }
 
@@ -36,7 +35,15 @@ export async function middleware(request: NextRequest) {
             redirectPath = "/uit/class-leader";
             break;
         }
-        return NextResponse.redirect(new URL(redirectPath, request.url));
+        const response = NextResponse.redirect(new URL(redirectPath, request.url));
+        // Preserve the token
+        response.cookies.set("token", token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "none",
+          path: "/"
+        });
+        return response;
       } catch (error) {
         const response = NextResponse.redirect(new URL("/login", request.url));
         response.cookies.delete("token");
@@ -56,7 +63,8 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!token) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    const response = NextResponse.redirect(new URL("/login", request.url));
+    return response;
   }
 
   try {
@@ -85,15 +93,13 @@ export async function middleware(request: NextRequest) {
     }
 
     const response = NextResponse.next();
-    // Ensure token is preserved in the response
-    if (token && !response.cookies.get('token')) {
-      response.cookies.set('token', token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'none',
-        path: '/'
-      });
-    }
+    // Preserve the token in every response
+    response.cookies.set("token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      path: "/"
+    });
     return response;
   } catch (error) {
     console.error('Error in middleware:', error);
@@ -109,7 +115,6 @@ export const config = {
     '/login',
     '/logout',
     '/uit/:path*',
-    '/unauthorized',
-    '/_next/data/:path*'
+    '/unauthorized'
   ]
 };
