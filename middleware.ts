@@ -3,185 +3,63 @@ import { jwtVerify } from 'jose';
 
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get("token")?.value;
-  const pathname = request.nextUrl.pathname;
 
-  // Handle logout
-  if (pathname === "/logout") {
-    if (request.method === "POST") {
-      const response = NextResponse.json({ success: true });
-      response.cookies.delete("token");
-      return response;
-    }
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  // Handle login page - redirect authenticated users to their dashboard
-  if (pathname === "/login") {
-    if (token) {
-      try {
-        if (!process.env.JWT_SECRET) {
-          const response = NextResponse.redirect(new URL("/uit", request.url));
-          response.headers.set('X-Debug-Middleware', 'No JWT_SECRET, redirecting to /uit');
-          return response;
-        }
-
-        const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-        const { payload } = await jwtVerify(token, secret);
-        const { role } = payload as { role: string };
-
-        // Redirect based on role
-        let redirectPath = "/uit/student"; // default
-        switch(role) {
-          case "admin":
-            redirectPath = "/uit/admin";
-            break;
-          case "advisor":
-            redirectPath = "/uit/advisor";
-            break;
-          case "departmentofficer":
-            redirectPath = "/uit/department-officers";
-            break;
-          case "classleader":
-            redirectPath = "/uit/class-leader";
-            break;
-          case "student":
-            redirectPath = "/uit/student";
-            break;
-        }
-
-        const response = NextResponse.redirect(new URL(redirectPath, request.url));
-        response.headers.set('X-Debug-Middleware', `Login redirect: role=${role}, path=${redirectPath}`);
-        return response;
-      } catch (error) {
-        const response = NextResponse.next();
-        response.cookies.delete("token");
-        response.headers.set('X-Debug-Middleware', 'Invalid token on login, clearing cookie');
-        return response;
-      }
-    }
-    const response = NextResponse.next();
-    response.headers.set('X-Debug-Middleware', 'Login page, no token');
+  if (request.nextUrl.pathname === "/logout" && request.method === "POST") {
+    const response = NextResponse.json({ success: true });
+    response.cookies.delete("token");
     return response;
   }
 
-  // Handle exact /uit route - redirect to role-specific dashboard
-  if (pathname === "/uit") {
-    if (!token) {
-      const response = NextResponse.redirect(new URL("/login", request.url));
-      response.headers.set('X-Debug-Middleware', 'No token at /uit, redirecting to login');
-      return response;
-    }
-
-    try {
-      if (!process.env.JWT_SECRET) {
-        const response = NextResponse.next();
-        response.headers.set('X-Debug-Middleware', 'No JWT_SECRET at /uit, allowing access');
-        return response;
-      }
-
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-      const { payload } = await jwtVerify(token, secret);
-      const { role } = payload as { role: string };
-
-      // Redirect to role-specific dashboard
-      let redirectPath = "/uit/student"; // default
-      switch(role) {
-        case "admin":
-          redirectPath = "/uit/admin";
-          break;
-        case "advisor":
-          redirectPath = "/uit/advisor";
-          break;
-        case "departmentofficer":
-          redirectPath = "/uit/department-officers";
-          break;
-        case "classleader":
-          redirectPath = "/uit/class-leader";
-          break;
-        case "student":
-          redirectPath = "/uit/student";
-          break;
-      }
-
-      const response = NextResponse.redirect(new URL(redirectPath, request.url));
-      response.headers.set('X-Debug-Middleware', `UIT redirect: role=${role}, path=${redirectPath}`);
-      return response;
-    } catch (error) {
-      const response = NextResponse.redirect(new URL("/login", request.url));
-      response.cookies.delete("token");
-      response.headers.set('X-Debug-Middleware', `Error at /uit: ${error}`);
-      return response;
-    }
+  if (request.nextUrl.pathname === "/logout" && request.method === "GET") {
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Protected routes with role-based access control
-  if (pathname.startsWith("/uit/")) {
-    if (!token) {
-      const response = NextResponse.redirect(new URL("/login", request.url));
-      response.headers.set('X-Debug-Middleware', `No token at ${pathname}, redirecting to login`);
-      return response;
+  if (!token) {
+    if (request.nextUrl.pathname !== "/login") {
+      return NextResponse.redirect(new URL("/login", request.url));
     }
-
-    try {
-      if (!process.env.JWT_SECRET) {
-        const response = NextResponse.next();
-        response.headers.set('X-Debug-Middleware', `No JWT_SECRET at ${pathname}, allowing access`);
-        return response;
-      }
-
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-      const { payload } = await jwtVerify(token, secret);
-      const { role } = payload as { role: string };
-
-      // Role-based access control
-      if (pathname.startsWith("/uit/admin") && role !== "admin") {
-        const response = NextResponse.redirect(new URL("/unauthorized", request.url));
-        response.headers.set('X-Debug-Middleware', `Access denied: ${role} trying to access admin`);
-        return response;
-      }
-      if (pathname.startsWith("/uit/student") && role !== "student") {
-        const response = NextResponse.redirect(new URL("/unauthorized", request.url));
-        response.headers.set('X-Debug-Middleware', `Access denied: ${role} trying to access student`);
-        return response;
-      }
-      if (pathname.startsWith("/uit/advisor") && role !== "advisor") {
-        const response = NextResponse.redirect(new URL("/unauthorized", request.url));
-        response.headers.set('X-Debug-Middleware', `Access denied: ${role} trying to access advisor`);
-        return response;
-      }
-      if (pathname.startsWith("/uit/department-officers") && role !== "departmentofficer") {
-        const response = NextResponse.redirect(new URL("/unauthorized", request.url));
-        response.headers.set('X-Debug-Middleware', `Access denied: ${role} trying to access department-officers`);
-        return response;
-      }
-      if (pathname.startsWith("/uit/class-leader") && role !== "classleader") {
-        const response = NextResponse.redirect(new URL("/unauthorized", request.url));
-        response.headers.set('X-Debug-Middleware', `Access denied: ${role} trying to access class-leader`);
-        return response;
-      }
-
-      const response = NextResponse.next();
-      response.headers.set('X-Debug-Middleware', `Access granted to ${pathname} for role: ${role}`);
-      return response;
-    } catch (error) {
-      const response = NextResponse.redirect(new URL("/login", request.url));
-      response.cookies.delete("token");
-      response.headers.set('X-Debug-Middleware', `Error in middleware: ${error}`);
-      return response;
-    }
+    return NextResponse.next();
   }
 
-  // Allow all other routes
-  const response = NextResponse.next();
-  response.headers.set('X-Debug-Middleware', `Allowing access to ${pathname}`);
-  return response;
+  try {
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not defined');
+      throw new Error('JWT_SECRET is not defined');
+    }
+
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+    const { payload } = await jwtVerify(token, secret);
+
+    const { role } = payload as { role: string };
+    const pathname = request.nextUrl.pathname;
+
+    // Role-based access control with logging
+    if (pathname.startsWith("/uit/admin") && role !== "admin") {
+      return NextResponse.redirect(new URL("/unauthorized", request.url));
+    }
+
+    if (pathname.startsWith("/uit/student") && role !== "student") {
+      return NextResponse.redirect(new URL("/unauthorized", request.url));
+    }
+
+    if (pathname.startsWith("/uit/advisor") && role !== "advisor") {
+      return NextResponse.redirect(new URL("/unauthorized", request.url));
+    }
+
+    if (pathname.startsWith("/uit/department-officers") && role !== "departmentofficer") {
+      return NextResponse.redirect(new URL("/unauthorized", request.url));
+    }
+
+    if (pathname.startsWith("/uit/class-leader") && role !== "classleader") {
+      return NextResponse.redirect(new URL("/unauthorized", request.url));
+    }
+    return NextResponse.next();
+  } catch (error) {
+    console.error('Error in middleware:', error);
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
 }
 
 export const config = {
-  matcher: [
-    "/uit/:path*",
-    "/uit",
-    "/login", 
-    "/logout"
-  ],
+  matcher: ["/uit/:path*", "/login", "/logout"],
 };
