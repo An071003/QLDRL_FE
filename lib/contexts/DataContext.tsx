@@ -8,6 +8,7 @@ interface Faculty {
   id: number;
   faculty_abbr: string;
   name: string;
+  class_count?: number;
 }
 
 interface Class {
@@ -15,6 +16,7 @@ interface Class {
   name: string;
   faculty_id: number;
   cohort: string;
+  student_count?: number;
 }
 
 interface Criteria {

@@ -5,6 +5,7 @@ export interface Class {
   name: string;
   faculty_id: number;
   cohort: string;
+  student_count?: number;
   class_leader_id?: string | null;
   advisor_id?: number | null;
   createdAt?: string;

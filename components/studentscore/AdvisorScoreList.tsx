@@ -79,7 +79,6 @@ export default function AdvisorScoreList({
       rowKey="student_id"
       pagination={{
         pageSize: 10,
-        showSizeChanger: true,
         showTotal: (total) => `Tổng số ${total} sinh viên`,
       }}
     />

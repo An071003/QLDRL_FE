@@ -12,6 +12,7 @@ import Loading from "@/components/Loading";
 import { Tabs, Tab } from "@/components/Tabs";
 import { useData } from "@/lib/contexts/DataContext";
 import { Activity } from "@/types/activity";
+import { Campaign } from "@/types/campaign";
 
 export default function ActivityManagement() {
   const { 
@@ -36,14 +37,42 @@ export default function ActivityManagement() {
   const [selectedSemester, setSelectedSemester] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("approved");
   
+  // Separate state for current semester campaigns (for forms)
+  const [currentSemesterCampaigns, setCurrentSemesterCampaigns] = useState<Campaign[]>([]);
+  
   const itemsPerPage = 20;
   const tableRef = useRef<HTMLDivElement>(null);
 
+  // Fetch campaigns for the latest semester (for forms)
+  const fetchCurrentSemesterCampaigns = async () => {
+    if (contextSemesterOptions.length === 0) return;
+    
+    try {
+      // Get the latest semester (first in the list)
+      const latestSemester = contextSemesterOptions[0];
+      const [semester_no, academic_year] = latestSemester.value.split('_');
+      
+      const res = await api.get(`/api/campaigns/semester/${semester_no}/${academic_year}`);
+      const campaignsData = res.data.data.campaigns || [];
+      setCurrentSemesterCampaigns(campaignsData);
+    } catch (error) {
+      console.error('Error fetching current semester campaigns:', error);
+    }
+  };
+
+  // Sync with DataContext semester
   useEffect(() => {
     if (contextCurrentSemester && !selectedSemester) {
       setSelectedSemester(contextCurrentSemester);
     }
   }, [contextCurrentSemester, selectedSemester]);
+
+  // Fetch current semester campaigns when semester options are available
+  useEffect(() => {
+    if (contextSemesterOptions.length > 0) {
+      fetchCurrentSemesterCampaigns();
+    }
+  }, [contextSemesterOptions]);
 
   const fetchActivities = async (semester: string) => {
     if (!semester) return;
@@ -303,9 +332,9 @@ export default function ActivityManagement() {
   const renderComponent = () => {
     switch (activeComponent) {
       case "form":
-        return <ActivityForm currentcampaigns={contextCampaigns} onActivityCreated={handleCreateActivity} />;
+        return <ActivityForm currentcampaigns={currentSemesterCampaigns} onActivityCreated={handleCreateActivity} />;
       case "import":
-        return <ActivityImport onActivitiesImported={handleActivitiesImported} currentcampaigns={contextCampaigns} />;
+        return <ActivityImport onActivitiesImported={handleActivitiesImported} currentcampaigns={currentSemesterCampaigns} />;
       default:
         return (
           <>

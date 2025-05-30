@@ -33,7 +33,7 @@ const Sidebar = () => {
         </Link>
 
         <Link href="/uit/department-officers/users" className="block py-2 px-4 rounded hover:bg-gray-700">
-          Users
+          Tài khoản
         </Link>
 
         <Link href="/uit/department-officers/students" className="block py-2 px-4 rounded hover:bg-gray-700">

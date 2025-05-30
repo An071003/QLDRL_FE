@@ -207,7 +207,7 @@ export default function AdvisorClassStudentsPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Sinh viên lớp {classData?.name}</h1>
+        <h1 className="text-3xl font-bold">Quản lý lớp</h1>
         <button
           className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
           onClick={() => window.history.back()}>

@@ -15,7 +15,7 @@ interface Class {
     id: number;
     name: string;
   };
-  // student_count?: number;
+  student_count?: number;
 }
 
 export default function AdvisorClassesPage() {
@@ -101,10 +101,10 @@ export default function AdvisorClassesPage() {
             valueA = a.Faculty?.name || '';
             valueB = b.Faculty?.name || '';
             break;
-          // case 'student_count':
-          //   valueA = a.student_count || 0;
-          //   valueB = b.student_count || 0;
-          //   return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
+          case 'student_count':
+            valueA = a.student_count || 0;
+            valueB = b.student_count || 0;
+            return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
           default:
             return 0;
         }
@@ -179,12 +179,12 @@ export default function AdvisorClassesPage() {
                 >
                   Khoa {sortField === 'faculty' && (sortDirection === 'asc' ? '▲' : '▼')}
                 </th>
-                {/* <th 
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
+                <th 
+                  className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase cursor-pointer"
                   onClick={() => handleSort('student_count')}
                 >
                   Số sinh viên {sortField === 'student_count' && (sortDirection === 'asc' ? '▲' : '▼')}
-                </th> */}
+                </th>
                 {/* <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                   Thao tác
                 </th> */}
@@ -199,19 +199,12 @@ export default function AdvisorClassesPage() {
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">{classItem.cohort}</td>
                   <td className="px-4 py-3 whitespace-nowrap">{classItem.Faculty?.name || 'N/A'}</td>
-                  {/* <td className="px-4 py-3 whitespace-nowrap">{classItem.student_count || 0}</td> */}
-                  {/* <td className="px-4 py-3 text-center whitespace-nowrap">
-                    <button
-                      onClick={() => router.push(`/uit/advisor/classes/${classItem.id}`)}
-                      className="bg-blue-500 hover:bg-blue-700 text-white text-sm py-1 px-3 rounded inline-flex items-center gap-1"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                      Xem sinh viên
-                    </button>
-                  </td> */}
+                  
+                  <td className="px-4 py-3 text-center whitespace-nowrap">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      {classItem.student_count || 0} sinh viên
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>

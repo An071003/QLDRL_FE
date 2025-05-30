@@ -40,6 +40,7 @@ export default function AdvisorClasses({
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">STT</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên lớp</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khóa</th>
+            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Số sinh viên</th>
             {showActions && (
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Hành động</th>
             )}
@@ -51,6 +52,11 @@ export default function AdvisorClasses({
               <td className="px-4 py-3 whitespace-nowrap">{index + 1}</td>
               <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-900">{cls.name}</td>
               <td className="px-4 py-3 whitespace-nowrap">{cls.cohort || "--"}</td>
+              <td className="px-4 py-3 whitespace-nowrap text-center">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  {cls.student_count || 0} sinh viên
+                </span>
+              </td>
               {showActions && (
                 <td className="px-4 py-3 whitespace-nowrap text-center">
                   <div className="flex justify-center space-x-2">
