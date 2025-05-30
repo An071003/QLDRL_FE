@@ -5,68 +5,11 @@ export async function middleware(request: NextRequest) {
   const token = request.cookies.get("token")?.value;
   const pathname = request.nextUrl.pathname;
 
+  // Handle logout
   if (pathname === "/logout") {
-    if (request.method === "POST") {
-      const response = NextResponse.json({ success: true });
-      response.cookies.delete("token");
-      return NextResponse.redirect(new URL("/login", request.url));
-    }
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  // Handle login page - redirect authenticated users to their dashboard
-  if (pathname === "/login") {
-    if (token) {
-      try {
-        if (!process.env.JWT_SECRET) {
-          const response = NextResponse.redirect(new URL("/login", request.url));
-          response.headers.set('X-Debug-Middleware', 'No JWT_SECRET, redirecting to login for security');
-          response.headers.set('X-Debug-Token', token ? 'exists' : 'missing');
-          response.cookies.delete("token");
-          return response;
-        }
-
-        const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-        const { payload } = await jwtVerify(token, secret);
-        const { role } = payload as { role: string };
-
-        // Redirect based on role
-        let redirectPath = "/uit/student"; // default
-        switch(role) {
-          case "admin":
-            redirectPath = "/uit/admin";
-            break;
-          case "advisor":
-            redirectPath = "/uit/advisor";
-            break;
-          case "departmentofficer":
-            redirectPath = "/uit/department-officers";
-            break;
-          case "classleader":
-            redirectPath = "/uit/class-leader";
-            break;
-          case "student":
-            redirectPath = "/uit/student";
-            break;
-        }
-
-        const response = NextResponse.redirect(new URL(redirectPath, request.url));
-        response.headers.set('X-Debug-Middleware', `Login redirect: role=${role}, path=${redirectPath}`);
-        response.headers.set('X-Debug-Role', role);
-        response.headers.set('X-Debug-Token', 'valid');
-        return response;
-      } catch (error) {
-        const response = NextResponse.next();
-        response.cookies.delete("token");
-        response.headers.set('X-Debug-Middleware', 'Invalid token on login, clearing cookie');
-        response.headers.set('X-Debug-Token', 'invalid');
-        response.headers.set('X-Debug-Error', String(error));
-        return response;
-      }
-    }
-    const response = NextResponse.next();
-    response.headers.set('X-Debug-Middleware', 'Login page, no token');
-    response.headers.set('X-Debug-Token', 'missing');
+    const response = NextResponse.redirect(new URL("/login", request.url));
+    response.cookies.delete("token");
+    response.headers.set('X-Debug-Middleware', 'Logout - redirecting to login');
     return response;
   }
 
@@ -201,7 +144,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Allow all other routes
+  // Allow all other routes (including /login)
   const response = NextResponse.next();
   response.headers.set('X-Debug-Middleware', `Allowing access to ${pathname}`);
   response.headers.set('X-Debug-Token', token ? 'exists' : 'missing');
@@ -212,7 +155,6 @@ export const config = {
   matcher: [
     "/uit/:path*",
     "/uit",
-    "/login", 
     "/logout"
   ],
 };
