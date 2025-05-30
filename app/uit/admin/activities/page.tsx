@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import ActivityForm from "@/components/form/ActivityForm";
@@ -14,58 +14,103 @@ import { useData } from "@/lib/contexts/DataContext";
 import { Activity } from "@/types/activity";
 
 export default function ActivityManagement() {
-  const { activities: contextActivities, pendingActivities: contextPendingActivities, campaigns: contextCampaigns, loading: dataLoading, refreshActivities } = useData();
+  const { 
+    campaigns: contextCampaigns, 
+    semesterOptions: contextSemesterOptions,
+    currentSemester: contextCurrentSemester,
+    setCurrentSemester: setContextCurrentSemester,
+    refreshCampaigns,
+    loading: dataLoading
+  } = useData();
+  
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [pendingActivities, setPendingActivities] = useState<Activity[]>([]);
+  const [loadingActivities, setLoadingActivities] = useState(false);
+  const [loadingPendingActivities, setLoadingPendingActivities] = useState(false);
   const [activeComponent, setActiveComponent] = useState<"form" | "import" | "table">("table");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedSemester, setSelectedSemester] = useState<string>("all");
+  const [selectedSemester, setSelectedSemester] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("approved");
   
   const itemsPerPage = 20;
   const tableRef = useRef<HTMLDivElement>(null);
 
-  // Tính toán usedCampaignIds từ contextActivities
-  const usedCampaignIds = useMemo(() => {
-    return Array.from(new Set(contextActivities.map(a => a.campaign_id)));
-  }, [contextActivities]);
+  useEffect(() => {
+    if (contextCurrentSemester && !selectedSemester) {
+      setSelectedSemester(contextCurrentSemester);
+    }
+  }, [contextCurrentSemester, selectedSemester]);
 
-  const semesterOptions = useMemo(() => {
-    const options: {label: string, value: string}[] = [];
-    const added = new Set<string>();
+  const fetchActivities = async (semester: string) => {
+    if (!semester) return;
     
-    contextCampaigns.filter(campaign => usedCampaignIds.includes(campaign.id)).forEach(campaign => {
-      if (campaign.semester_no && campaign.academic_year) {
-        const nextYear = campaign.academic_year + 1;
-        const semesterLabel = campaign.semester_no === 3 
-          ? `Học kỳ Hè (${campaign.academic_year} - ${nextYear})` 
-          : `Học kỳ ${campaign.semester_no} (${campaign.academic_year} - ${nextYear})`;
-        const value = `${campaign.semester_no}_${campaign.academic_year}`;
-        if (!added.has(value)) {
-          options.push({ label: semesterLabel, value });
-          added.add(value);
-        }
-      }
-    });
-    return options;
-  }, [contextCampaigns, usedCampaignIds]);
+    setLoadingActivities(true);
+    try {
+      const [semester_no, academic_year] = semester.split('_');
+      const url = `/api/activities?semester_no=${semester_no}&academic_year=${academic_year}`;
+      
+      const res = await api.get(url);
+      const allActivities = res.data.data.activities || [];
+      
+      const approvedActivities = allActivities.filter((activity: Activity) => activity.approver_id !== null);
+      setActivities(approvedActivities);
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+      toast.error('Không thể tải danh sách hoạt động');
+    } finally {
+      setLoadingActivities(false);
+    }
+  };
 
-  // Tính toán filteredActivities từ contextActivities
+  const fetchPendingActivities = async (semester: string) => {
+    if (!semester) return;
+    setLoadingPendingActivities(true);
+    try {
+      const [semester_no, academic_year] = semester.split('_');
+      const url = `/api/activities?semester_no=${semester_no}&academic_year=${academic_year}`;
+      
+      const res = await api.get(url);
+      const allActivities = res.data.data.activities || [];
+      
+      const pendingData = allActivities.filter((activity: Activity) => activity.approver_id === null);
+      
+      // Add campaign information to pending activities
+      const pendingWithCampaign = pendingData.map((activity: Activity) => {
+        const campaign = contextCampaigns.find((c) => c.id === activity.campaign_id);
+        return {
+          ...activity,
+          campaign_name: campaign ? campaign.name : "Không xác định",
+          semester_no: campaign?.semester_no,
+          academic_year: campaign?.academic_year
+        };
+      });
+      
+      setPendingActivities(pendingWithCampaign);
+    } catch (error) {
+      console.error('Error fetching pending activities:', error);
+      toast.error('Không thể tải danh sách hoạt động chờ duyệt');
+    } finally {
+      setLoadingPendingActivities(false);
+    }
+  };
+
+  // Reload activities when semester changes
+  useEffect(() => {
+    if (selectedSemester) {
+      fetchActivities(selectedSemester);
+      fetchPendingActivities(selectedSemester);
+      setCurrentPage(1);
+    }
+  }, [selectedSemester, contextCampaigns]);
+
+  // Tính toán filteredActivities từ search term
   const filteredActivities = useMemo(() => {
-    return contextActivities
+    return activities
       .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()))
-      .filter((activity) => {
-        if (selectedSemester === "all") return true;
-        
-        const campaign = contextCampaigns.find(c => c.id === activity.campaign_id);
-        if (!campaign) return false;
-        
-        const [semester_no, academic_year] = selectedSemester.split("_");
-        return campaign.semester_no?.toString() === semester_no && 
-               campaign.academic_year?.toString() === academic_year;
-      })
       .sort((a, b) => {
         if (sortOrder === "asc") {
           return a.point - b.point;
@@ -73,7 +118,7 @@ export default function ActivityManagement() {
           return b.point - a.point;
         }
       });
-  }, [contextActivities, searchTerm, selectedSemester, sortOrder, contextCampaigns]);
+  }, [activities, searchTerm, sortOrder]);
 
   // Tính toán currentActivities và totalPages từ filteredActivities
   const { currentActivities, totalPages } = useMemo(() => {
@@ -113,7 +158,9 @@ export default function ActivityManagement() {
     
     try {
       await api.post("/api/activities", newActivity);
-      await refreshActivities();
+      await fetchActivities(selectedSemester); // Reload activities
+      await fetchPendingActivities(selectedSemester); // Reload pending activities
+      await refreshCampaigns(); // Refresh campaigns to update activity counts
       setActiveComponent("table");
       toast.success("Thêm hoạt động thành công 🎉");
       return { success: true };
@@ -133,7 +180,9 @@ export default function ActivityManagement() {
     if (selectedId === null) return;
     try {
       await api.delete(`/api/activities/${selectedId}`);
-      await refreshActivities();
+      await fetchActivities(selectedSemester); // Reload activities
+      await fetchPendingActivities(selectedSemester); // Reload pending activities
+      await refreshCampaigns(); // Refresh campaigns to update activity counts
       toast.success("Xóa hoạt động thành công ✅");
     } catch (error) {
       console.error(error);
@@ -171,7 +220,9 @@ export default function ActivityManagement() {
     
     try {
       await api.put(`/api/activities/${id}`, updatedActivity);
-      await refreshActivities();
+      await fetchActivities(selectedSemester); // Reload activities
+      await fetchPendingActivities(selectedSemester); // Reload pending activities
+      await refreshCampaigns(); // Refresh campaigns to update activity counts
       toast.success("Cập nhật hoạt động thành công ✨");
     } catch (error) {
       console.error(error);
@@ -190,7 +241,9 @@ export default function ActivityManagement() {
   }[]) => {
     try {
       await api.post("/api/activities/import", importedActivities);
-      await refreshActivities();
+      await fetchActivities(selectedSemester); // Reload activities
+      await fetchPendingActivities(selectedSemester); // Reload pending activities
+      await refreshCampaigns(); // Refresh campaigns to update activity counts
       setActiveComponent("table");
       toast.success("Import hoạt động thành công 🚀");
       return { success: true };
@@ -215,7 +268,9 @@ export default function ActivityManagement() {
     try {
       await api.put(`/api/activities/${id}/approve`);
       toast.success("Phê duyệt hoạt động thành công");
-      await refreshActivities();
+      await fetchActivities(selectedSemester); // Reload activities
+      await fetchPendingActivities(selectedSemester); // Reload pending activities
+      await refreshCampaigns(); // Refresh campaigns to update activity counts
     } catch (error) {
       console.error("Error approving activity:", error);
       toast.error("Lỗi khi phê duyệt hoạt động");
@@ -228,12 +283,21 @@ export default function ActivityManagement() {
     try {
       await api.put(`/api/activities/${id}/reject`);
       toast.success("Từ chối hoạt động thành công");
-      await refreshActivities();
+      await fetchActivities(selectedSemester); // Reload activities
+      await fetchPendingActivities(selectedSemester); // Reload pending activities
+      await refreshCampaigns(); // Refresh campaigns to update activity counts
     } catch (error) {
       console.error("Error rejecting activity:", error);
       toast.error("Lỗi khi từ chối hoạt động");
       throw error;
     }
+  };
+
+  // Handle semester change
+  const handleSemesterChange = (semester: string) => {
+    setSelectedSemester(semester);
+    setContextCurrentSemester(semester);
+    setCurrentPage(1);
   };
 
   const renderComponent = () => {
@@ -259,17 +323,25 @@ export default function ActivityManagement() {
               <select
                 value={selectedSemester}
                 onChange={(e) => {
-                  setSelectedSemester(e.target.value);
-                  setCurrentPage(1);
+                  handleSemesterChange(e.target.value);
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/4"
+                disabled={contextSemesterOptions.length === 0}
               >
-                <option value="all">Tất cả học kỳ</option>
-                {semesterOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
+                {contextSemesterOptions.length === 0 ? (
+                  <option value="">Đang tải học kỳ...</option>
+                ) : (
+                  <>
+                    {!selectedSemester && (
+                      <option value="">-- Chọn học kỳ --</option>
+                    )}
+                    {contextSemesterOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </>
+                )}
               </select>
               <div className="flex justify-end gap-4">
                 <button
@@ -291,7 +363,9 @@ export default function ActivityManagement() {
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <Tab value="approved" title="Đã phê duyệt">
                 <div className="mt-4">
-                  {filteredActivities.length > 0 ? (
+                  {loadingActivities ? (
+                    <Loading />
+                  ) : filteredActivities.length > 0 ? (
                     <ActivityTable
                       currentcampaigns={contextCampaigns}
                       activities={currentActivities as Activity[]}
@@ -302,23 +376,27 @@ export default function ActivityManagement() {
                     />
                   ) : (
                     <div className="bg-white p-6 rounded-lg shadow text-center">
-                      <p className="text-gray-500">Không có hoạt động nào đã được phê duyệt</p>
+                      <p className="text-gray-500">
+                        Không có hoạt động nào trong học kỳ này
+                      </p>
                     </div>
                   )}
                 </div>
               </Tab>
-              <Tab value="pending" title={`Chờ phê duyệt (${contextPendingActivities.length})`}>
+              <Tab value="pending" title={`Chờ phê duyệt (${pendingActivities.length})`}>
                 <div className="mt-4">
-                  {contextPendingActivities.length > 0 ? (
+                  {loadingPendingActivities ? (
+                    <Loading />
+                  ) : pendingActivities.length > 0 ? (
                     <PendingActivityTable
                       currentcampaigns={contextCampaigns}
-                      activities={contextPendingActivities as Activity[]}
+                      activities={pendingActivities as Activity[]}
                       onApproveActivity={handleApproveActivity}
                       onRejectActivity={handleRejectActivity}
                     />
                   ) : (
                     <div className="bg-white p-6 rounded-lg shadow text-center">
-                      <p className="text-gray-500">Không có hoạt động nào đang chờ phê duyệt</p>
+                      <p className="text-gray-500">Không có hoạt động nào đang chờ phê duyệt trong học kỳ này</p>
                     </div>
                   )}
                 </div>

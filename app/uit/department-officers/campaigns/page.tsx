@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Loading from "@/components/Loading";
 import { useRouter } from 'next/navigation';
 import { Tooltip } from "antd";
@@ -8,13 +8,28 @@ import { useData } from "@/lib/contexts/DataContext";
 
 export default function DPOCampaignManagement() {
   const router = useRouter();
-  const { campaigns, criteria, loading } = useData();
+  const { 
+    campaigns, 
+    criteria, 
+    semesterOptions, 
+    currentSemester, 
+    setCurrentSemester, 
+    loading 
+  } = useData();
+  
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedSemester, setSelectedSemester] = useState<string>("all");
+  const [selectedSemester, setSelectedSemester] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const itemsPerPage = 10;
+
+  // Initialize selectedSemester from context
+  useEffect(() => {
+    if (currentSemester && !selectedSemester) {
+      setSelectedSemester(currentSemester);
+    }
+  }, [currentSemester, selectedSemester]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -30,10 +45,12 @@ export default function DPOCampaignManagement() {
     }
   };
 
-  // Group campaigns by semester_no and academic_year
-  const semesterOptions = [...new Set(campaigns
-    .filter(c => c.semester_no && c.academic_year)
-    .map(c => `Học kỳ ${c.semester_no} - ${c.academic_year}|${c.semester_no}_${c.academic_year}`))];
+  // Handle semester change
+  const handleSemesterChange = (semester: string) => {
+    setSelectedSemester(semester);
+    setCurrentSemester(semester);
+    setCurrentPage(1);
+  };
 
   const sortedAndFilteredCampaigns = campaigns
     .filter((campaign) => {
@@ -41,12 +58,6 @@ export default function DPOCampaignManagement() {
       return campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         criteriaName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         `${campaign.semester_no} ${campaign.academic_year}`.toLowerCase().includes(searchTerm.toLowerCase());
-    })
-    .filter((campaign) => {
-      if (selectedSemester === "all") return true;
-      const [semesterNo, academicYear] = selectedSemester.split('_');
-      return campaign.semester_no === parseInt(semesterNo) && 
-             campaign.academic_year?.toString() === academicYear;
     });
 
   // Apply sorting
@@ -122,20 +133,25 @@ export default function DPOCampaignManagement() {
         <select
           value={selectedSemester}
           onChange={(e) => {
-            setSelectedSemester(e.target.value);
-            setCurrentPage(1);
+            handleSemesterChange(e.target.value);
           }}
           className="px-4 py-2 border border-gray-300 rounded-md w-full max-w-[200px] md:w-1/4"
+          disabled={semesterOptions.length === 0}
         >
-          <option value="all">Tất cả học kỳ</option>
-          {semesterOptions.map((option) => {
-            const [label, value] = option.split("|");
-            return (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            );
-          })}
+          {semesterOptions.length === 0 ? (
+            <option value="">Đang tải học kỳ...</option>
+          ) : (
+            <>
+              {!selectedSemester && (
+                <option value="">-- Chọn học kỳ --</option>
+              )}
+              {semesterOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </>
+          )}
         </select>
       </div>
       
@@ -177,6 +193,11 @@ export default function DPOCampaignManagement() {
                 <th 
                   className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
                 >
+                  Số hoạt động
+                </th>
+                <th 
+                  className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
+                >
                   Thao tác
                 </th>
               </tr>
@@ -205,6 +226,11 @@ export default function DPOCampaignManagement() {
                       Học kỳ {campaign.semester_no} - {campaign.academic_year}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">{campaign.max_score}</td>
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {campaign.activity_count || 0} hoạt động
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-center whitespace-nowrap">
                       <button
                         onClick={() => router.push(`/uit/department-officers/campaigns/${campaign.id}`)}

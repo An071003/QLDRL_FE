@@ -6,55 +6,32 @@ import api from "@/lib/api";
 import Loading from "@/components/Loading";
 import { useRouter } from 'next/navigation';
 import { Tooltip } from 'antd';
-
-interface Campaign {
-  id: number;
-  name: string;
-  max_score: number;
-  criteria_id: number;
-  semester_no: number;
-  academic_year: string;
-  status: string;
-  Criteria?: {
-    id: number;
-    name: string;
-  };
-}
+import { useData } from "@/lib/contexts/DataContext";
 
 export default function AdvisorCampaignManagement() {
   const router = useRouter();
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { 
+    campaigns, 
+    criteria, 
+    semesterOptions, 
+    currentSemester, 
+    setCurrentSemester, 
+    loading 
+  } = useData();
+  
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedSemester, setSelectedSemester] = useState<string>("all");
+  const [selectedSemester, setSelectedSemester] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const itemsPerPage = 10;
   
+  // Initialize selectedSemester from context
   useEffect(() => {
-    fetchCampaigns();
-  }, []);
-
-  const fetchCampaigns = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get("/api/campaigns");
-      if (res.data.data.campaigns) {
-        setCampaigns(res.data.data.campaigns);
-      } else if (Array.isArray(res.data.data)) {
-        setCampaigns(res.data.data);
-      } else {
-        setCampaigns([]);
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Không thể tải danh sách phong trào");
-      setCampaigns([]);
-    } finally {
-      setLoading(false);
+    if (currentSemester && !selectedSemester) {
+      setSelectedSemester(currentSemester);
     }
-  };
+  }, [currentSemester, selectedSemester]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -70,22 +47,19 @@ export default function AdvisorCampaignManagement() {
     }
   };
 
-  // Group campaigns by semester_no and academic_year
-  const semesterOptions = [...new Set(campaigns
-    .filter(c => c.semester_no && c.academic_year)
-    .map(c => `Học kỳ ${c.semester_no} - ${c.academic_year}|${c.semester_no}_${c.academic_year}`))];
+  // Handle semester change
+  const handleSemesterChange = (semester: string) => {
+    setSelectedSemester(semester);
+    setCurrentSemester(semester);
+    setCurrentPage(1);
+  };
 
   const sortedAndFilteredCampaigns = campaigns
-    .filter((campaign) =>
-      campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      campaign.Criteria?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      `${campaign.semester_no} ${campaign.academic_year}`.toLowerCase().includes(searchTerm.toLowerCase())
-    )
     .filter((campaign) => {
-      if (selectedSemester === "all") return true;
-      const [semesterNo, academicYear] = selectedSemester.split('_');
-      return campaign.semester_no === parseInt(semesterNo) && 
-             campaign.academic_year.toString() === academicYear;
+      const criteriaName = criteria.find(c => c.id === campaign.criteria_id)?.name || '';
+      return campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        criteriaName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        `${campaign.semester_no} ${campaign.academic_year}`.toLowerCase().includes(searchTerm.toLowerCase());
     });
 
   // Apply sorting
@@ -104,8 +78,8 @@ export default function AdvisorCampaignManagement() {
           valueB = b.name || '';
           break;
         case 'criteria':
-          valueA = a.Criteria?.name || '';
-          valueB = b.Criteria?.name || '';
+          valueA = criteria.find(c => c.id === a.criteria_id)?.name || '';
+          valueB = criteria.find(c => c.id === b.criteria_id)?.name || '';
           break;
         case 'max_score':
           valueA = a.max_score || 0;
@@ -163,20 +137,25 @@ export default function AdvisorCampaignManagement() {
         <select
           value={selectedSemester}
           onChange={(e) => {
-            setSelectedSemester(e.target.value);
-            setCurrentPage(1);
+            handleSemesterChange(e.target.value);
           }}
           className="px-4 py-2 border border-gray-300 rounded-md w-full max-w-[200px] md:w-1/4"
+          disabled={semesterOptions.length === 0}
         >
-          <option value="all">Tất cả học kỳ</option>
-          {semesterOptions.map((option) => {
-            const [label, value] = option.split("|");
-            return (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            );
-          })}
+          {semesterOptions.length === 0 ? (
+            <option value="">Đang tải học kỳ...</option>
+          ) : (
+            <>
+              {!selectedSemester && (
+                <option value="">-- Chọn học kỳ --</option>
+              )}
+              {semesterOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </>
+          )}
         </select>
       </div>
       
@@ -218,42 +197,55 @@ export default function AdvisorCampaignManagement() {
                 <th 
                   className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
                 >
+                  Số hoạt động
+                </th>
+                <th 
+                  className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
+                >
                   Thao tác
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {paginatedCampaigns.map((campaign) => (
-                <tr key={campaign.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 whitespace-nowrap">{campaign.id}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <Tooltip title={campaign.name} placement="topLeft">
-                      <div className="max-w-xs truncate">{campaign.name}</div>
-                    </Tooltip>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <Tooltip title={campaign.Criteria?.name || 'Tiêu chí...'} placement="topLeft">
-                      <div className="max-w-xs truncate">{campaign.Criteria?.name || 'Tiêu chí...'}</div>
-                    </Tooltip>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    Học kỳ {campaign.semester_no} - {campaign.academic_year}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">{campaign.max_score}</td>
-                  <td className="px-4 py-3 text-center whitespace-nowrap">
-                    <button
-                      onClick={() => router.push(`/uit/advisor/campaigns/${campaign.id}`)}
-                      className="bg-blue-500 hover:bg-blue-700 text-white text-sm py-1 px-3 rounded inline-flex items-center gap-1"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                      Xem hoạt động
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {paginatedCampaigns.map((campaign) => {
+                const criteriaName = criteria.find(c => c.id === campaign.criteria_id)?.name || 'N/A';
+                return (
+                  <tr key={campaign.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 whitespace-nowrap">{campaign.id}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <Tooltip title={campaign.name} placement="topLeft">
+                        <div className="max-w-xs truncate">{campaign.name}</div>
+                      </Tooltip>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <Tooltip title={criteriaName} placement="topLeft">
+                        <div className="max-w-xs truncate">{criteriaName}</div>
+                      </Tooltip>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      Học kỳ {campaign.semester_no} - {campaign.academic_year}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">{campaign.max_score}</td>
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {campaign.activity_count || 0} hoạt động
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
+                      <button
+                        onClick={() => router.push(`/uit/advisor/campaigns/${campaign.id}`)}
+                        className="bg-blue-500 hover:bg-blue-700 text-white text-sm py-1 px-3 rounded inline-flex items-center gap-1"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                        Xem hoạt động
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -34,20 +34,14 @@ interface Campaign {
   start_date?: string;
   end_date?: string;
   status?: string;
+  activity_count?: number;
 }
 
-interface Activity {
-  id: number;
-  name: string;
-  point: number;
-  campaign_id: number;
-  approver_id: number | null;
-  creator_id: number | null;
-  max_participants?: number;
-  number_students?: number;
-  registration_start?: string;
-  registration_end?: string;
-  status?: string;
+interface SemesterOption {
+  value: string;
+  label: string;
+  semester_no: number;
+  academic_year: number;
 }
 
 interface DataContextType {
@@ -55,12 +49,13 @@ interface DataContextType {
   classes: Class[];
   criteria: Criteria[];
   campaigns: Campaign[];
-  activities: Activity[];
-  pendingActivities: Activity[];
+  semesterOptions: SemesterOption[];
+  currentSemester: string;
   loading: boolean;
   error: string | null;
   refreshData: () => Promise<void>;
-  refreshActivities: () => Promise<void>;
+  refreshCampaigns: () => Promise<void>;
+  setCurrentSemester: (semester: string) => void;
   getFilteredClasses: (facultyId: number | null) => Class[];
 }
 
@@ -71,26 +66,51 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [classes, setClasses] = useState<Class[]>([]);
   const [criteria, setCriteria] = useState<Criteria[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [pendingActivities, setPendingActivities] = useState<Activity[]>([]);
+  const [semesterOptions, setSemesterOptions] = useState<SemesterOption[]>([]);
+  const [currentSemester, setCurrentSemester] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Fetch campaigns by current semester
+  const fetchCampaignsBySemester = async (semester: string) => {
+    if (!semester) return;
+    
+    try {
+      const [semester_no, academic_year] = semester.split('_');
+      const res = await api.get(`/api/campaigns/semester/${semester_no}/${academic_year}`);
+      const campaignsData = res.data.data.campaigns || [];
+      setCampaigns(campaignsData);
+    } catch (error) {
+      console.error('Error fetching campaigns by semester:', error);
+      // Fallback to empty array instead of showing error toast to avoid spam
+      setCampaigns([]);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const [facultiesRes, classesRes, criteriaRes, campaignsRes] = await Promise.all([
+      const [facultiesRes, classesRes, criteriaRes, semestersRes] = await Promise.all([
         api.get('/api/faculties'),
         api.get('/api/classes'),
         api.get('/api/criteria'),
-        api.get('/api/campaigns')
+        api.get('/api/campaigns/semesters')
       ]);
       
       setFaculties(facultiesRes.data.data.faculties);
       setClasses(classesRes.data.data.classes);
       setCriteria(criteriaRes.data.data.criteria);
-      setCampaigns(campaignsRes.data.data.campaigns || campaignsRes.data.data || []);
+      
+      // Set semester options and default to latest semester
+      const semesters = semestersRes.data.data.semesters || [];
+      setSemesterOptions(semesters);
+      if (semesters.length > 0 && !currentSemester) {
+        const latestSemester = semesters[0].value;
+        setCurrentSemester(latestSemester);
+        // Fetch campaigns for the latest semester
+        await fetchCampaignsBySemester(latestSemester);
+      }
     } catch (err) {
       setError('Không thể tải dữ liệu');
       toast.error('Không thể tải dữ liệu khoa và lớp');
@@ -100,55 +120,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const fetchActivities = useCallback(async () => {
-    try {
-      // Get all activities
-      const activitiesRes = await api.get("/api/activities");
-      let allActivities;
-
-      if (activitiesRes.data.data.activities) {
-        allActivities = activitiesRes.data.data.activities;
-      } else {
-        allActivities = activitiesRes.data.data || [];
-      }
-
-      // Add campaign information to activities
-      allActivities = allActivities.map((activity: Activity) => {
-        const campaign = campaigns.find((c) => c.id === activity.campaign_id);
-        return {
-          ...activity,
-          campaign_name: campaign ? campaign.name : "Không xác định",
-          semester_no: campaign?.semester_no,
-          academic_year: campaign?.academic_year
-        };
-      });
-
-      const approved = allActivities.filter((activity: Activity) => activity.approver_id !== null);
-      const pending = allActivities.filter((activity: Activity) => activity.approver_id === null);
-      
-      setActivities(approved);
-      setPendingActivities(pending);
-    } catch (err) {
-      console.error('Error fetching activities:', err);
+  // Handle semester change
+  const handleSetCurrentSemester = async (semester: string) => {
+    setCurrentSemester(semester);
+    if (semester) {
+      await fetchCampaignsBySemester(semester);
     }
-  }, [campaigns]);
+  };
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    if (campaigns.length > 0) {
-      fetchActivities();
-    }
-  }, [campaigns, fetchActivities]);
-
   const refreshData = async () => {
     await fetchData();
   };
 
-  const refreshActivities = async () => {
-    await fetchActivities();
+  const refreshCampaigns = async () => {
+    if (currentSemester) {
+      await fetchCampaignsBySemester(currentSemester);
+    }
   };
 
   const getFilteredClasses = (facultyId: number | null) => {
@@ -163,12 +154,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
         classes,
         criteria,
         campaigns,
-        activities,
-        pendingActivities,
+        semesterOptions,
+        currentSemester,
         loading,
         error,
         refreshData,
-        refreshActivities,
+        refreshCampaigns,
+        setCurrentSemester: handleSetCurrentSemester,
         getFilteredClasses
       }}
     >

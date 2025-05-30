@@ -13,17 +13,26 @@ import ActivityForm from "@/components/form/ActivityForm";
 import ActivityImport from "@/components/Import/ActivityImport";
 import ActivityTable from "@/components/activities/ActivityTable";
 
+interface SemesterOption {
+  value: string;
+  label: string;
+  semester_no: number;
+  academic_year: number;
+}
+
 export default function AdvisorActivityManagement() {
   const router = useRouter();
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [createdPendingActivities, setCreatedPendingActivities] = useState<Activity[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [semesterOptions, setSemesterOptions] = useState<SemesterOption[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingActivities, setLoadingActivities] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<string | null>('point');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [selectedSemester, setSelectedSemester] = useState<string>("all");
+  const [selectedSemester, setSelectedSemester] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("approved");
   const [activeComponent, setActiveComponent] = useState<"form" | "import" | "table">("table");
   const tableRef = useRef<HTMLDivElement>(null);
@@ -50,39 +59,67 @@ export default function AdvisorActivityManagement() {
   }, []);
 
   useEffect(() => {
-    loadData();
+    loadInitialData();
   }, [currentUserId]);
 
-  const loadData = async () => {
+  useEffect(() => {
+    if (selectedSemester) {
+      fetchAllActivitiesBySemester(selectedSemester);
+    }
+  }, [selectedSemester, currentUserId]);
+
+  // Fetch semester options from campaigns
+  const fetchSemesterOptions = async () => {
+    try {
+      const res = await api.get('/api/campaigns/semesters');
+      const semesters = res.data.data.semesters;
+      setSemesterOptions(semesters);
+      
+      // Set default semester to first one
+      if (semesters.length > 0 && !selectedSemester) {
+        setSelectedSemester(semesters[0].value);
+      }
+    } catch (error) {
+      console.error('Error fetching semesters:', error);
+      toast.error('Không thể tải danh sách học kỳ');
+    }
+  };
+
+  // Fetch all activities for a semester and split into approved/pending
+  const fetchAllActivitiesBySemester = async (semester: string) => {
+    if (!semester) return;
+    
+    setLoadingActivities(true);
+    try {
+      const [semester_no, academic_year] = semester.split('_');
+      const url = `/api/activities?semester_no=${semester_no}&academic_year=${academic_year}`;
+      
+      const activitiesRes = await api.get(url);
+      const allActivities = activitiesRes.data.data.activities || [];
+
+      // Split into approved and pending
+      const approved = allActivities.filter((activity: Activity) => activity.approver_id !== null);
+      const pending = allActivities.filter((activity: Activity) => activity.approver_id === null);
+      
+      setActivities(approved);
+      setCreatedPendingActivities(pending);
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+      toast.error('Không thể tải danh sách hoạt động');
+    } finally {
+      setLoadingActivities(false);
+    }
+  };
+
+  const loadInitialData = async () => {
     setLoading(true);
     try {
       const campaignsRes = await api.get("/api/campaigns");
       const campaignsData = campaignsRes.data.data.campaigns || campaignsRes.data.data || [];
       setCampaigns(campaignsData);
       
-      // Get all activities
-      const activitiesRes = await api.get("/api/activities");
-      let allActivities;
+      await fetchSemesterOptions();
 
-      if (activitiesRes.data.data.activities) {
-        allActivities = activitiesRes.data.data.activities;
-      } else {
-        allActivities = activitiesRes.data.data || [];
-      }
-
-      const approved = allActivities.filter((activity: Activity) => activity.approver_id !== null);
-      setActivities(approved);
-
-      const createdPendingRes = await api.get("/api/activities/created-pending");
-      let pendingData;
-      
-      if (createdPendingRes.data.data.activities) {
-        pendingData = createdPendingRes.data.data.activities;
-      } else {
-        pendingData = createdPendingRes.data.data || [];
-      }
-      
-      setCreatedPendingActivities(pendingData);
     } catch (error) {
       toast.error("Không thể tải dữ liệu");
       console.error(error);
@@ -116,7 +153,10 @@ export default function AdvisorActivityManagement() {
     
     try {
       await api.post("/api/activities", newActivity);
-      await loadData();
+      // Reload both approved and pending activities
+      if (selectedSemester) {
+        await fetchAllActivitiesBySemester(selectedSemester);
+      }
       setActiveComponent("table");
       toast.success("Thêm hoạt động thành công 🎉");
       return { success: true };
@@ -138,7 +178,10 @@ export default function AdvisorActivityManagement() {
   }[]) => {
     try {
       await api.post("/api/activities/import", importedActivities);
-      await loadData();
+      // Reload both approved and pending activities
+      if (selectedSemester) {
+        await fetchAllActivitiesBySemester(selectedSemester);
+      }
       setActiveComponent("table");
       toast.success("Import hoạt động thành công 🚀");
       return { success: true };
@@ -162,32 +205,10 @@ export default function AdvisorActivityManagement() {
     }
   };
 
-  const semesterOptions = useMemo(() => {
-    const options = new Set<string>();
-    campaigns.forEach(campaign => {
-      options.add(`${campaign.semester_no}_${campaign.academic_year}`);
-    });
-
-    return Array.from(options).map(option => {
-      const [semester_no, academic_year] = option.split('_');
-      return {
-        value: option,
-        label: `Học kỳ ${semester_no} - ${academic_year}`
-      };
-    }).sort((a, b) => a.label.localeCompare(b.label));
-  }, [campaigns]);
-
   const sortedAndFilteredActivities = useMemo(() => {
+    // Filter by search term only (semester already filtered in API)
     const filtered = activities
-      .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()))
-      .filter((activity) => {
-        if (selectedSemester === "all") return true;
-        const campaign = campaigns.find(c => c.id === activity.campaign_id);
-        if (!campaign) return false;
-        const [semester_no, academic_year] = selectedSemester.split("_");
-        return campaign.semester_no?.toString() === semester_no &&
-          campaign.academic_year?.toString() === academic_year;
-      });
+      .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
     // Apply sorting
     if (sortField) {
@@ -243,26 +264,13 @@ export default function AdvisorActivityManagement() {
     }
 
     return filtered;
-  }, [activities, campaigns, searchTerm, selectedSemester, sortField, sortDirection]);
+  }, [activities, campaigns, searchTerm, sortField, sortDirection]);
 
   const sortedAndFilteredPendingActivities = useMemo(() => {
-    // Filter by search term and semester
+
     const filtered = createdPendingActivities
-      .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()))
-      .filter((activity) => {
-        if (selectedSemester === "all") return true;
+      .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
-        // Find campaign for the activity
-        const campaign = campaigns.find(c => c.id === activity.campaign_id);
-        if (!campaign) return false;
-
-        // Check if campaign matches selected semester
-        const [semester_no, academic_year] = selectedSemester.split("_");
-        return campaign.semester_no?.toString() === semester_no &&
-          campaign.academic_year?.toString() === academic_year;
-      });
-
-    // Apply sorting
     if (sortField) {
       return [...filtered].sort((a, b) => {
         let valueA: string | number;
@@ -308,8 +316,6 @@ export default function AdvisorActivityManagement() {
     return filtered;
   }, [createdPendingActivities, campaigns, searchTerm, selectedSemester, sortField, sortDirection]);
 
-
-
   if (loading) {
     return (
       <Loading />
@@ -339,13 +345,22 @@ export default function AdvisorActivityManagement() {
                   setSelectedSemester(e.target.value);
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/4"
+                disabled={semesterOptions.length === 0}
               >
-                <option value="all">Tất cả học kỳ</option>
-                {semesterOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
+                {semesterOptions.length === 0 ? (
+                  <option value="">Đang tải học kỳ...</option>
+                ) : (
+                  <>
+                    {!selectedSemester && (
+                      <option value="">-- Chọn học kỳ --</option>
+                    )}
+                    {semesterOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </>
+                )}
               </select>
               
               <div className="flex justify-end gap-4">
@@ -366,14 +381,18 @@ export default function AdvisorActivityManagement() {
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <Tab value="approved" title="Đã phê duyệt">
-                <ActivityTable
-                  activities={sortedAndFilteredActivities}
-                  campaigns={campaigns}
-                  sortField={sortField}
-                  sortDirection={sortDirection}
-                  onSort={handleSort}
-                  onViewDetails={(id) => router.push(`/uit/advisor/activities/${id}`)}
-                />
+                {loadingActivities ? (
+                  <Loading />
+                ) : (
+                  <ActivityTable
+                    activities={sortedAndFilteredActivities}
+                    campaigns={campaigns}
+                    sortField={sortField}
+                    sortDirection={sortDirection}
+                    onSort={handleSort}
+                    onViewDetails={(id) => router.push(`/uit/advisor/activities/${id}`)}
+                  />
+                )}
               </Tab>
               <Tab value="pending" title="Chờ phê duyệt">
                 <ActivityTable
