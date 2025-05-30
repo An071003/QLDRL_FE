@@ -98,6 +98,7 @@ export default function CampaignTable({ campaigns, criterias, onDeleteCampaign, 
             >
               Điểm tối đa {sortOrder === "asc" ? "▲" : "▼"}
             </th>
+            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Số hoạt động</th>
             <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
           </tr>
         </thead>
@@ -176,6 +177,11 @@ export default function CampaignTable({ campaigns, criterias, onDeleteCampaign, 
                 ) : (
                   campaign.max_score
                 )}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-center">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  {campaign.activity_count || 0} hoạt động
+                </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 {editingId === campaign.id ? (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import CampaignForm from "@/components/form/CampaignForm";
@@ -12,10 +12,19 @@ import axios from "axios";
 import { useData } from "@/lib/contexts/DataContext";
 
 export default function CampaignManagement() {
-  const { campaigns, criteria, loading, refreshData } = useData();
+  const { 
+    campaigns, 
+    criteria, 
+    semesterOptions, 
+    currentSemester, 
+    setCurrentSemester, 
+    refreshCampaigns,
+    loading 
+  } = useData();
+  
   const [activeComponent, setActiveComponent] = useState<'form' | 'import' | 'table'>("table");
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedSemester, setSelectedSemester] = useState<string>("all");
+  const [selectedSemester, setSelectedSemester] = useState<string>("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -23,6 +32,13 @@ export default function CampaignManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
   const tableRef = useRef<HTMLDivElement>(null);
+
+  // Sync with DataContext semester
+  useEffect(() => {
+    if (currentSemester && !selectedSemester) {
+      setSelectedSemester(currentSemester);
+    }
+  }, [currentSemester, selectedSemester]);
 
   const handleCreateCampaign = async (newCampaign: { 
     name: string; 
@@ -33,7 +49,7 @@ export default function CampaignManagement() {
   }) => {
     try {
       await api.post("/api/campaigns", newCampaign);
-      await refreshData();
+      await refreshCampaigns();
       setActiveComponent("table");
       toast.success("Thêm phong trào thành công 🎉");
       return { success: true };
@@ -53,7 +69,7 @@ export default function CampaignManagement() {
     if (selectedId === null) return;
     try {
       await api.delete(`/api/campaigns/${selectedId}`);
-      await refreshData();
+      await refreshCampaigns();
       toast.success("Xóa phong trào thành công ✅");
     } catch (error: unknown) {
       console.error(error);
@@ -73,7 +89,7 @@ export default function CampaignManagement() {
   }) => {
     try {
       await api.put(`/api/campaigns/${id}`, updatedCampaign);
-      await refreshData();
+      await refreshCampaigns();
       toast.success("Cập nhật phong trào thành công ✨");
     } catch (error: unknown) {
       console.error(error);
@@ -94,7 +110,7 @@ export default function CampaignManagement() {
       const response = await api.post("/api/campaigns/import", importedCampaigns);
       console.log("Import response:", response.data);
       
-      await refreshData();
+      await refreshCampaigns();
       setActiveComponent("table");
       
       if (response.data.status === "partial") {
@@ -119,22 +135,19 @@ export default function CampaignManagement() {
     setSortOrder(prev => (prev === "asc" ? "desc" : "asc"));
   };
 
-  // Group campaigns by semester_no and academic_year
-  const semesterOptions = [...new Set(campaigns
-    .filter(c => c.semester_no && c.academic_year)
-    .map(c => `Học kỳ ${c.semester_no} (${c.academic_year})|${c.semester_no}_${c.academic_year}`))];
+  // Handle semester change
+  const handleSemesterChange = (semester: string) => {
+    setSelectedSemester(semester);
+    setCurrentSemester(semester);
+    setCurrentPage(1);
+  };
 
+  // Filter campaigns (no semester filtering needed since DataContext provides semester-filtered campaigns)
   const filteredCampaigns = campaigns
     ? campaigns
         .filter((campaign) =>
           campaign.name.toLowerCase().includes(searchTerm.toLowerCase())
         )
-        .filter((campaign) => {
-          if (selectedSemester === "all") return true;
-          const [semesterNo, academicYear] = selectedSemester.split('_');
-          return campaign.semester_no === parseInt(semesterNo) && 
-                 campaign.academic_year === parseInt(academicYear);
-        })
         .sort((a, b) => {
           if (sortOrder === "asc") {
             return a.max_score - b.max_score;
@@ -177,20 +190,25 @@ export default function CampaignManagement() {
               <select
                 value={selectedSemester}
                 onChange={(e) => {
-                  setSelectedSemester(e.target.value);
-                  setCurrentPage(1);
+                  handleSemesterChange(e.target.value);
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/4"
+                disabled={semesterOptions.length === 0}
               >
-                <option value="all">Tất cả học kỳ</option>
-                {semesterOptions.map((option) => {
-                  const [label, id] = option.split("|");
-                  return (
-                    <option key={id} value={id}>
-                      {label}
-                    </option>
-                  );
-                })}
+                {semesterOptions.length === 0 ? (
+                  <option value="">Đang tải học kỳ...</option>
+                ) : (
+                  <>
+                    {!selectedSemester && (
+                      <option value="">-- Chọn học kỳ --</option>
+                    )}
+                    {semesterOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </>
+                )}
               </select>
               <div className="flex justify-end gap-4 ">
 

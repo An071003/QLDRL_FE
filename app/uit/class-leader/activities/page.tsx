@@ -14,17 +14,26 @@ import ActivityImport from "@/components/Import/ActivityImport";
 import { Tooltip } from "antd";
 import { ClassleaderLayout } from "@/components/layout/class-leader";
 
+interface SemesterOption {
+  value: string;
+  label: string;
+  semester_no: number;
+  academic_year: number;
+}
+
 export default function ClassleaderActivityManagement() {
     const router = useRouter();
     const [currentUserId, setCurrentUserId] = useState<number | null>(null);
     const [activities, setActivities] = useState<Activity[]>([]);
     const [createdPendingActivities, setCreatedPendingActivities] = useState<Activity[]>([]);
     const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+    const [semesterOptions, setSemesterOptions] = useState<SemesterOption[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingActivities, setLoadingActivities] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [sortField, setSortField] = useState<string | null>('point');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-    const [selectedSemester, setSelectedSemester] = useState<string>("all");
+    const [selectedSemester, setSelectedSemester] = useState<string>("");
     const [currentPage, setCurrentPage] = useState(1);
     const [activeTab, setActiveTab] = useState<string>("approved");
     const [activeComponent, setActiveComponent] = useState<"form" | "import" | "table">("table");
@@ -52,39 +61,68 @@ export default function ClassleaderActivityManagement() {
     }, []);
 
     useEffect(() => {
-        loadData();
+        loadInitialData();
     }, [currentUserId]);
 
-    const loadData = async () => {
+    useEffect(() => {
+        if (selectedSemester) {
+            fetchAllActivitiesBySemester(selectedSemester);
+        }
+    }, [selectedSemester, currentUserId]);
+
+    const fetchSemesterOptions = async () => {
+        try {
+            const res = await api.get('/api/campaigns/semesters');
+            const semesters = res.data.data.semesters;
+            setSemesterOptions(semesters);
+            
+            // Set default semester to first one
+            if (semesters.length > 0 && !selectedSemester) {
+                setSelectedSemester(semesters[0].value);
+            }
+        } catch (error) {
+            console.error('Error fetching semesters:', error);
+            toast.error('Không thể tải danh sách học kỳ');
+        }
+    };
+
+    const fetchAllActivitiesBySemester = async (semester: string) => {
+        if (!semester) return;
+        
+        setLoadingActivities(true);
+        try {
+            const [semester_no, academic_year] = semester.split('_');
+            const url = `/api/activities?semester_no=${semester_no}&academic_year=${academic_year}`;
+            
+            const activitiesRes = await api.get(url);
+            const allActivities = activitiesRes.data.data.activities || activitiesRes.data.data || [];
+
+            // Split into approved and pending
+            const approved = allActivities.filter((activity: Activity) => activity.approver_id !== null);
+            const pending = allActivities.filter((activity: Activity) => 
+                activity.approver_id === null
+            );
+
+            setActivities(approved);
+            setCreatedPendingActivities(pending);
+        } catch (error) {
+            console.error('Error fetching activities:', error);
+            toast.error('Không thể tải danh sách hoạt động');
+        } finally {
+            setLoadingActivities(false);
+        }
+    };
+
+    const loadInitialData = async () => {
         setLoading(true);
         try {
             const campaignsRes = await api.get("/api/campaigns");
             const campaignsData = campaignsRes.data.data.campaigns || campaignsRes.data.data || [];
             setCampaigns(campaignsData);
 
-            // Get all activities
-            const activitiesRes = await api.get("/api/activities");
-            let allActivities;
+            await fetchSemesterOptions();
 
-            if (activitiesRes.data.data.activities) {
-                allActivities = activitiesRes.data.data.activities;
-            } else {
-                allActivities = activitiesRes.data.data || [];
-            }
-
-            const approved = allActivities.filter((activity: Activity) => activity.approver_id !== null);
-            setActivities(approved);
-
-            const createdPendingRes = await api.get("/api/activities/created-pending");
-            let pendingData;
-
-            if (createdPendingRes.data.data.activities) {
-                pendingData = createdPendingRes.data.data.activities;
-            } else {
-                pendingData = createdPendingRes.data.data || [];
-            }
-
-            setCreatedPendingActivities(pendingData);
+            // Don't load activities here anymore - will be loaded when semester is selected
         } catch (error) {
             toast.error("Không thể tải dữ liệu");
             console.error(error);
@@ -118,7 +156,10 @@ export default function ClassleaderActivityManagement() {
 
         try {
             await api.post("/api/activities", newActivity);
-            await loadData();
+            // Reload both approved and pending activities
+            if (selectedSemester) {
+                await fetchAllActivitiesBySemester(selectedSemester);
+            }
             setActiveComponent("table");
             toast.success("Thêm hoạt động thành công 🎉");
             return { success: true };
@@ -140,7 +181,10 @@ export default function ClassleaderActivityManagement() {
     }[]) => {
         try {
             await api.post("/api/activities/import", importedActivities);
-            await loadData();
+            // Reload both approved and pending activities
+            if (selectedSemester) {
+                await fetchAllActivitiesBySemester(selectedSemester);
+            }
             setActiveComponent("table");
             toast.success("Import hoạt động thành công 🚀");
             return { success: true };
@@ -165,37 +209,10 @@ export default function ClassleaderActivityManagement() {
         }
     };
 
-    const semesterOptions = useMemo(() => {
-        const options = new Set<string>();
-        campaigns.forEach(campaign => {
-            options.add(`${campaign.semester_no}_${campaign.academic_year}`);
-        });
-
-        return Array.from(options).map(option => {
-            const [semester_no, academic_year] = option.split('_');
-            return {
-                value: option,
-                label: `Học kỳ ${semester_no} - ${academic_year}`
-            };
-        }).sort((a, b) => a.label.localeCompare(b.label));
-    }, [campaigns]);
-
     const sortedAndFilteredActivities = useMemo(() => {
-        // Filter by search term and semester
+        // Filter by search term only (semester already filtered in API)
         const filtered = activities
-            .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()))
-            .filter((activity) => {
-                if (selectedSemester === "all") return true;
-
-                // Find campaign for the activity
-                const campaign = campaigns.find(c => c.id === activity.campaign_id);
-                if (!campaign) return false;
-
-                // Check if campaign matches selected semester
-                const [semester_no, academic_year] = selectedSemester.split("_");
-                return campaign.semester_no?.toString() === semester_no &&
-                    campaign.academic_year?.toString() === academic_year;
-            });
+            .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
         // Apply sorting
         if (sortField) {
@@ -251,25 +268,13 @@ export default function ClassleaderActivityManagement() {
         }
 
         return filtered;
-    }, [activities, campaigns, searchTerm, selectedSemester, sortField, sortDirection]);
+    }, [activities, campaigns, searchTerm, sortField, sortDirection]);
 
     // Create a similar function for pending activities
     const sortedAndFilteredPendingActivities = useMemo(() => {
-        // Filter by search term and semester
+        // Filter by search term only (semester not needed for pending)
         const filtered = createdPendingActivities
-            .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()))
-            .filter((activity) => {
-                if (selectedSemester === "all") return true;
-
-                // Find campaign for the activity
-                const campaign = campaigns.find(c => c.id === activity.campaign_id);
-                if (!campaign) return false;
-
-                // Check if campaign matches selected semester
-                const [semester_no, academic_year] = selectedSemester.split("_");
-                return campaign.semester_no?.toString() === semester_no &&
-                    campaign.academic_year?.toString() === academic_year;
-            });
+            .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
         // Apply sorting
         if (sortField) {
@@ -315,7 +320,7 @@ export default function ClassleaderActivityManagement() {
         }
 
         return filtered;
-    }, [createdPendingActivities, campaigns, searchTerm, selectedSemester, sortField, sortDirection]);
+    }, [createdPendingActivities, campaigns, searchTerm, sortField, sortDirection]);
 
     const totalPages = Math.ceil(
         activeTab === "approved"
@@ -370,13 +375,22 @@ export default function ClassleaderActivityManagement() {
                                     setCurrentPage(1);
                                 }}
                                 className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/4"
+                                disabled={semesterOptions.length === 0}
                             >
-                                <option value="all">Tất cả học kỳ</option>
-                                {semesterOptions.map((option) => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
+                                {semesterOptions.length === 0 ? (
+                                    <option value="">Đang tải học kỳ...</option>
+                                ) : (
+                                    <>
+                                        {!selectedSemester && (
+                                            <option value="">-- Chọn học kỳ --</option>
+                                        )}
+                                        {semesterOptions.map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </>
+                                )}
                             </select>
 
                             <div className="flex justify-end gap-4">
@@ -397,209 +411,213 @@ export default function ClassleaderActivityManagement() {
 
                         <Tabs value={activeTab} onValueChange={setActiveTab}>
                             <Tab value="approved" title="Đã phê duyệt">
-                                <div className="mt-4 bg-white rounded-lg shadow overflow-hidden mb-6">
-                                    <div className="overflow-x-auto">
-                                        <table className="min-w-full divide-y divide-gray-200">
-                                            <thead className="bg-gray-50">
-                                                <tr>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                                        STT
-                                                    </th>
-                                                    <th
-                                                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
-                                                        onClick={() => handleSort('name')}
-                                                    >
-                                                        Tên hoạt động {sortField === 'name' && (sortDirection === 'asc' ? '▲' : '▼')}
-                                                    </th>
-                                                    <th
-                                                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
-                                                        onClick={() => handleSort('campaign')}
-                                                    >
-                                                        Phong trào {sortField === 'campaign' && (sortDirection === 'asc' ? '▲' : '▼')}
-                                                    </th>
-                                                    <th
-                                                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
-                                                        onClick={() => handleSort('semester')}
-                                                    >
-                                                        Học kỳ {sortField === 'semester' && (sortDirection === 'asc' ? '▲' : '▼')}
-                                                    </th>
-                                                    <th
-                                                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
-                                                        onClick={() => handleSort('point')}
-                                                    >
-                                                        Điểm {sortField === 'point' && (sortDirection === 'asc' ? '▲' : '▼')}
-                                                    </th>
-                                                    <th
-                                                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer min-w-[120px]"
-                                                        onClick={() => handleSort('number_students')}
-                                                    >
-                                                        SL đăng ký {sortField === 'number_students' && (sortDirection === 'asc' ? '▲' : '▼')}
-                                                    </th>
-                                                    <th
-                                                        className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase cursor-pointer min-w-[120px]"
-                                                        onClick={() => handleSort('max_participants')}
-                                                    >
-                                                        SL tối đa {sortField === 'max_participants' && (sortDirection === 'asc' ? '▲' : '▼')}
-                                                    </th>
-                                                    <th
-                                                        className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
-                                                    >
-                                                        Thời gian đăng ký
-                                                    </th>
-                                                    <th
-                                                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
-                                                    >
-                                                        Trạng thái
-                                                    </th>
-                                                    <th
-                                                        className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
-                                                    >
-                                                        Thao tác
-                                                    </th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="bg-white divide-y divide-gray-200">
-                                                {paginatedActivities.map((activity, index) => {
-                                                    const campaign = campaigns.find(c => c.id === activity.campaign_id);
-                                                    return (
-                                                        <tr key={activity.id} className="hover:bg-gray-50">
-                                                            <td className="px-4 py-3 whitespace-nowrap">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                                                            <td className="px-4 py-3 whitespace-nowrap">
-                                                                <Tooltip title={activity.name} placement="topLeft">
-                                                                    <div className="max-w-[200px] overflow-hidden text-ellipsis">
-                                                                        {activity.name}
-                                                                    </div>
-                                                                </Tooltip>
-                                                            </td>
-                                                            <td className="px-4 py-3 whitespace-nowrap">
-                                                                <Tooltip
-                                                                    title={campaigns.find(campaign => campaign.id === activity.campaign_id)?.name ||
-                                                                        activity.campaign_name ||
-                                                                        "Không xác định"}
-                                                                    placement="topLeft"
-                                                                >
-                                                                    <div className="max-w-[200px] overflow-hidden text-ellipsis">
-                                                                        {campaigns.find(campaign => campaign.id === activity.campaign_id)?.name ||
+                                {loadingActivities ? (
+                                    <Loading />
+                                ) : (
+                                    <div className="mt-4 bg-white rounded-lg shadow overflow-hidden mb-6">
+                                        <div className="overflow-x-auto">
+                                            <table className="min-w-full divide-y divide-gray-200">
+                                                <thead className="bg-gray-50">
+                                                    <tr>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                            STT
+                                                        </th>
+                                                        <th
+                                                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
+                                                            onClick={() => handleSort('name')}
+                                                        >
+                                                            Tên hoạt động {sortField === 'name' && (sortDirection === 'asc' ? '▲' : '▼')}
+                                                        </th>
+                                                        <th
+                                                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
+                                                            onClick={() => handleSort('campaign')}
+                                                        >
+                                                            Phong trào {sortField === 'campaign' && (sortDirection === 'asc' ? '▲' : '▼')}
+                                                        </th>
+                                                        <th
+                                                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
+                                                            onClick={() => handleSort('semester')}
+                                                        >
+                                                            Học kỳ {sortField === 'semester' && (sortDirection === 'asc' ? '▲' : '▼')}
+                                                        </th>
+                                                        <th
+                                                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
+                                                            onClick={() => handleSort('point')}
+                                                        >
+                                                            Điểm {sortField === 'point' && (sortDirection === 'asc' ? '▲' : '▼')}
+                                                        </th>
+                                                        <th
+                                                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer min-w-[120px]"
+                                                            onClick={() => handleSort('number_students')}
+                                                        >
+                                                            SL đăng ký {sortField === 'number_students' && (sortDirection === 'asc' ? '▲' : '▼')}
+                                                        </th>
+                                                        <th
+                                                            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase cursor-pointer min-w-[120px]"
+                                                            onClick={() => handleSort('max_participants')}
+                                                        >
+                                                            SL tối đa {sortField === 'max_participants' && (sortDirection === 'asc' ? '▲' : '▼')}
+                                                        </th>
+                                                        <th
+                                                            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
+                                                        >
+                                                            Thời gian đăng ký
+                                                        </th>
+                                                        <th
+                                                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+                                                        >
+                                                            Trạng thái
+                                                        </th>
+                                                        <th
+                                                            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
+                                                        >
+                                                            Thao tác
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="bg-white divide-y divide-gray-200">
+                                                    {paginatedActivities.map((activity, index) => {
+                                                        const campaign = campaigns.find(c => c.id === activity.campaign_id);
+                                                        return (
+                                                            <tr key={activity.id} className="hover:bg-gray-50">
+                                                                <td className="px-4 py-3 whitespace-nowrap">{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                                                                <td className="px-4 py-3 whitespace-nowrap">
+                                                                    <Tooltip title={activity.name} placement="topLeft">
+                                                                        <div className="max-w-[200px] overflow-hidden text-ellipsis">
+                                                                            {activity.name}
+                                                                        </div>
+                                                                    </Tooltip>
+                                                                </td>
+                                                                <td className="px-4 py-3 whitespace-nowrap">
+                                                                    <Tooltip
+                                                                        title={campaigns.find(campaign => campaign.id === activity.campaign_id)?.name ||
                                                                             activity.campaign_name ||
                                                                             "Không xác định"}
-                                                                    </div>
-                                                                </Tooltip>
-                                                            </td>
-                                                            <td className="px-4 py-3 whitespace-nowrap">
-                                                                {campaign ? `Học kỳ ${campaign.semester_no} - ${campaign.academic_year}` : 'N/A'}
-                                                            </td>
-                                                            <td className="px-4 py-3 whitespace-nowrap min-w-[80px]">{activity.point}</td>
-                                                            <td className="px-4 py-3 whitespace-nowrap text-center min-w-[120px]">{activity.number_students || 0}</td>
-                                                            <td className="px-4 py-3 text-center whitespace-nowrap min-w-[120px]">
-                                                                {activity.max_participants || "Không giới hạn"}
-                                                            </td>
-                                                            <td className="px-4 py-3 text-center whitespace-nowrap">
-                                                                {activity.registration_start && activity.registration_end
-                                                                    ? `${new Date(activity.registration_start).toLocaleDateString('vi-VN')} - ${new Date(activity.registration_end).toLocaleDateString('vi-VN')}`
-                                                                    : "Không có thông tin"}
-                                                            </td>
-                                                            <td className="px-4 py-3 whitespace-nowrap">
-                                                                <span className={`px-2 py-1 rounded inline-flex text-xs leading-5 font-semibold ${activity.status === 'ongoing' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                                                                    }`}>
-                                                                    {activity.status === 'ongoing' ? 'Đang diễn ra' : 'Đã kết thúc'}
-                                                                </span>
-                                                            </td>
-                                                            <td className="px-4 py-3 text-center whitespace-nowrap">
-                                                                <button
-                                                                    onClick={() => router.push(`/uit/class-leader/activities/${activity.id}`)}
-                                                                    className="bg-blue-500 hover:bg-blue-700 text-white text-sm py-1 px-3 rounded inline-flex items-center gap-1"
-                                                                >
-                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                                                                        <circle cx="12" cy="12" r="3" />
-                                                                    </svg>
-                                                                    Xem chi tiết
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                                                        placement="topLeft"
+                                                                    >
+                                                                        <div className="max-w-[200px] overflow-hidden text-ellipsis">
+                                                                            {campaigns.find(campaign => campaign.id === activity.campaign_id)?.name ||
+                                                                                activity.campaign_name ||
+                                                                                "Không xác định"}
+                                                                        </div>
+                                                                    </Tooltip>
+                                                                </td>
+                                                                <td className="px-4 py-3 whitespace-nowrap">
+                                                                    {campaign ? `Học kỳ ${campaign.semester_no} - ${campaign.academic_year}` : 'N/A'}
+                                                                </td>
+                                                                <td className="px-4 py-3 whitespace-nowrap min-w-[80px]">{activity.point}</td>
+                                                                <td className="px-4 py-3 whitespace-nowrap text-center min-w-[120px]">{activity.number_students || 0}</td>
+                                                                <td className="px-4 py-3 text-center whitespace-nowrap min-w-[120px]">
+                                                                    {activity.max_participants || "Không giới hạn"}
+                                                                </td>
+                                                                <td className="px-4 py-3 text-center whitespace-nowrap">
+                                                                    {activity.registration_start && activity.registration_end
+                                                                        ? `${new Date(activity.registration_start).toLocaleDateString('vi-VN')} - ${new Date(activity.registration_end).toLocaleDateString('vi-VN')}`
+                                                                        : "Không có thông tin"}
+                                                                </td>
+                                                                <td className="px-4 py-3 whitespace-nowrap">
+                                                                    <span className={`px-2 py-1 rounded inline-flex text-xs leading-5 font-semibold ${activity.status === 'ongoing' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                                                                        }`}>
+                                                                        {activity.status === 'ongoing' ? 'Đang diễn ra' : 'Đã kết thúc'}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-4 py-3 text-center whitespace-nowrap">
+                                                                    <button
+                                                                        onClick={() => router.push(`/uit/class-leader/activities/${activity.id}`)}
+                                                                        className="bg-blue-500 hover:bg-blue-700 text-white text-sm py-1 px-3 rounded inline-flex items-center gap-1"
+                                                                    >
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                                                                            <circle cx="12" cy="12" r="3" />
+                                                                        </svg>
+                                                                        Xem chi tiết
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
 
-                                    {/* Pagination */}
-                                    {totalPages > 1 && (
-                                        <div className="px-4 py-3 flex items-center justify-between border-t border-gray-200">
-                                            <div className="flex-1 flex justify-between sm:hidden">
-                                                <button
-                                                    onClick={() => goToPage(currentPage - 1)}
-                                                    disabled={currentPage === 1}
-                                                    className={`relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-md ${currentPage === 1
-                                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                        : 'bg-white text-gray-700 hover:bg-gray-50'
-                                                        }`}
-                                                >
-                                                    Trước
-                                                </button>
-                                                <button
-                                                    onClick={() => goToPage(currentPage + 1)}
-                                                    disabled={currentPage === totalPages}
-                                                    className={`relative inline-flex items-center px-4 py-2 ml-3 text-sm font-medium rounded-md ${currentPage === totalPages
-                                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                        : 'bg-white text-gray-700 hover:bg-gray-50'
-                                                        }`}
-                                                >
-                                                    Sau
-                                                </button>
-                                            </div>
-                                            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                                                <div>
-                                                    <p className="text-sm text-gray-700">
-                                                        Hiển thị <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> đến{' '}
-                                                        <span className="font-medium">
-                                                            {Math.min(currentPage * itemsPerPage, sortedAndFilteredActivities.length)}
-                                                        </span>{' '}
-                                                        trong tổng số <span className="font-medium">{sortedAndFilteredActivities.length}</span> hoạt động
-                                                    </p>
+                                        {/* Pagination */}
+                                        {totalPages > 1 && (
+                                            <div className="px-4 py-3 flex items-center justify-between border-t border-gray-200">
+                                                <div className="flex-1 flex justify-between sm:hidden">
+                                                    <button
+                                                        onClick={() => goToPage(currentPage - 1)}
+                                                        disabled={currentPage === 1}
+                                                        className={`relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-md ${currentPage === 1
+                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                            : 'bg-white text-gray-700 hover:bg-gray-50'
+                                                            }`}
+                                                    >
+                                                        Trước
+                                                    </button>
+                                                    <button
+                                                        onClick={() => goToPage(currentPage + 1)}
+                                                        disabled={currentPage === totalPages}
+                                                        className={`relative inline-flex items-center px-4 py-2 ml-3 text-sm font-medium rounded-md ${currentPage === totalPages
+                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                            : 'bg-white text-gray-700 hover:bg-gray-50'
+                                                            }`}
+                                                    >
+                                                        Sau
+                                                    </button>
                                                 </div>
-                                                <div>
-                                                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                                                        <button
-                                                            onClick={() => goToPage(currentPage - 1)}
-                                                            disabled={currentPage === 1}
-                                                            className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 text-sm font-medium ${currentPage === 1
-                                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                                : 'bg-white text-gray-500 hover:bg-gray-50'
-                                                                }`}
-                                                        >
-                                                            &laquo;
-                                                        </button>
-
-                                                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                                                    <div>
+                                                        <p className="text-sm text-gray-700">
+                                                            Hiển thị <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> đến{' '}
+                                                            <span className="font-medium">
+                                                                {Math.min(currentPage * itemsPerPage, sortedAndFilteredActivities.length)}
+                                                            </span>{' '}
+                                                            trong tổng số <span className="font-medium">{sortedAndFilteredActivities.length}</span> hoạt động
+                                                        </p>
+                                                    </div>
+                                                    <div>
+                                                        <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                                                             <button
-                                                                key={page}
-                                                                onClick={() => goToPage(page)}
-                                                                className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium ${page === currentPage
-                                                                    ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                                                onClick={() => goToPage(currentPage - 1)}
+                                                                disabled={currentPage === 1}
+                                                                className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 text-sm font-medium ${currentPage === 1
+                                                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                                                     : 'bg-white text-gray-500 hover:bg-gray-50'
                                                                     }`}
                                                             >
-                                                                {page}
+                                                                &laquo;
                                                             </button>
-                                                        ))}
 
-                                                        <button
-                                                            onClick={() => goToPage(currentPage + 1)}
-                                                            disabled={currentPage === totalPages}
-                                                            className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 text-sm font-medium ${currentPage === totalPages
-                                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                                : 'bg-white text-gray-500 hover:bg-gray-50'
-                                                                }`}
-                                                        >
-                                                            &raquo;
-                                                        </button>
-                                                    </nav>
+                                                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                                                <button
+                                                                    key={page}
+                                                                    onClick={() => goToPage(page)}
+                                                                    className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium ${page === currentPage
+                                                                        ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                                                        : 'bg-white text-gray-500 hover:bg-gray-50'
+                                                                        }`}
+                                                                >
+                                                                    {page}
+                                                                </button>
+                                                            ))}
+
+                                                            <button
+                                                                onClick={() => goToPage(currentPage + 1)}
+                                                                disabled={currentPage === totalPages}
+                                                                className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 text-sm font-medium ${currentPage === totalPages
+                                                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                                    : 'bg-white text-gray-500 hover:bg-gray-50'
+                                                                    }`}
+                                                            >
+                                                                &raquo;
+                                                            </button>
+                                                        </nav>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    )}
-                                </div>
+                                        )}
+                                    </div>
+                                )}
                             </Tab>
                             <Tab value="pending" title="Chờ phê duyệt">
                                 <div className="mt-4 bg-white rounded-lg shadow overflow-hidden mb-6">
