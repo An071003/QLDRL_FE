@@ -14,7 +14,6 @@ export default function CriteriaManagement() {
     
     let filtered = [...contextCriteria];
     
-    // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter((criteria) =>
         criteria.name.toLowerCase().includes(searchTerm.toLowerCase())

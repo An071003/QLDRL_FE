@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import Loading from "@/components/Loading";
@@ -13,13 +13,6 @@ import ActivityForm from "@/components/form/ActivityForm";
 import ActivityImport from "@/components/Import/ActivityImport";
 import ActivityTable from "@/components/activities/ActivityTable";
 import { useData } from "@/lib/contexts/DataContext";
-
-interface SemesterOption {
-  value: string;
-  label: string;
-  semester_no: number;
-  academic_year: number;
-}
 
 export default function AdvisorActivityManagement() {
   const router = useRouter();
@@ -74,12 +67,29 @@ export default function AdvisorActivityManagement() {
     }
   }, [contextCurrentSemester, selectedSemester]);
 
+  // Fetch campaigns for the latest semester (for forms)
+  const fetchCurrentSemesterCampaigns = useCallback(async () => {
+    if (contextSemesterOptions.length === 0) return;
+    
+    try {
+      // Get the latest semester (first in the list)
+      const latestSemester = contextSemesterOptions[0];
+      const [semester_no, academic_year] = latestSemester.value.split('_');
+      
+      const res = await api.get(`/api/campaigns/semester/${semester_no}/${academic_year}`);
+      const campaignsData = res.data.data.campaigns || [];
+      setCurrentSemesterCampaigns(campaignsData);
+    } catch (error) {
+      console.error('Error fetching current semester campaigns:', error);
+    }
+  }, [contextSemesterOptions]);
+
   // Fetch current semester campaigns when semester options are available
   useEffect(() => {
     if (contextSemesterOptions.length > 0) {
       fetchCurrentSemesterCampaigns();
     }
-  }, [contextSemesterOptions]);
+  }, [contextSemesterOptions, fetchCurrentSemesterCampaigns]);
 
   useEffect(() => {
     if (selectedSemester) {
@@ -87,7 +97,6 @@ export default function AdvisorActivityManagement() {
     }
   }, [selectedSemester, currentUserId]);
 
-  // Fetch all activities for a semester and split into approved/pending
   const fetchAllActivitiesBySemester = async (semester: string) => {
     if (!semester) return;
     
@@ -258,7 +267,6 @@ export default function AdvisorActivityManagement() {
   }, [activities, contextCampaigns, searchTerm, sortField, sortDirection]);
 
   const sortedAndFilteredPendingActivities = useMemo(() => {
-
     const filtered = createdPendingActivities
       .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -305,24 +313,7 @@ export default function AdvisorActivityManagement() {
     }
 
     return filtered;
-  }, [createdPendingActivities, contextCampaigns, searchTerm, selectedSemester, sortField, sortDirection]);
-
-  // Fetch campaigns for the latest semester (for forms)
-  const fetchCurrentSemesterCampaigns = async () => {
-    if (contextSemesterOptions.length === 0) return;
-    
-    try {
-      // Get the latest semester (first in the list)
-      const latestSemester = contextSemesterOptions[0];
-      const [semester_no, academic_year] = latestSemester.value.split('_');
-      
-      const res = await api.get(`/api/campaigns/semester/${semester_no}/${academic_year}`);
-      const campaignsData = res.data.data.campaigns || [];
-      setCurrentSemesterCampaigns(campaignsData);
-    } catch (error) {
-      console.error('Error fetching current semester campaigns:', error);
-    }
-  };
+  }, [createdPendingActivities, contextCampaigns, searchTerm, sortField, sortDirection]);
 
   if (dataLoading) {
     return (

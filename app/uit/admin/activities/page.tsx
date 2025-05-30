@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import ActivityForm from "@/components/form/ActivityForm";
@@ -15,15 +15,15 @@ import { Activity } from "@/types/activity";
 import { Campaign } from "@/types/campaign";
 
 export default function ActivityManagement() {
-  const { 
-    campaigns: contextCampaigns, 
+  const {
+    campaigns: contextCampaigns,
     semesterOptions: contextSemesterOptions,
     currentSemester: contextCurrentSemester,
     setCurrentSemester: setContextCurrentSemester,
     refreshCampaigns,
     loading: dataLoading
   } = useData();
-  
+
   const [activities, setActivities] = useState<Activity[]>([]);
   const [pendingActivities, setPendingActivities] = useState<Activity[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(false);
@@ -36,55 +36,53 @@ export default function ActivityManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSemester, setSelectedSemester] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("approved");
-  
+
   // Separate state for current semester campaigns (for forms)
   const [currentSemesterCampaigns, setCurrentSemesterCampaigns] = useState<Campaign[]>([]);
-  
+
   const itemsPerPage = 20;
   const tableRef = useRef<HTMLDivElement>(null);
 
   // Fetch campaigns for the latest semester (for forms)
-  const fetchCurrentSemesterCampaigns = async () => {
+  const fetchCurrentSemesterCampaigns = useCallback(async () => {
     if (contextSemesterOptions.length === 0) return;
-    
+
     try {
       // Get the latest semester (first in the list)
       const latestSemester = contextSemesterOptions[0];
       const [semester_no, academic_year] = latestSemester.value.split('_');
-      
+
       const res = await api.get(`/api/campaigns/semester/${semester_no}/${academic_year}`);
       const campaignsData = res.data.data.campaigns || [];
       setCurrentSemesterCampaigns(campaignsData);
     } catch (error) {
       console.error('Error fetching current semester campaigns:', error);
     }
-  };
+  }, [contextSemesterOptions]);
 
-  // Sync with DataContext semester
   useEffect(() => {
     if (contextCurrentSemester && !selectedSemester) {
       setSelectedSemester(contextCurrentSemester);
     }
   }, [contextCurrentSemester, selectedSemester]);
 
-  // Fetch current semester campaigns when semester options are available
   useEffect(() => {
     if (contextSemesterOptions.length > 0) {
       fetchCurrentSemesterCampaigns();
     }
-  }, [contextSemesterOptions]);
+  }, [contextSemesterOptions, fetchCurrentSemesterCampaigns]);
 
-  const fetchActivities = async (semester: string) => {
+  const fetchActivities = useCallback(async (semester: string) => {
     if (!semester) return;
-    
+
     setLoadingActivities(true);
     try {
       const [semester_no, academic_year] = semester.split('_');
       const url = `/api/activities?semester_no=${semester_no}&academic_year=${academic_year}`;
-      
+
       const res = await api.get(url);
       const allActivities = res.data.data.activities || [];
-      
+
       const approvedActivities = allActivities.filter((activity: Activity) => activity.approver_id !== null);
       setActivities(approvedActivities);
     } catch (error) {
@@ -93,20 +91,20 @@ export default function ActivityManagement() {
     } finally {
       setLoadingActivities(false);
     }
-  };
+  }, []);
 
-  const fetchPendingActivities = async (semester: string) => {
+  const fetchPendingActivities = useCallback(async (semester: string) => {
     if (!semester) return;
     setLoadingPendingActivities(true);
     try {
       const [semester_no, academic_year] = semester.split('_');
       const url = `/api/activities?semester_no=${semester_no}&academic_year=${academic_year}`;
-      
+
       const res = await api.get(url);
       const allActivities = res.data.data.activities || [];
-      
+
       const pendingData = allActivities.filter((activity: Activity) => activity.approver_id === null);
-      
+
       // Add campaign information to pending activities
       const pendingWithCampaign = pendingData.map((activity: Activity) => {
         const campaign = contextCampaigns.find((c) => c.id === activity.campaign_id);
@@ -117,7 +115,7 @@ export default function ActivityManagement() {
           academic_year: campaign?.academic_year
         };
       });
-      
+
       setPendingActivities(pendingWithCampaign);
     } catch (error) {
       console.error('Error fetching pending activities:', error);
@@ -125,7 +123,7 @@ export default function ActivityManagement() {
     } finally {
       setLoadingPendingActivities(false);
     }
-  };
+  }, [contextCampaigns]);
 
   // Reload activities when semester changes
   useEffect(() => {
@@ -134,7 +132,7 @@ export default function ActivityManagement() {
       fetchPendingActivities(selectedSemester);
       setCurrentPage(1);
     }
-  }, [selectedSemester, contextCampaigns]);
+  }, [selectedSemester, fetchActivities, fetchPendingActivities]);
 
   // Tính toán filteredActivities từ search term
   const filteredActivities = useMemo(() => {
@@ -155,7 +153,7 @@ export default function ActivityManagement() {
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const current = filteredActivities.slice(indexOfFirstItem, indexOfLastItem);
-    
+
     return {
       currentActivities: current,
       totalPages: total
@@ -175,16 +173,16 @@ export default function ActivityManagement() {
       toast.error(`Điểm hoạt động không được lớn hơn điểm tối đa (${campaign.max_score}) của phong trào.`);
       return { success: false };
     }
-    
+
     if (!newActivity.registration_start || !newActivity.registration_end) {
       toast.error("Ngày bắt đầu và kết thúc đăng ký là bắt buộc.");
       return { success: false };
     }
-    
+
     if (newActivity.max_participants === undefined) {
-      newActivity.max_participants = 0; 
+      newActivity.max_participants = 0;
     }
-    
+
     try {
       await api.post("/api/activities", newActivity);
       await fetchActivities(selectedSemester); // Reload activities
@@ -246,7 +244,7 @@ export default function ActivityManagement() {
       toast.error("Ngày bắt đầu và kết thúc đăng ký là bắt buộc.");
       return;
     }
-    
+
     try {
       await api.put(`/api/activities/${id}`, updatedActivity);
       await fetchActivities(selectedSemester); // Reload activities

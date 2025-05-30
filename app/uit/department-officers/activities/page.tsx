@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import Loading from "@/components/Loading";
@@ -14,12 +14,6 @@ import ActivityImport from "@/components/Import/ActivityImport";
 import ActivityTable from "@/components/activities/ActivityTable";
 import { useData } from "@/lib/contexts/DataContext";
 
-interface SemesterOption {
-  value: string;
-  label: string;
-  semester_no: number;
-  academic_year: number;
-}
 
 export default function DPOActivityManagement() {
   const { 
@@ -40,8 +34,6 @@ export default function DPOActivityManagement() {
   const [selectedSemester, setSelectedSemester] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("approved");
   const [activeComponent, setActiveComponent] = useState<"form" | "import" | "table">("table");
-  
-  // Separate state for current semester campaigns (for forms)
   const [currentSemesterCampaigns, setCurrentSemesterCampaigns] = useState<Campaign[]>([]);
   
   const tableRef = useRef<HTMLDivElement>(null);
@@ -73,21 +65,8 @@ export default function DPOActivityManagement() {
     }
   }, [contextCurrentSemester, selectedSemester]);
 
-  // Fetch current semester campaigns when semester options are available
-  useEffect(() => {
-    if (contextSemesterOptions.length > 0) {
-      fetchCurrentSemesterCampaigns();
-    }
-  }, [contextSemesterOptions]);
-
-  useEffect(() => {
-    if (selectedSemester) {
-      fetchAllActivitiesBySemester(selectedSemester);
-    }
-  }, [selectedSemester, currentUserId]);
-
   // Fetch campaigns for the latest semester (for forms)
-  const fetchCurrentSemesterCampaigns = async () => {
+  const fetchCurrentSemesterCampaigns = useCallback(async () => {
     if (contextSemesterOptions.length === 0) return;
     
     try {
@@ -101,7 +80,20 @@ export default function DPOActivityManagement() {
     } catch (error) {
       console.error('Error fetching current semester campaigns:', error);
     }
-  };
+  }, [contextSemesterOptions]);
+
+  // Fetch current semester campaigns when semester options are available
+  useEffect(() => {
+    if (contextSemesterOptions.length > 0) {
+      fetchCurrentSemesterCampaigns();
+    }
+  }, [contextSemesterOptions, fetchCurrentSemesterCampaigns]);
+
+  useEffect(() => {
+    if (selectedSemester) {
+      fetchAllActivitiesBySemester(selectedSemester);
+    }
+  }, [selectedSemester, currentUserId]);
 
   // Fetch all activities for a semester and split into approved/pending
   const fetchAllActivitiesBySemester = async (semester: string) => {

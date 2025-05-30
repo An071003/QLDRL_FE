@@ -11,7 +11,6 @@ import debounce from 'lodash.debounce';
 import { Activity } from "@/types/activity";
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
 import { UploadOutlined } from '@ant-design/icons';
-import { useData } from "@/lib/contexts/DataContext";
 
 interface StudentActivity {
   id: number;
@@ -47,7 +46,6 @@ interface ApiError {
 export default function ActivityStudentManagement() {
   const params = useParams();
   const router = useRouter();
-  const { refreshActivities } = useData();
   const activityId = params?.id as string;
   const [students, setStudents] = useState<StudentActivity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -238,7 +236,6 @@ export default function ActivityStudentManagement() {
       });
       setIsEditing(false);
       await fetchActivityInfo();
-      await refreshActivities();
       toast.success("Cập nhật hoạt động thành công");
       router.push('/uit/admin/activities?tab=approved');
     } catch (error) {
