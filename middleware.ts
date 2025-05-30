@@ -6,13 +6,12 @@ export async function middleware(request: NextRequest) {
 
   if (request.nextUrl.pathname === "/logout" && request.method === "POST") {
     const response = NextResponse.json({ success: true });
-    response.cookies.set("token", "", {
-      path: "/",
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      expires: new Date(0)
-    });
+    response.cookies.delete("token");
+    
+    response.headers.set("X-Debug-Logout", "Cookie deleted via middleware");
+    response.headers.set("X-Debug-Timestamp", new Date().toISOString());
+    response.headers.set("X-Debug-Method", "cookies.delete()");
+    
     return response;
   }
 
