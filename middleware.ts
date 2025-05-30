@@ -5,12 +5,11 @@ export async function middleware(request: NextRequest) {
   const token = request.cookies.get("token")?.value;
   const pathname = request.nextUrl.pathname;
 
-  // Handle logout
   if (pathname === "/logout") {
     if (request.method === "POST") {
       const response = NextResponse.json({ success: true });
       response.cookies.delete("token");
-      return response;
+      return NextResponse.redirect(new URL("/login", request.url));
     }
     return NextResponse.redirect(new URL("/login", request.url));
   }
@@ -20,9 +19,10 @@ export async function middleware(request: NextRequest) {
     if (token) {
       try {
         if (!process.env.JWT_SECRET) {
-          const response = NextResponse.redirect(new URL("/uit", request.url));
-          response.headers.set('X-Debug-Middleware', 'No JWT_SECRET, redirecting to /uit');
+          const response = NextResponse.redirect(new URL("/login", request.url));
+          response.headers.set('X-Debug-Middleware', 'No JWT_SECRET, redirecting to login for security');
           response.headers.set('X-Debug-Token', token ? 'exists' : 'missing');
+          response.cookies.delete("token");
           return response;
         }
 
@@ -81,9 +81,10 @@ export async function middleware(request: NextRequest) {
 
     try {
       if (!process.env.JWT_SECRET) {
-        const response = NextResponse.next();
-        response.headers.set('X-Debug-Middleware', 'No JWT_SECRET at /uit, allowing access');
+        const response = NextResponse.redirect(new URL("/login", request.url));
+        response.headers.set('X-Debug-Middleware', 'No JWT_SECRET at /uit, redirecting to login for security');
         response.headers.set('X-Debug-Token', token ? 'exists' : 'missing');
+        response.cookies.delete("token");
         return response;
       }
 
@@ -137,9 +138,10 @@ export async function middleware(request: NextRequest) {
 
     try {
       if (!process.env.JWT_SECRET) {
-        const response = NextResponse.next();
-        response.headers.set('X-Debug-Middleware', `No JWT_SECRET at ${pathname}, allowing access`);
+        const response = NextResponse.redirect(new URL("/login", request.url));
+        response.headers.set('X-Debug-Middleware', `No JWT_SECRET at ${pathname}, redirecting to login for security`);
         response.headers.set('X-Debug-Token', token ? 'exists' : 'missing');
+        response.cookies.delete("token");
         return response;
       }
 
