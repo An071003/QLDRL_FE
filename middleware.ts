@@ -6,7 +6,10 @@ export async function middleware(request: NextRequest) {
 
   if (request.nextUrl.pathname === "/logout" && request.method === "POST") {
     const response = NextResponse.json({ success: true });
-    response.cookies.delete("token");
+    response.cookies.set("token", "", {
+      path: "/",
+      expires: new Date(0)
+    });
     return response;
   }
 
@@ -32,8 +35,7 @@ export async function middleware(request: NextRequest) {
 
     const { role } = payload as { role: string };
     const pathname = request.nextUrl.pathname;
-
-    // Role-based access control with logging
+    
     if (pathname.startsWith("/uit/admin") && role !== "admin") {
       return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
