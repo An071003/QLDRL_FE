@@ -8,6 +8,9 @@ export async function middleware(request: NextRequest) {
     const response = NextResponse.json({ success: true });
     response.cookies.set("token", "", {
       path: "/",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       expires: new Date(0)
     });
     return response;
