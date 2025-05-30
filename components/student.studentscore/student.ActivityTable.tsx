@@ -24,7 +24,9 @@ export default function ActivityTable({ activities, totalScore, maxScore, campai
         { title: 'Không', dataIndex: 'has_participated', key: 'no_participate', width: 70, render: (val: boolean) => !val ? '✓' : '' },
         { title: 'Điểm đạt được', dataIndex: 'awarded_score', key: 'awarded_score', width: 100 },
         { title: 'Chú thích', dataIndex: 'note', key: 'note', width: 130 },
-        { title: 'Trạng thái', dataIndex: 'status', key: 'status', width: 120 },
+        { title: 'Trạng thái', dataIndex: 'status', key: 'status', width: 120, render: (status: string) => {
+          return status === 'expired' ? 'Đã kết thúc' : status === 'ongoing' ? 'Đang diễn ra' : status;
+        }},
         { title: 'Số lượng', dataIndex: 'quantity', key: 'quantity', width: 80 },
       ]}
       summary={() => (
