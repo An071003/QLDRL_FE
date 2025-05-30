@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import Loading from "@/components/Loading";
@@ -15,10 +15,10 @@ import { Tooltip } from "antd";
 import { ClassleaderLayout } from "@/components/layout/class-leader";
 
 interface SemesterOption {
-  value: string;
-  label: string;
-  semester_no: number;
-  academic_year: number;
+    value: string;
+    label: string;
+    semester_no: number;
+    academic_year: number;
 }
 
 export default function ClassleaderActivityManagement() {
@@ -38,6 +38,50 @@ export default function ClassleaderActivityManagement() {
     const [activeTab, setActiveTab] = useState<string>("approved");
     const [activeComponent, setActiveComponent] = useState<"form" | "import" | "table">("table");
     const itemsPerPage = 10; const tableRef = useRef<HTMLDivElement>(null);
+
+    const fetchSemesterOptions = useCallback(async () => {
+        try {
+            const res = await api.get('/api/campaigns/semesters');
+            const semesters = res.data.data.semesters;
+            setSemesterOptions(semesters);
+
+            // Set default semester to first one
+            if (semesters.length > 0 && !selectedSemester) {
+                setSelectedSemester(semesters[0].value);
+            }
+        } catch (error) {
+            console.error('Error fetching semesters:', error);
+            toast.error('Không thể tải danh sách học kỳ');
+        }
+    }, [selectedSemester]);
+
+    const loadInitialData = useCallback(async () => {
+        setLoading(true);
+        try {
+            const campaignsRes = await api.get("/api/campaigns");
+            const campaignsData = campaignsRes.data.data.campaigns || campaignsRes.data.data || [];
+            setCampaigns(campaignsData);
+
+            await fetchSemesterOptions();
+
+            // Don't load activities here anymore - will be loaded when semester is selected
+        } catch (error) {
+            toast.error("Không thể tải dữ liệu");
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    }, [fetchSemesterOptions]);
+
+    useEffect(() => {
+        loadInitialData();
+    }, [currentUserId, loadInitialData]);
+
+    useEffect(() => {
+        if (selectedSemester) {
+            fetchAllActivitiesBySemester(selectedSemester);
+        }
+    }, [selectedSemester, currentUserId]);
 
     useEffect(() => {
         async function verifyToken() {
@@ -60,46 +104,20 @@ export default function ClassleaderActivityManagement() {
         verifyToken();
     }, []);
 
-    useEffect(() => {
-        loadInitialData();
-    }, [currentUserId]);
-
-    useEffect(() => {
-        if (selectedSemester) {
-            fetchAllActivitiesBySemester(selectedSemester);
-        }
-    }, [selectedSemester, currentUserId]);
-
-    const fetchSemesterOptions = async () => {
-        try {
-            const res = await api.get('/api/campaigns/semesters');
-            const semesters = res.data.data.semesters;
-            setSemesterOptions(semesters);
-            
-            // Set default semester to first one
-            if (semesters.length > 0 && !selectedSemester) {
-                setSelectedSemester(semesters[0].value);
-            }
-        } catch (error) {
-            console.error('Error fetching semesters:', error);
-            toast.error('Không thể tải danh sách học kỳ');
-        }
-    };
-
     const fetchAllActivitiesBySemester = async (semester: string) => {
         if (!semester) return;
-        
+
         setLoadingActivities(true);
         try {
             const [semester_no, academic_year] = semester.split('_');
             const url = `/api/activities?semester_no=${semester_no}&academic_year=${academic_year}`;
-            
+
             const activitiesRes = await api.get(url);
             const allActivities = activitiesRes.data.data.activities || activitiesRes.data.data || [];
 
             // Split into approved and pending
             const approved = allActivities.filter((activity: Activity) => activity.approver_id !== null);
-            const pending = allActivities.filter((activity: Activity) => 
+            const pending = allActivities.filter((activity: Activity) =>
                 activity.approver_id === null
             );
 
@@ -110,24 +128,6 @@ export default function ClassleaderActivityManagement() {
             toast.error('Không thể tải danh sách hoạt động');
         } finally {
             setLoadingActivities(false);
-        }
-    };
-
-    const loadInitialData = async () => {
-        setLoading(true);
-        try {
-            const campaignsRes = await api.get("/api/campaigns");
-            const campaignsData = campaignsRes.data.data.campaigns || campaignsRes.data.data || [];
-            setCampaigns(campaignsData);
-
-            await fetchSemesterOptions();
-
-            // Don't load activities here anymore - will be loaded when semester is selected
-        } catch (error) {
-            toast.error("Không thể tải dữ liệu");
-            console.error(error);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -217,8 +217,8 @@ export default function ClassleaderActivityManagement() {
         // Apply sorting
         if (sortField) {
             return [...filtered].sort((a, b) => {
-                        let valueA: string | number;
-        let valueB: string | number;
+                let valueA: string | number;
+                let valueB: string | number;
 
                 switch (sortField) {
                     case 'id':

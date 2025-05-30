@@ -62,6 +62,7 @@ export default function CriteriaTable({ criterias, onDeleteCriteria, onUpdateCri
             >
               Điểm Tối Đa {sortOrder === "asc" ? "▲" : "▼"}
             </th>
+            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Số phong trào</th>
             <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Hành Động</th>
           </tr>
         </thead>
@@ -93,6 +94,11 @@ export default function CriteriaTable({ criterias, onDeleteCriteria, onUpdateCri
                 ) : (
                   criteria.max_score
                 )}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-center">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  {criteria.campaign_count || 0} phong trào
+                </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                 {editingId === criteria.id ? (

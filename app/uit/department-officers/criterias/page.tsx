@@ -14,7 +14,6 @@ export default function CriteriaManagement() {
     
     let filtered = [...contextCriteria];
     
-    // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter((criteria) =>
         criteria.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -73,6 +72,9 @@ export default function CriteriaManagement() {
               >
                 Điểm Tối Đa {sortOrder === "asc" ? "▲" : "▼"}
               </th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Số phong trào
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -86,6 +88,11 @@ export default function CriteriaManagement() {
                 </td>
                 <td className="px-6 py-4 text-center whitespace-nowrap">
                   {criteria.max_score}
+                </td>
+                <td className="px-6 py-4 text-center whitespace-nowrap">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    {criteria.campaign_count || 0} phong trào
+                  </span>
                 </td>
               </tr>
             ))}

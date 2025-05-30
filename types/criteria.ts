@@ -3,4 +3,5 @@ export interface Criteria {
   name: string;
   max_score: number;
   created_by?: number;
+  campaign_count?: number;
 }

@@ -62,6 +62,7 @@ export default function FacultyTable({
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">STT</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã khoa</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên khoa</th>
+            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Số lớp</th>
             <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Hành động</th>
           </tr>
         </thead>
@@ -95,6 +96,11 @@ export default function FacultyTable({
                 ) : (
                   faculty.name
                 )}
+              </td>
+              <td className="px-4 py-3 text-center whitespace-nowrap">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  {faculty.class_count || 0} lớp
+                </span>
               </td>
               <td className="px-4 py-3 text-center whitespace-nowrap">
                 <div className="flex gap-2 justify-center">
@@ -153,7 +159,7 @@ export default function FacultyTable({
           ))}
           {faculties.length === 0 && (
             <tr>
-              <td colSpan={4} className="px-4 py-6 text-center text-gray-500">
+              <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
                 Không có khoa nào trong hệ thống
               </td>
             </tr>

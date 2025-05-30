@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import Loading from "@/components/Loading";
@@ -12,22 +12,21 @@ import { jwtVerify } from 'jose';
 import ActivityForm from "@/components/form/ActivityForm";
 import ActivityImport from "@/components/Import/ActivityImport";
 import ActivityTable from "@/components/activities/ActivityTable";
-
-interface SemesterOption {
-  value: string;
-  label: string;
-  semester_no: number;
-  academic_year: number;
-}
+import { useData } from "@/lib/contexts/DataContext";
 
 export default function AdvisorActivityManagement() {
   const router = useRouter();
+  const { 
+    campaigns: contextCampaigns, 
+    semesterOptions: contextSemesterOptions,
+    currentSemester: contextCurrentSemester,
+    setCurrentSemester: setContextCurrentSemester,
+    loading: dataLoading
+  } = useData();
+  
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [createdPendingActivities, setCreatedPendingActivities] = useState<Activity[]>([]);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [semesterOptions, setSemesterOptions] = useState<SemesterOption[]>([]);
-  const [loading, setLoading] = useState(true);
   const [loadingActivities, setLoadingActivities] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<string | null>('point');
@@ -35,6 +34,10 @@ export default function AdvisorActivityManagement() {
   const [selectedSemester, setSelectedSemester] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("approved");
   const [activeComponent, setActiveComponent] = useState<"form" | "import" | "table">("table");
+  
+  // Separate state for current semester campaigns (for forms)
+  const [currentSemesterCampaigns, setCurrentSemesterCampaigns] = useState<Campaign[]>([]);
+  
   const tableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -59,8 +62,34 @@ export default function AdvisorActivityManagement() {
   }, []);
 
   useEffect(() => {
-    loadInitialData();
-  }, [currentUserId]);
+    if (contextCurrentSemester && !selectedSemester) {
+      setSelectedSemester(contextCurrentSemester);
+    }
+  }, [contextCurrentSemester, selectedSemester]);
+
+  // Fetch campaigns for the latest semester (for forms)
+  const fetchCurrentSemesterCampaigns = useCallback(async () => {
+    if (contextSemesterOptions.length === 0) return;
+    
+    try {
+      // Get the latest semester (first in the list)
+      const latestSemester = contextSemesterOptions[0];
+      const [semester_no, academic_year] = latestSemester.value.split('_');
+      
+      const res = await api.get(`/api/campaigns/semester/${semester_no}/${academic_year}`);
+      const campaignsData = res.data.data.campaigns || [];
+      setCurrentSemesterCampaigns(campaignsData);
+    } catch (error) {
+      console.error('Error fetching current semester campaigns:', error);
+    }
+  }, [contextSemesterOptions]);
+
+  // Fetch current semester campaigns when semester options are available
+  useEffect(() => {
+    if (contextSemesterOptions.length > 0) {
+      fetchCurrentSemesterCampaigns();
+    }
+  }, [contextSemesterOptions, fetchCurrentSemesterCampaigns]);
 
   useEffect(() => {
     if (selectedSemester) {
@@ -68,24 +97,6 @@ export default function AdvisorActivityManagement() {
     }
   }, [selectedSemester, currentUserId]);
 
-  // Fetch semester options from campaigns
-  const fetchSemesterOptions = async () => {
-    try {
-      const res = await api.get('/api/campaigns/semesters');
-      const semesters = res.data.data.semesters;
-      setSemesterOptions(semesters);
-      
-      // Set default semester to first one
-      if (semesters.length > 0 && !selectedSemester) {
-        setSelectedSemester(semesters[0].value);
-      }
-    } catch (error) {
-      console.error('Error fetching semesters:', error);
-      toast.error('Không thể tải danh sách học kỳ');
-    }
-  };
-
-  // Fetch all activities for a semester and split into approved/pending
   const fetchAllActivitiesBySemester = async (semester: string) => {
     if (!semester) return;
     
@@ -111,21 +122,10 @@ export default function AdvisorActivityManagement() {
     }
   };
 
-  const loadInitialData = async () => {
-    setLoading(true);
-    try {
-      const campaignsRes = await api.get("/api/campaigns");
-      const campaignsData = campaignsRes.data.data.campaigns || campaignsRes.data.data || [];
-      setCampaigns(campaignsData);
-      
-      await fetchSemesterOptions();
-
-    } catch (error) {
-      toast.error("Không thể tải dữ liệu");
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
+  // Handle semester change
+  const handleSemesterChange = (semester: string) => {
+    setSelectedSemester(semester);
+    setContextCurrentSemester(semester);
   };
 
   const handleCreateActivity = async (newActivity: {
@@ -136,7 +136,7 @@ export default function AdvisorActivityManagement() {
     registration_start?: string;
     registration_end?: string;
   }) => {
-    const campaign = campaigns.find(c => c.id === newActivity.campaign_id);
+    const campaign = currentSemesterCampaigns.find(c => c.id === newActivity.campaign_id);
     if (campaign && newActivity.point > (campaign?.max_score || 0)) {
       toast.error(`Điểm hoạt động không được lớn hơn điểm tối đa (${campaign.max_score}) của phong trào.`);
       return { success: false };
@@ -226,14 +226,14 @@ export default function AdvisorActivityManagement() {
             valueB = b.name || '';
             break;
           case 'campaign':
-            const campaignA = campaigns.find(c => c.id === a.campaign_id);
-            const campaignB = campaigns.find(c => c.id === b.campaign_id);
+            const campaignA = contextCampaigns.find(c => c.id === a.campaign_id);
+            const campaignB = contextCampaigns.find(c => c.id === b.campaign_id);
             valueA = campaignA?.name || '';
             valueB = campaignB?.name || '';
             break;
           case 'semester':
-            const campaignASem = campaigns.find(c => c.id === a.campaign_id);
-            const campaignBSem = campaigns.find(c => c.id === b.campaign_id);
+            const campaignASem = contextCampaigns.find(c => c.id === a.campaign_id);
+            const campaignBSem = contextCampaigns.find(c => c.id === b.campaign_id);
             valueA = campaignASem ? `${campaignASem.semester_no}_${campaignASem.academic_year}` : '';
             valueB = campaignBSem ? `${campaignBSem.semester_no}_${campaignBSem.academic_year}` : '';
             break;
@@ -264,10 +264,9 @@ export default function AdvisorActivityManagement() {
     }
 
     return filtered;
-  }, [activities, campaigns, searchTerm, sortField, sortDirection]);
+  }, [activities, contextCampaigns, searchTerm, sortField, sortDirection]);
 
   const sortedAndFilteredPendingActivities = useMemo(() => {
-
     const filtered = createdPendingActivities
       .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -286,8 +285,8 @@ export default function AdvisorActivityManagement() {
             valueB = b.name || '';
             break;
           case 'campaign':
-            const campaignA = campaigns.find(c => c.id === a.campaign_id);
-            const campaignB = campaigns.find(c => c.id === b.campaign_id);
+            const campaignA = contextCampaigns.find(c => c.id === a.campaign_id);
+            const campaignB = contextCampaigns.find(c => c.id === b.campaign_id);
             valueA = campaignA?.name || '';
             valueB = campaignB?.name || '';
             break;
@@ -314,9 +313,9 @@ export default function AdvisorActivityManagement() {
     }
 
     return filtered;
-  }, [createdPendingActivities, campaigns, searchTerm, selectedSemester, sortField, sortDirection]);
+  }, [createdPendingActivities, contextCampaigns, searchTerm, sortField, sortDirection]);
 
-  if (loading) {
+  if (dataLoading) {
     return (
       <Loading />
     );
@@ -325,9 +324,9 @@ export default function AdvisorActivityManagement() {
   const renderMainContent = () => {
     switch (activeComponent) {
       case "form":
-        return <ActivityForm currentcampaigns={campaigns} onActivityCreated={handleCreateActivity} />;
+        return <ActivityForm currentcampaigns={currentSemesterCampaigns} onActivityCreated={handleCreateActivity} />;
       case "import":
-        return <ActivityImport onActivitiesImported={handleActivitiesImported} currentcampaigns={campaigns} />;
+        return <ActivityImport onActivitiesImported={handleActivitiesImported} currentcampaigns={currentSemesterCampaigns} />;
       default:
         return (
           <>
@@ -342,19 +341,19 @@ export default function AdvisorActivityManagement() {
               <select
                 value={selectedSemester}
                 onChange={(e) => {
-                  setSelectedSemester(e.target.value);
+                  handleSemesterChange(e.target.value);
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/4"
-                disabled={semesterOptions.length === 0}
+                disabled={contextSemesterOptions.length === 0}
               >
-                {semesterOptions.length === 0 ? (
+                {contextSemesterOptions.length === 0 ? (
                   <option value="">Đang tải học kỳ...</option>
                 ) : (
                   <>
                     {!selectedSemester && (
                       <option value="">-- Chọn học kỳ --</option>
                     )}
-                    {semesterOptions.map((option) => (
+                    {contextSemesterOptions.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
@@ -386,7 +385,7 @@ export default function AdvisorActivityManagement() {
                 ) : (
                   <ActivityTable
                     activities={sortedAndFilteredActivities}
-                    campaigns={campaigns}
+                    campaigns={contextCampaigns}
                     sortField={sortField}
                     sortDirection={sortDirection}
                     onSort={handleSort}
@@ -397,7 +396,7 @@ export default function AdvisorActivityManagement() {
               <Tab value="pending" title="Chờ phê duyệt">
                 <ActivityTable
                   activities={sortedAndFilteredPendingActivities}
-                  campaigns={campaigns}
+                  campaigns={contextCampaigns}
                   sortField={sortField}
                   sortDirection={sortDirection}
                   onSort={handleSort}

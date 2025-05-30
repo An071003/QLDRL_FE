@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -8,6 +8,7 @@ interface Faculty {
   id: number;
   faculty_abbr: string;
   name: string;
+  class_count?: number;
 }
 
 interface Class {
@@ -15,6 +16,7 @@ interface Class {
   name: string;
   faculty_id: number;
   cohort: string;
+  student_count?: number;
 }
 
 interface Criteria {
@@ -22,6 +24,7 @@ interface Criteria {
   name: string;
   max_score: number;
   created_by?: number;
+  campaign_count?: number;
 }
 
 interface Campaign {
@@ -87,7 +90,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -118,9 +121,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentSemester]);
 
-  // Handle semester change
   const handleSetCurrentSemester = async (semester: string) => {
     setCurrentSemester(semester);
     if (semester) {
@@ -130,7 +132,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const refreshData = async () => {
     await fetchData();

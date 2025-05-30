@@ -203,11 +203,11 @@ export default function DPOCampaignManagement() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {paginatedCampaigns.map((campaign) => {
+              {paginatedCampaigns.map((campaign, index) => {
                 const criteriaName = criteria.find(c => c.id === campaign.criteria_id)?.name || 'N/A';
                 return (
                   <tr key={campaign.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 whitespace-nowrap">{campaign.id}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">{index + 1}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <Tooltip title={campaign.name} placement="topLeft">
                         <div className="max-w-[200px] overflow-hidden text-ellipsis">

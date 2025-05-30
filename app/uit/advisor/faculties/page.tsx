@@ -73,7 +73,7 @@ export default function AdvisorFacultiesPage() {
 
     // Filter faculties
     const filtered = faculties.filter(faculty =>
-            faculty.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||      faculty.faculty_abbr?.toLowerCase().includes(searchTerm.toLowerCase())
+      faculty.name?.toLowerCase().includes(searchTerm.toLowerCase()) || faculty.faculty_abbr?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     // Sort faculties
@@ -88,7 +88,7 @@ export default function AdvisorFacultiesPage() {
             valueA = a.name || '';
             valueB = b.name || '';
             break;
-          
+
           case 'class_count':
             valueA = a.class_count || 0;
             valueB = b.class_count || 0;
@@ -146,42 +146,43 @@ export default function AdvisorFacultiesPage() {
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
-              <tr>                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"                >                  STT                </th>                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => handleSort('faculty_abbr')}                >                  Mã khoa {sortField === 'faculty_abbr' && (sortDirection === 'asc' ? '▲' : '▼')}                </th>
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  STT
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => handleSort('faculty_abbr')}>
+                  Mã khoa {sortField === 'faculty_abbr' && (sortDirection === 'asc' ? '▲' : '▼')}
+                </th>
                 <th
                   className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
                   onClick={() => handleSort('name')}
                 >
                   Tên khoa {sortField === 'name' && (sortDirection === 'asc' ? '▲' : '▼')}
                 </th>
-                
-                {/* <th
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
+                <th
+                  className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase cursor-pointer"
                   onClick={() => handleSort('class_count')}
                 >
                   Số lớp {sortField === 'class_count' && (sortDirection === 'asc' ? '▲' : '▼')}
                 </th>
-                <th
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
-                  onClick={() => handleSort('student_count')}
-                >
-                  Số sinh viên {sortField === 'student_count' && (sortDirection === 'asc' ? '▲' : '▼')}
-                </th> */}
 
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">                {paginatedFaculties.map((faculty, index) => (<tr key={faculty.id} className="hover:bg-gray-50">                    <td className="px-4 py-3 whitespace-nowrap">{(currentPage - 1) * itemsPerPage + index + 1}</td>                    <td className="px-4 py-3 whitespace-nowrap">{faculty.faculty_abbr || `-`}</td>                    <td className="px-4 py-3 whitespace-nowrap">
-              <div className="max-w-xs truncate" title={faculty.name}>{faculty.name}</div>
-            </td>
-              
-              {/* <td className="px-4 py-3 whitespace-nowrap">
-                {faculty.class_count || 0}
-
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap">
-                {faculty.student_count || 0}
-              </td> */}
-            </tr>
-            ))}
+            <tbody className="bg-white divide-y divide-gray-200">
+              {paginatedFaculties.map((faculty, index) => (
+                <tr key={faculty.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {(currentPage - 1) * itemsPerPage + index + 1}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">{faculty.faculty_abbr || `-`}</td>
+                  <td className="px-4 py-3 whitespace-nowrap"> {faculty.name}</td>
+                  <td className="px-4 py-3 text-center whitespace-nowrap">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      {faculty.class_count || 0} lớp
+                    </span>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

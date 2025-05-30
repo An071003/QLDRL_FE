@@ -87,6 +87,7 @@ export default function ClassTable({
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên lớp</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khoa</th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khóa</th>
+            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Số sinh viên</th>
             <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Hành động</th>
           </tr>
         </thead>
@@ -138,6 +139,11 @@ export default function ClassTable({
                 ) : (
                   classItem.cohort
                 )}
+              </td>
+              <td className="px-4 py-3 text-center whitespace-nowrap">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  {classItem.student_count || 0} sinh viên
+                </span>
               </td>
               <td className="px-4 py-3 text-center whitespace-nowrap">
                 <div className="flex gap-2 justify-center">
@@ -196,7 +202,7 @@ export default function ClassTable({
           ))}
           {classes.length === 0 && (
             <tr>
-              <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
+              <td colSpan={6} className="px-4 py-6 text-center text-gray-500">
                 Không có lớp nào trong hệ thống
               </td>
             </tr>

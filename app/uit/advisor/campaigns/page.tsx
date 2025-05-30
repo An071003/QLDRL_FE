@@ -1,8 +1,6 @@
 'use client';
 
-import { useState, useEffect } from "react";
-import { toast } from "sonner";
-import api from "@/lib/api";
+import { useState, useEffect } from "react";;
 import Loading from "@/components/Loading";
 import { useRouter } from 'next/navigation';
 import { Tooltip } from 'antd';
@@ -139,7 +137,7 @@ export default function AdvisorCampaignManagement() {
           onChange={(e) => {
             handleSemesterChange(e.target.value);
           }}
-          className="px-4 py-2 border border-gray-300 rounded-md w-full max-w-[200px] md:w-1/4"
+          className="px-4 py-2 border border-gray-300 rounded-md w-full max-w-[250px] md:w-1/4"
           disabled={semesterOptions.length === 0}
         >
           {semesterOptions.length === 0 ? (
@@ -207,19 +205,19 @@ export default function AdvisorCampaignManagement() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {paginatedCampaigns.map((campaign) => {
+              {paginatedCampaigns.map((campaign, index) => {
                 const criteriaName = criteria.find(c => c.id === campaign.criteria_id)?.name || 'N/A';
                 return (
                   <tr key={campaign.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 whitespace-nowrap">{campaign.id}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">{index + 1}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <Tooltip title={campaign.name} placement="topLeft">
-                        <div className="max-w-xs truncate">{campaign.name}</div>
+                        <div className="max-w-[250px] truncate">{campaign.name}</div>
                       </Tooltip>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <Tooltip title={criteriaName} placement="topLeft">
-                        <div className="max-w-xs truncate">{criteriaName}</div>
+                        <div className="max-w-[250px] truncate">{criteriaName}</div>
                       </Tooltip>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">

@@ -77,14 +77,14 @@ export default function ActivityTable({
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <Tooltip title={activity.name} placement="topLeft">
-                      <div className="max-w-[320px] overflow-hidden text-ellipsis">
+                      <div className="max-w-[250px] overflow-hidden text-ellipsis">
                         {activity.name}
                       </div>
                     </Tooltip>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <Tooltip title={campaign?.name || 'N/A'} placement="topLeft">
-                      <div className="max-w-[320px] overflow-hidden text-ellipsis">
+                      <div className="max-w-[250px] overflow-hidden text-ellipsis">
                         {campaign?.name || 'N/A'}
                       </div>
                     </Tooltip>
