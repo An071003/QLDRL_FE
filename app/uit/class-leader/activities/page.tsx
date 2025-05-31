@@ -26,7 +26,6 @@ export default function ClassleaderActivityManagement() {
     const [currentUserId, setCurrentUserId] = useState<number | null>(null);
     const [activities, setActivities] = useState<Activity[]>([]);
     const [createdPendingActivities, setCreatedPendingActivities] = useState<Activity[]>([]);
-    const [campaigns, setCampaigns] = useState<Campaign[]>([]);
     const [semesterOptions, setSemesterOptions] = useState<SemesterOption[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingActivities, setLoadingActivities] = useState(false);
@@ -37,7 +36,29 @@ export default function ClassleaderActivityManagement() {
     const [currentPage, setCurrentPage] = useState(1);
     const [activeTab, setActiveTab] = useState<string>("approved");
     const [activeComponent, setActiveComponent] = useState<"form" | "import" | "table">("table");
+    const [selectedCampaign, setSelectedCampaign] = useState<string>("");
+    const [startDate, setStartDate] = useState<string>("");
+    const [endDate, setEndDate] = useState<string>("");
+
+    const [currentSemesterCampaigns, setCurrentSemesterCampaigns] = useState<Campaign[]>([]);
+    const [campaignsForFilter, setCampaignsForFilter] = useState<Campaign[]>([]);
+    
     const itemsPerPage = 10; const tableRef = useRef<HTMLDivElement>(null);
+
+    // Fetch campaigns for the selected semester (for filters)
+    const fetchCampaignsForSelectedSemester = useCallback(async (semester: string) => {
+        if (!semester) return;
+
+        try {
+            const [semester_no, academic_year] = semester.split('_');
+            const res = await api.get(`/api/campaigns/semester/${semester_no}/${academic_year}`);
+            const campaignsData = res.data.data.campaigns || [];
+            setCampaignsForFilter(campaignsData);
+        } catch (error) {
+            console.error('Error fetching campaigns for filter:', error);
+            setCampaignsForFilter([]);
+        }
+    }, []);
 
     const fetchSemesterOptions = useCallback(async () => {
         try {
@@ -45,43 +66,41 @@ export default function ClassleaderActivityManagement() {
             const semesters = res.data.data.semesters;
             setSemesterOptions(semesters);
 
-            // Set default semester to first one
             if (semesters.length > 0 && !selectedSemester) {
-                setSelectedSemester(semesters[0].value);
+                const firstSemester = semesters[0].value;
+                setSelectedSemester(firstSemester);
+                // Immediately fetch campaigns for the first semester
+                await fetchCampaignsForSelectedSemester(firstSemester);
             }
         } catch (error) {
             console.error('Error fetching semesters:', error);
             toast.error('Không thể tải danh sách học kỳ');
         }
-    }, [selectedSemester]);
+    }, [selectedSemester, fetchCampaignsForSelectedSemester]);
 
-    const loadInitialData = useCallback(async () => {
-        setLoading(true);
+    // Fetch campaigns for the latest semester (for forms)
+    const fetchCurrentSemesterCampaigns = useCallback(async () => {
+        if (semesterOptions.length === 0) return;
+
         try {
-            const campaignsRes = await api.get("/api/campaigns");
-            const campaignsData = campaignsRes.data.data.campaigns || campaignsRes.data.data || [];
-            setCampaigns(campaignsData);
+            // Get the latest semester (first in the list)
+            const latestSemester = semesterOptions[0];
+            const [semester_no, academic_year] = latestSemester.value.split('_');
 
-            await fetchSemesterOptions();
-
-            // Don't load activities here anymore - will be loaded when semester is selected
+            const res = await api.get(`/api/campaigns/semester/${semester_no}/${academic_year}`);
+            const campaignsData = res.data.data.campaigns || [];
+            setCurrentSemesterCampaigns(campaignsData);
         } catch (error) {
-            toast.error("Không thể tải dữ liệu");
-            console.error(error);
-        } finally {
-            setLoading(false);
+            console.error('Error fetching current semester campaigns:', error);
         }
-    }, [fetchSemesterOptions]);
+    }, [semesterOptions]);
 
+    // Fetch current semester campaigns when semester options are available
     useEffect(() => {
-        loadInitialData();
-    }, [currentUserId, loadInitialData]);
-
-    useEffect(() => {
-        if (selectedSemester) {
-            fetchAllActivitiesBySemester(selectedSemester);
+        if (semesterOptions.length > 0) {
+            fetchCurrentSemesterCampaigns();
         }
-    }, [selectedSemester, currentUserId]);
+    }, [semesterOptions, fetchCurrentSemesterCampaigns]);
 
     useEffect(() => {
         async function verifyToken() {
@@ -103,6 +122,29 @@ export default function ClassleaderActivityManagement() {
 
         verifyToken();
     }, []);
+
+    useEffect(() => {
+        async function initializeData() {
+            setLoading(true);
+            try {
+                await fetchSemesterOptions();
+            } catch (error) {
+                toast.error("Không thể tải dữ liệu");
+                console.error(error);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        initializeData();
+    }, [fetchSemesterOptions]);
+
+    useEffect(() => {
+        if (selectedSemester) {
+            fetchAllActivitiesBySemester(selectedSemester);
+            fetchCampaignsForSelectedSemester(selectedSemester);
+        }
+    }, [selectedSemester, currentUserId, fetchCampaignsForSelectedSemester]);
 
     const fetchAllActivitiesBySemester = async (semester: string) => {
         if (!semester) return;
@@ -139,7 +181,7 @@ export default function ClassleaderActivityManagement() {
         registration_start?: string;
         registration_end?: string;
     }) => {
-        const campaign = campaigns.find(c => c.id === newActivity.campaign_id);
+        const campaign = currentSemesterCampaigns.find(c => c.id === newActivity.campaign_id);
         if (campaign && newActivity.point > (campaign?.max_score || 0)) {
             toast.error(`Điểm hoạt động không được lớn hơn điểm tối đa (${campaign.max_score}) của phong trào.`);
             return { success: false };
@@ -210,9 +252,31 @@ export default function ClassleaderActivityManagement() {
     };
 
     const sortedAndFilteredActivities = useMemo(() => {
-        // Filter by search term only (semester already filtered in API)
+        // Filter by search term, campaign, and date range
         const filtered = activities
-            .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()));
+            .filter((activity) => {
+                // Search term filter
+                const matchesSearch = activity.name.toLowerCase().includes(searchTerm.toLowerCase());
+                
+                // Campaign filter
+                const matchesCampaign = !selectedCampaign || activity.campaign_id.toString() === selectedCampaign;
+                
+                // Date range filter
+                let matchesDateRange = true;
+                if (startDate || endDate) {
+                    const activityStartDate = activity.registration_start ? new Date(activity.registration_start) : null;
+                    const activityEndDate = activity.registration_end ? new Date(activity.registration_end) : null;
+                    
+                    if (startDate && activityStartDate) {
+                        matchesDateRange = matchesDateRange && activityStartDate >= new Date(startDate);
+                    }
+                    if (endDate && activityEndDate) {
+                        matchesDateRange = matchesDateRange && activityEndDate <= new Date(endDate);
+                    }
+                }
+                
+                return matchesSearch && matchesCampaign && matchesDateRange;
+            });
 
         // Apply sorting
         if (sortField) {
@@ -230,16 +294,10 @@ export default function ClassleaderActivityManagement() {
                         valueB = b.name || '';
                         break;
                     case 'campaign':
-                        const campaignA = campaigns.find(c => c.id === a.campaign_id);
-                        const campaignB = campaigns.find(c => c.id === b.campaign_id);
+                        const campaignA = campaignsForFilter.find(c => c.id === a.campaign_id);
+                        const campaignB = campaignsForFilter.find(c => c.id === b.campaign_id);
                         valueA = campaignA?.name || '';
                         valueB = campaignB?.name || '';
-                        break;
-                    case 'semester':
-                        const campaignASem = campaigns.find(c => c.id === a.campaign_id);
-                        const campaignBSem = campaigns.find(c => c.id === b.campaign_id);
-                        valueA = campaignASem ? `${campaignASem.semester_no}_${campaignASem.academic_year}` : '';
-                        valueB = campaignBSem ? `${campaignBSem.semester_no}_${campaignBSem.academic_year}` : '';
                         break;
                     case 'point':
                         valueA = a.point || 0;
@@ -268,13 +326,35 @@ export default function ClassleaderActivityManagement() {
         }
 
         return filtered;
-    }, [activities, campaigns, searchTerm, sortField, sortDirection]);
+    }, [activities, campaignsForFilter, searchTerm, sortField, sortDirection, selectedCampaign, startDate, endDate]);
 
     // Create a similar function for pending activities
     const sortedAndFilteredPendingActivities = useMemo(() => {
-        // Filter by search term only (semester not needed for pending)
+        // Filter by search term, campaign, and date range
         const filtered = createdPendingActivities
-            .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()));
+            .filter((activity) => {
+                // Search term filter
+                const matchesSearch = activity.name.toLowerCase().includes(searchTerm.toLowerCase());
+                
+                // Campaign filter
+                const matchesCampaign = !selectedCampaign || activity.campaign_id.toString() === selectedCampaign;
+                
+                // Date range filter
+                let matchesDateRange = true;
+                if (startDate || endDate) {
+                    const activityStartDate = activity.registration_start ? new Date(activity.registration_start) : null;
+                    const activityEndDate = activity.registration_end ? new Date(activity.registration_end) : null;
+                    
+                    if (startDate && activityStartDate) {
+                        matchesDateRange = matchesDateRange && activityStartDate >= new Date(startDate);
+                    }
+                    if (endDate && activityEndDate) {
+                        matchesDateRange = matchesDateRange && activityEndDate <= new Date(endDate);
+                    }
+                }
+                
+                return matchesSearch && matchesCampaign && matchesDateRange;
+            });
 
         // Apply sorting
         if (sortField) {
@@ -292,10 +372,10 @@ export default function ClassleaderActivityManagement() {
                         valueB = b.name || '';
                         break;
                     case 'campaign':
-                        const campaignA = campaigns.find(c => c.id === a.campaign_id);
-                        const campaignB = campaigns.find(c => c.id === b.campaign_id);
-                        valueA = campaignA?.name || '';
-                        valueB = campaignB?.name || '';
+                        const campaignAPending = campaignsForFilter.find(c => c.id === a.campaign_id);
+                        const campaignBPending = campaignsForFilter.find(c => c.id === b.campaign_id);
+                        valueA = campaignAPending?.name || '';
+                        valueB = campaignBPending?.name || '';
                         break;
                     case 'point':
                         valueA = a.point || 0;
@@ -320,7 +400,7 @@ export default function ClassleaderActivityManagement() {
         }
 
         return filtered;
-    }, [createdPendingActivities, campaigns, searchTerm, sortField, sortDirection]);
+    }, [createdPendingActivities, campaignsForFilter, searchTerm, sortField, sortDirection, selectedCampaign, startDate, endDate]);
 
     const totalPages = Math.ceil(
         activeTab === "approved"
@@ -354,13 +434,15 @@ export default function ClassleaderActivityManagement() {
     const renderMainContent = () => {
         switch (activeComponent) {
             case "form":
-                return <ActivityForm currentcampaigns={campaigns} onActivityCreated={handleCreateActivity} />;
+                return <ActivityForm currentcampaigns={currentSemesterCampaigns} onActivityCreated={handleCreateActivity} />;
             case "import":
-                return <ActivityImport onActivitiesImported={handleActivitiesImported} currentcampaigns={campaigns} />;
+                return <ActivityImport onActivitiesImported={handleActivitiesImported} currentcampaigns={currentSemesterCampaigns} />;
             default:
                 return (
                     <>
-                        <div ref={tableRef} className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+                        <div ref={tableRef} className="flex flex-col gap-4 mb-6">
+                            {/* First row: Search and Semester */}
+                            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                             <input
                                 type="text"
                                 value={searchTerm}
@@ -405,6 +487,64 @@ export default function ClassleaderActivityManagement() {
                                     className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                                 >
                                     + Import hoạt động
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            {/* Second row: Campaign and Date filters */}
+                            <div className="flex flex-col md:flex-row gap-4 items-center">
+                                <select
+                                    value={selectedCampaign}
+                                    onChange={(e) => {
+                                        setSelectedCampaign(e.target.value);
+                                        setCurrentPage(1);
+                                    }}
+                                    className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/4"
+                                >
+                                    <option value="">-- Tất cả phong trào --</option>
+                                    {campaignsForFilter.map((campaign) => (
+                                        <option key={campaign.id} value={campaign.id.toString()}>
+                                            {campaign.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                
+                                <div className="flex gap-2 items-center w-full md:w-auto">
+                                    <label className="text-sm text-gray-600 whitespace-nowrap">Từ ngày:</label>
+                                    <input
+                                        type="date"
+                                        value={startDate}
+                                        onChange={(e) => {
+                                            setStartDate(e.target.value);
+                                            setCurrentPage(1);
+                                        }}
+                                        className="px-3 py-2 border border-gray-300 rounded-md"
+                                    />
+                                </div>
+                                
+                                <div className="flex gap-2 items-center w-full md:w-auto">
+                                    <label className="text-sm text-gray-600 whitespace-nowrap">Đến ngày:</label>
+                                    <input
+                                        type="date"
+                                        value={endDate}
+                                        onChange={(e) => {
+                                            setEndDate(e.target.value);
+                                            setCurrentPage(1);
+                                        }}
+                                        className="px-3 py-2 border border-gray-300 rounded-md"
+                                    />
+                                </div>
+                                
+                                <button
+                                    onClick={() => {
+                                        setSelectedCampaign("");
+                                        setStartDate("");
+                                        setEndDate("");
+                                        setCurrentPage(1);
+                                    }}
+                                    className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 whitespace-nowrap"
+                                >
+                                    Xóa bộ lọc
                                 </button>
                             </div>
                         </div>
@@ -423,53 +563,41 @@ export default function ClassleaderActivityManagement() {
                                                             STT
                                                         </th>
                                                         <th
-                                                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
+                                                            className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
                                                             onClick={() => handleSort('name')}
                                                         >
                                                             Tên hoạt động {sortField === 'name' && (sortDirection === 'asc' ? '▲' : '▼')}
                                                         </th>
                                                         <th
-                                                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
+                                                            className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
                                                             onClick={() => handleSort('campaign')}
                                                         >
                                                             Phong trào {sortField === 'campaign' && (sortDirection === 'asc' ? '▲' : '▼')}
                                                         </th>
                                                         <th
-                                                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
-                                                            onClick={() => handleSort('semester')}
-                                                        >
-                                                            Học kỳ {sortField === 'semester' && (sortDirection === 'asc' ? '▲' : '▼')}
-                                                        </th>
-                                                        <th
-                                                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
+                                                            className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
                                                             onClick={() => handleSort('point')}
                                                         >
                                                             Điểm {sortField === 'point' && (sortDirection === 'asc' ? '▲' : '▼')}
                                                         </th>
                                                         <th
-                                                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer min-w-[120px]"
+                                                            className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer min-w-[120px]"
                                                             onClick={() => handleSort('number_students')}
                                                         >
-                                                            SL đăng ký {sortField === 'number_students' && (sortDirection === 'asc' ? '▲' : '▼')}
+                                                            Số lượng {sortField === 'number_students' && (sortDirection === 'asc' ? '▲' : '▼')}
                                                         </th>
                                                         <th
-                                                            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase cursor-pointer min-w-[120px]"
-                                                            onClick={() => handleSort('max_participants')}
+                                                            className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase"
                                                         >
-                                                            SL tối đa {sortField === 'max_participants' && (sortDirection === 'asc' ? '▲' : '▼')}
+                                                            Thời gian
                                                         </th>
                                                         <th
-                                                            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
-                                                        >
-                                                            Thời gian đăng ký
-                                                        </th>
-                                                        <th
-                                                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+                                                            className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase"
                                                         >
                                                             Trạng thái
                                                         </th>
                                                         <th
-                                                            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
+                                                            className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase"
                                                         >
                                                             Thao tác
                                                         </th>
@@ -477,59 +605,64 @@ export default function ClassleaderActivityManagement() {
                                                 </thead>
                                                 <tbody className="bg-white divide-y divide-gray-200">
                                                     {paginatedActivities.map((activity, index) => {
-                                                        const campaign = campaigns.find(c => c.id === activity.campaign_id);
+                                                        const campaign = campaignsForFilter.find(c => c.id === activity.campaign_id);
                                                         return (
                                                             <tr key={activity.id} className="hover:bg-gray-50">
                                                                 <td className="px-4 py-3 whitespace-nowrap">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                                                                <td className="px-4 py-3 whitespace-nowrap">
+                                                                <td className="px-2 py-3 whitespace-nowrap">
                                                                     <Tooltip title={activity.name} placement="topLeft">
-                                                                        <div className="max-w-[200px] overflow-hidden text-ellipsis">
+                                                                        <div className="max-w-[350px] overflow-hidden text-ellipsis">
                                                                             {activity.name}
                                                                         </div>
                                                                     </Tooltip>
                                                                 </td>
-                                                                <td className="px-4 py-3 whitespace-nowrap">
+                                                                <td className="px-2 py-3 whitespace-nowrap">
                                                                     <Tooltip
-                                                                        title={campaigns.find(campaign => campaign.id === activity.campaign_id)?.name ||
+                                                                        title={campaign?.name ||
                                                                             activity.campaign_name ||
                                                                             "Không xác định"}
                                                                         placement="topLeft"
                                                                     >
-                                                                        <div className="max-w-[200px] overflow-hidden text-ellipsis">
-                                                                            {campaigns.find(campaign => campaign.id === activity.campaign_id)?.name ||
+                                                                        <div className="max-w-[350px] overflow-hidden text-ellipsis">
+                                                                            {campaign?.name ||
                                                                                 activity.campaign_name ||
                                                                                 "Không xác định"}
                                                                         </div>
                                                                     </Tooltip>
                                                                 </td>
-                                                                <td className="px-4 py-3 whitespace-nowrap">
-                                                                    {campaign ? `Học kỳ ${campaign.semester_no} - ${campaign.academic_year}` : 'N/A'}
+                                                                <td className="px-2 py-3 whitespace-nowrap">
+                                                                    <span className={activity.point < 0 ? "text-red-600" : "text-green-600"}>
+                                                                        {activity.point}
+                                                                    </span>
                                                                 </td>
-                                                                <td className="px-4 py-3 whitespace-nowrap min-w-[80px]">{activity.point}</td>
-                                                                <td className="px-4 py-3 whitespace-nowrap text-center min-w-[120px]">{activity.number_students || 0}</td>
-                                                                <td className="px-4 py-3 text-center whitespace-nowrap min-w-[120px]">
-                                                                    {activity.max_participants || "Không giới hạn"}
+                                                                <td className="px-2 py-3 whitespace-nowrap min-w-[120px]">
+                                                                    <span>
+                                                                        {activity.number_students || 0} / {activity.max_participants || 'Không giới hạn'}
+                                                                    </span>
                                                                 </td>
-                                                                <td className="px-4 py-3 text-center whitespace-nowrap">
-                                                                    {activity.registration_start && activity.registration_end
-                                                                        ? `${new Date(activity.registration_start).toLocaleDateString('vi-VN')} - ${new Date(activity.registration_end).toLocaleDateString('vi-VN')}`
-                                                                        : "Không có thông tin"}
+                                                                <td className="px-2 py-3 text-center whitespace-nowrap">
+                                                                    <div>
+                                                                        {activity.registration_start && activity.registration_end ? (
+                                                                            <>
+                                                                                <div>{new Date(activity.registration_start).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} - 
+                                                                                    {new Date(activity.registration_end).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}</div>
+                                                                            </>
+                                                                        ) : (
+                                                                            <span className="text-gray-400">Chưa có thông tin</span>
+                                                                        )}
+                                                                    </div>
                                                                 </td>
-                                                                <td className="px-4 py-3 whitespace-nowrap">
+                                                                <td className="px-2 py-3 whitespace-nowrap">
                                                                     <span className={`px-2 py-1 rounded inline-flex text-xs leading-5 font-semibold ${activity.status === 'ongoing' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                                                                         }`}>
                                                                         {activity.status === 'ongoing' ? 'Đang diễn ra' : 'Đã kết thúc'}
                                                                     </span>
                                                                 </td>
-                                                                <td className="px-4 py-3 text-center whitespace-nowrap">
+                                                                <td className="px-2 py-3 text-center whitespace-nowrap">
                                                                     <button
                                                                         onClick={() => router.push(`/uit/class-leader/activities/${activity.id}`)}
                                                                         className="bg-blue-500 hover:bg-blue-700 text-white text-sm py-1 px-3 rounded inline-flex items-center gap-1"
                                                                     >
-                                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                                                                            <circle cx="12" cy="12" r="3" />
-                                                                        </svg>
                                                                         Xem chi tiết
                                                                     </button>
                                                                 </td>
@@ -641,11 +774,6 @@ export default function ClassleaderActivityManagement() {
                                                         Phong trào {sortField === 'campaign' && (sortDirection === 'asc' ? '▲' : '▼')}
                                                     </th>
                                                     <th
-                                                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
-                                                    >
-                                                        Học kỳ
-                                                    </th>
-                                                    <th
                                                         className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer"
                                                         onClick={() => handleSort('point')}
                                                     >
@@ -655,18 +783,12 @@ export default function ClassleaderActivityManagement() {
                                                         className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer min-w-[120px]"
                                                         onClick={() => handleSort('number_students')}
                                                     >
-                                                        SL đăng ký {sortField === 'number_students' && (sortDirection === 'asc' ? '▲' : '▼')}
-                                                    </th>
-                                                    <th
-                                                        className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase cursor-pointer min-w-[120px]"
-                                                        onClick={() => handleSort('max_participants')}
-                                                    >
-                                                        SL tối đa
+                                                        Số lượng {sortField === 'number_students' && (sortDirection === 'asc' ? '▲' : '▼')}
                                                     </th>
                                                     <th
                                                         className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"
                                                     >
-                                                        Thời gian đăng ký
+                                                        Thời gian
                                                     </th>
                                                     <th
                                                         className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
@@ -682,7 +804,7 @@ export default function ClassleaderActivityManagement() {
                                             </thead>
                                             <tbody className="bg-white divide-y divide-gray-200">
                                                 {paginatedActivities.map((activity, index) => {
-                                                    const campaign = campaigns.find(c => c.id === activity.campaign_id);
+                                                    const campaign = campaignsForFilter.find(c => c.id === activity.campaign_id);
                                                     return (
                                                         <tr key={activity.id} className="hover:bg-gray-50">
                                                             <td className="px-4 py-3 whitespace-nowrap">{(currentPage - 1) * itemsPerPage + index + 1}</td>
@@ -690,20 +812,40 @@ export default function ClassleaderActivityManagement() {
                                                                 <div className="max-w-xs truncate" title={activity.name}>{activity.name}</div>
                                                             </td>
                                                             <td className="px-4 py-3 whitespace-nowrap">
-                                                                {campaign?.name || 'N/A'}
+                                                                <Tooltip
+                                                                    title={campaign?.name ||
+                                                                        activity.campaign_name ||
+                                                                        "Không xác định"}
+                                                                    placement="topLeft"
+                                                                >
+                                                                    <div className="max-w-[350px] overflow-hidden text-ellipsis">
+                                                                        {campaign?.name ||
+                                                                            activity.campaign_name ||
+                                                                            "Không xác định"}
+                                                                    </div>
+                                                                </Tooltip>
                                                             </td>
                                                             <td className="px-4 py-3 whitespace-nowrap">
-                                                                {campaign ? `Học kỳ ${campaign.semester_no} - ${campaign.academic_year}` : 'N/A'}
+                                                                <span className={activity.point < 0 ? "text-red-600" : "text-green-600"}>
+                                                                    {activity.point}
+                                                                </span>
                                                             </td>
-                                                            <td className="px-4 py-3 whitespace-nowrap">{activity.point}</td>
-                                                            <td className="px-4 py-3 whitespace-nowrap text-center min-w-[120px]">{activity.number_students || 0}</td>
-                                                            <td className="px-4 py-3 text-center whitespace-nowrap min-w-[120px]">
-                                                                {activity.max_participants || "Không giới hạn"}
+                                                            <td className="px-4 py-3 whitespace-nowrap min-w-[120px]">
+                                                                <span>
+                                                                    {activity.number_students || 0} / {activity.max_participants || 'Không giới hạn'}
+                                                                </span>
                                                             </td>
                                                             <td className="px-4 py-3 text-center whitespace-nowrap">
-                                                                {activity.registration_start && activity.registration_end
-                                                                    ? `${new Date(activity.registration_start).toLocaleDateString('vi-VN')} - ${new Date(activity.registration_end).toLocaleDateString('vi-VN')}`
-                                                                    : "Không có thông tin"}
+                                                                <div>
+                                                                    {activity.registration_start && activity.registration_end ? (
+                                                                        <>
+                                                                            <div>{new Date(activity.registration_start).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} - 
+                                                                                {new Date(activity.registration_end).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}</div>
+                                                                        </>
+                                                                    ) : (
+                                                                        <span className="text-gray-400">Chưa có thông tin</span>
+                                                                    )}
+                                                                </div>
                                                             </td>
                                                             <td className="px-4 py-3 whitespace-nowrap">
                                                                 <span className="px-2 py-1 rounded inline-flex text-xs leading-5 font-semibold bg-yellow-100 text-yellow-800">
@@ -715,10 +857,6 @@ export default function ClassleaderActivityManagement() {
                                                                     onClick={() => router.push(`/uit/class-leader/activities/${activity.id}`)}
                                                                     className="bg-blue-500 hover:bg-blue-700 text-white text-sm py-1 px-3 rounded inline-flex items-center gap-1"
                                                                 >
-                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                                                                        <circle cx="12" cy="12" r="3" />
-                                                                    </svg>
                                                                     Xem chi tiết
                                                                 </button>
                                                             </td>

@@ -34,6 +34,9 @@ export default function AdvisorActivityManagement() {
   const [selectedSemester, setSelectedSemester] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("approved");
   const [activeComponent, setActiveComponent] = useState<"form" | "import" | "table">("table");
+  const [selectedCampaign, setSelectedCampaign] = useState<string>("");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
   
   // Separate state for current semester campaigns (for forms)
   const [currentSemesterCampaigns, setCurrentSemesterCampaigns] = useState<Campaign[]>([]);
@@ -67,7 +70,7 @@ export default function AdvisorActivityManagement() {
     }
   }, [contextCurrentSemester, selectedSemester]);
 
-  // Fetch campaigns for the latest semester (for forms)
+
   const fetchCurrentSemesterCampaigns = useCallback(async () => {
     if (contextSemesterOptions.length === 0) return;
     
@@ -206,11 +209,32 @@ export default function AdvisorActivityManagement() {
   };
 
   const sortedAndFilteredActivities = useMemo(() => {
-    // Filter by search term only (semester already filtered in API)
+    // Filter by search term, campaign, and date range
     const filtered = activities
-      .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()));
+      .filter((activity) => {
+        // Search term filter
+        const matchesSearch = activity.name.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        // Campaign filter
+        const matchesCampaign = !selectedCampaign || activity.campaign_id.toString() === selectedCampaign;
+        
+        // Date range filter
+        let matchesDateRange = true;
+        if (startDate || endDate) {
+          const activityStartDate = activity.registration_start ? new Date(activity.registration_start) : null;
+          const activityEndDate = activity.registration_end ? new Date(activity.registration_end) : null;
+          
+          if (startDate && activityStartDate) {
+            matchesDateRange = matchesDateRange && activityStartDate >= new Date(startDate);
+          }
+          if (endDate && activityEndDate) {
+            matchesDateRange = matchesDateRange && activityEndDate <= new Date(endDate);
+          }
+        }
+        
+        return matchesSearch && matchesCampaign && matchesDateRange;
+      });
 
-    // Apply sorting
     if (sortField) {
       return [...filtered].sort((a, b) => {
         let valueA: string | number;
@@ -264,11 +288,33 @@ export default function AdvisorActivityManagement() {
     }
 
     return filtered;
-  }, [activities, contextCampaigns, searchTerm, sortField, sortDirection]);
+  }, [activities, contextCampaigns, searchTerm, sortField, sortDirection, selectedCampaign, startDate, endDate]);
 
   const sortedAndFilteredPendingActivities = useMemo(() => {
     const filtered = createdPendingActivities
-      .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()));
+      .filter((activity) => {
+        // Search term filter
+        const matchesSearch = activity.name.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        // Campaign filter
+        const matchesCampaign = !selectedCampaign || activity.campaign_id.toString() === selectedCampaign;
+        
+        // Date range filter
+        let matchesDateRange = true;
+        if (startDate || endDate) {
+          const activityStartDate = activity.registration_start ? new Date(activity.registration_start) : null;
+          const activityEndDate = activity.registration_end ? new Date(activity.registration_end) : null;
+          
+          if (startDate && activityStartDate) {
+            matchesDateRange = matchesDateRange && activityStartDate >= new Date(startDate);
+          }
+          if (endDate && activityEndDate) {
+            matchesDateRange = matchesDateRange && activityEndDate <= new Date(endDate);
+          }
+        }
+        
+        return matchesSearch && matchesCampaign && matchesDateRange;
+      });
 
     if (sortField) {
       return [...filtered].sort((a, b) => {
@@ -313,7 +359,7 @@ export default function AdvisorActivityManagement() {
     }
 
     return filtered;
-  }, [createdPendingActivities, contextCampaigns, searchTerm, sortField, sortDirection]);
+  }, [createdPendingActivities, contextCampaigns, searchTerm, sortField, sortDirection, selectedCampaign, startDate, endDate]);
 
   if (dataLoading) {
     return (
@@ -390,6 +436,18 @@ export default function AdvisorActivityManagement() {
                     sortDirection={sortDirection}
                     onSort={handleSort}
                     onViewDetails={(id) => router.push(`/uit/advisor/activities/${id}`)}
+                    showFilters={true}
+                    selectedCampaign={selectedCampaign}
+                    startDate={startDate}
+                    endDate={endDate}
+                    onCampaignChange={(campaign) => setSelectedCampaign(campaign)}
+                    onStartDateChange={(date) => setStartDate(date)}
+                    onEndDateChange={(date) => setEndDate(date)}
+                    onClearFilters={() => {
+                      setSelectedCampaign("");
+                      setStartDate("");
+                      setEndDate("");
+                    }}
                   />
                 )}
               </Tab>
@@ -402,6 +460,18 @@ export default function AdvisorActivityManagement() {
                   onSort={handleSort}
                   onViewDetails={(id) => router.push(`/uit/advisor/activities/${id}`)}
                   isPending={true}
+                  showFilters={true}
+                  selectedCampaign={selectedCampaign}
+                  startDate={startDate}
+                  endDate={endDate}
+                  onCampaignChange={(campaign) => setSelectedCampaign(campaign)}
+                  onStartDateChange={(date) => setStartDate(date)}
+                  onEndDateChange={(date) => setEndDate(date)}
+                  onClearFilters={() => {
+                    setSelectedCampaign("");
+                    setStartDate("");
+                    setEndDate("");
+                  }}
                 />
               </Tab>
             </Tabs>

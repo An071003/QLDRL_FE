@@ -74,6 +74,8 @@ export default function AdvisorTable({
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên cố vấn</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khoa</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số điện thoại</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tài khoản</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
             <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
           </tr>
         </thead>
@@ -131,6 +133,12 @@ export default function AdvisorTable({
                     advisor.phone || ''
                   )}
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {advisor.User?.user_name || ''}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {advisor.User?.email || ''}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-center">
                   {editingAdvisorId === advisor.id ? (
                     <div className="flex justify-center space-x-3">
@@ -180,7 +188,7 @@ export default function AdvisorTable({
             ))
           ) : (
             <tr>
-              <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+              <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
                 Không có cố vấn học tập nào
               </td>
             </tr>

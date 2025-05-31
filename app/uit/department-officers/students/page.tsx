@@ -10,6 +10,7 @@ import Loading from '@/components/Loading';
 import debounce from 'lodash.debounce';
 import StudentImport from '@/components/Import/StudentImport';
 import { Student } from '@/types/student';
+import { useData } from '@/lib/contexts/DataContext';
 
 interface StudentCreateData {
   student_id: string;
@@ -22,9 +23,12 @@ interface StudentCreateData {
 }
 
 export default function StudentManagementPage() {
+  const { faculties, loading: dataLoading, getFilteredClasses } = useData();
   const [departmentStudents, setDepartmentStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedFacultyId, setSelectedFacultyId] = useState<string>('');
+  const [selectedClassId, setSelectedClassId] = useState<string>('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [studentIdToDelete, setStudentIdToDelete] = useState<string | null>(null);
   const [activeComponent, setActiveComponent] = useState<'table' | 'form' | 'import'>('table');
@@ -46,15 +50,15 @@ export default function StudentManagementPage() {
       // Lấy danh sách sinh viên
       const res = await api.get('/api/students');
       const allStudents = res.data.data.students || [];
-      
+
       // Lọc sinh viên theo khoa của cán bộ khoa
       try {
         const officerRes = await api.get(`/api/department-officers/user/${userRes.data.data.user.id}`);
         if (officerRes.data?.departmentOfficer) {
           const facultyId = officerRes.data.departmentOfficer.faculty_id;
           // Lọc sinh viên thuộc các lớp của khoa
-          const departmentStuds = allStudents.filter((student: Student) => 
-            student.Class?.faculty_id === facultyId
+          const departmentStuds = allStudents.filter((student: Student) =>
+            student.faculty_id === facultyId
           );
           setDepartmentStudents(departmentStuds);
         } else {
@@ -123,14 +127,35 @@ export default function StudentManagementPage() {
     debouncedSearch(e.target.value);
   };
 
+  const handleFacultyChange = (facultyId: string) => {
+    setSelectedFacultyId(facultyId);
+    setSelectedClassId(''); // Reset class when faculty changes
+  };
+
+  const handleClassChange = (classId: string) => {
+    setSelectedClassId(classId);
+  };
+
+  // Get filtered classes based on selected faculty
+  const availableClasses = useMemo(() => {
+    if (!selectedFacultyId) return [];
+    return getFilteredClasses(parseInt(selectedFacultyId));
+  }, [selectedFacultyId, getFilteredClasses]);
+
   const filteredStudents = useMemo(() => {
-    // Sử dụng danh sách sinh viên của khoa thay vì tất cả
-    return departmentStudents.filter(
-      (s) =>
-        (s.student_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        s.student_id?.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  }, [departmentStudents, searchTerm]);
+    // Use department students list and apply additional filters
+    return departmentStudents.filter((s) => {
+      const matchesSearch =
+        s.student_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.student_id?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesFaculty = !selectedFacultyId || s.faculty_id?.toString() === selectedFacultyId;
+
+      const matchesClass = !selectedClassId || s.class_id?.toString() === selectedClassId;
+
+      return matchesSearch && matchesFaculty && matchesClass;
+    });
+  }, [departmentStudents, searchTerm, selectedFacultyId, selectedClassId]);
 
   const handleStudentsImported = async (importedStudents: unknown[]): Promise<{ success: boolean }> => {
     try {
@@ -166,7 +191,7 @@ export default function StudentManagementPage() {
     }
   };
 
-  if (loading) return <Loading />;
+  if (loading || dataLoading) return <Loading />;
 
   return (
     <div>
@@ -179,14 +204,8 @@ export default function StudentManagementPage() {
       />
 
       {activeComponent === 'table' ? (
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-          <input
-            type="text"
-            placeholder="Tìm theo mã sinh viên hoặc tên..."
-            onChange={handleSearchChange}
-            className="px-4 py-2 border border-gray-300 rounded w-full md:w-1/3"
-          />
-          <div className="flex gap-4">
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="flex justify-end gap-4">
             <button
               onClick={() => setActiveComponent('form')}
               className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
@@ -200,6 +219,43 @@ export default function StudentManagementPage() {
               + Import sinh viên
             </button>
           </div>
+          <div className="flex flex-col lg:flex-row gap-4">
+            <input
+              type="text"
+              placeholder="Tìm theo mã sinh viên hoặc tên..."
+              onChange={handleSearchChange}
+              className="px-4 py-2 border border-gray-300 rounded w-full lg:w-1/3"
+            />
+
+            <select
+              value={selectedFacultyId}
+              onChange={(e) => handleFacultyChange(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded max-w-[200px] lg:w-1/4"
+            >
+              <option value="">Tất cả khoa</option>
+              {faculties.map((faculty) => (
+                <option key={faculty.id} value={faculty.id.toString()}>
+                  {faculty.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={selectedClassId}
+              onChange={(e) => handleClassChange(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded max-w-[200px] lg:w-1/4"
+              disabled={!selectedFacultyId}
+            >
+              <option value="">Tất cả lớp</option>
+              {availableClasses.map((classItem) => (
+                <option key={classItem.id} value={classItem.id.toString()}>
+                  {classItem.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+
         </div>
       ) : (
         <div className='flex justify-end mb-6'>

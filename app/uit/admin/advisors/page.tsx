@@ -55,6 +55,7 @@ export default function AdvisorManagementPage() {
   const [advisors, setAdvisors] = useState<Advisor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedFacultyId, setSelectedFacultyId] = useState<string>('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [advisorIdToDelete, setAdvisorIdToDelete] = useState<number | null>(null);
   const [editingAdvisorId, setEditingAdvisorId] = useState<number | null>(null);
@@ -198,15 +199,19 @@ export default function AdvisorManagementPage() {
   };
 
   const filteredAdvisors = useMemo(() => {
-    return advisors.filter(
-      (advisor) =>
+    return advisors.filter((advisor) => {
+      const matchesSearch = 
         (advisor.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         (advisor.Faculty?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         (advisor.phone?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         (advisor.User?.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        (advisor.User?.user_name?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-    );
-  }, [advisors, searchTerm]);
+        (advisor.User?.user_name?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+      
+      const matchesFaculty = !selectedFacultyId || advisor.faculty_id?.toString() === selectedFacultyId;
+      
+      return matchesSearch && matchesFaculty;
+    });
+  }, [advisors, searchTerm, selectedFacultyId]);
 
   if (loading || dataLoading) return <Loading />;
 
@@ -255,12 +260,26 @@ export default function AdvisorManagementPage() {
 
       {activeComponent === 'table' ? (
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-          <input
-            type="text"
-            placeholder="Tìm kiếm cố vấn học tập..."
-            onChange={handleSearchChange}
-            className="px-4 py-2 border border-gray-300 rounded w-full md:w-1/3"
-          />
+          <div className="flex flex-col md:flex-row gap-4 w-full md:w-2/3">
+            <input
+              type="text"
+              placeholder="Tìm kiếm cố vấn học tập..."
+              onChange={handleSearchChange}
+              className="px-4 py-2 border border-gray-300 rounded w-full md:w-1/2"
+            />
+            <select
+              value={selectedFacultyId}
+              onChange={(e) => setSelectedFacultyId(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded w-full md:w-1/2"
+            >
+              <option value="">Tất cả khoa</option>
+              {faculties.map((faculty) => (
+                <option key={faculty.id} value={faculty.id.toString()}>
+                  {faculty.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="flex gap-4">
             <button
               onClick={() => setActiveComponent('form')}

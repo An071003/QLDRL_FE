@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import Loading from '@/components/Loading';
 import { toast } from 'sonner';
 import debounce from 'lodash.debounce';
+import { useData } from '@/lib/contexts/DataContext';
 
 interface Class {
   id: number;
@@ -19,9 +20,11 @@ interface Class {
 }
 
 export default function AdvisorClassesPage() {
+  const { faculties, loading: dataLoading } = useData();
   const [loading, setLoading] = useState(true);
   const [classes, setClasses] = useState<Class[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedFacultyId, setSelectedFacultyId] = useState<string>('');
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
@@ -71,12 +74,16 @@ export default function AdvisorClassesPage() {
 
   const sortedAndFilteredClasses = useMemo(() => {
     // Filter classes
-    const filtered = classes.filter(
-      (c) =>
+    const filtered = classes.filter((c) => {
+      const matchesSearch = 
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.cohort.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.Faculty?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+        c.Faculty?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesFaculty = !selectedFacultyId || c.faculty_id?.toString() === selectedFacultyId;
+      
+      return matchesSearch && matchesFaculty;
+    });
     
     // Sort classes
     if (sortField) {
@@ -120,7 +127,7 @@ export default function AdvisorClassesPage() {
     }
     
     return filtered;
-  }, [classes, searchTerm, sortField, sortDirection]);
+  }, [classes, searchTerm, selectedFacultyId, sortField, sortDirection]);
 
   // Pagination logic
   const totalPages = Math.ceil(sortedAndFilteredClasses.length / itemsPerPage);
@@ -135,19 +142,33 @@ export default function AdvisorClassesPage() {
     }
   };
 
-  if (loading) return <Loading />;
+  if (loading || dataLoading) return <Loading />;
 
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Quản lý lớp</h1>
       
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-        <input
-          type="text"
-          placeholder="Tìm theo tên lớp, khóa hoặc khoa..."
-          onChange={handleSearchChange}
-          className="px-4 py-2 border border-gray-300 rounded w-full md:w-1/3"
-        />
+        <div className="flex flex-col md:flex-row gap-4 w-full md:w-2/3">
+          <input
+            type="text"
+            placeholder="Tìm theo tên lớp, khóa hoặc khoa..."
+            onChange={handleSearchChange}
+            className="px-4 py-2 border border-gray-300 rounded w-full md:w-1/2"
+          />
+          <select
+            value={selectedFacultyId}
+            onChange={(e) => setSelectedFacultyId(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded w-full md:w-1/2"
+          >
+            <option value="">Tất cả khoa</option>
+            {faculties.map((faculty) => (
+              <option key={faculty.id} value={faculty.id.toString()}>
+                {faculty.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
       
       <div className="bg-white rounded-lg shadow overflow-hidden mb-6">

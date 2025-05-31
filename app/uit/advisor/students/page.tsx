@@ -13,6 +13,7 @@ export default function AdvisorStudentsPage() {
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<Student[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedClassId, setSelectedClassId] = useState<string>('');
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
@@ -51,6 +52,10 @@ export default function AdvisorStudentsPage() {
     debouncedSearch(e.target.value);
   };
 
+  const handleClassChange = (classId: string) => {
+    setSelectedClassId(classId);
+  };
+
   const handleSort = (field: string) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -68,11 +73,16 @@ export default function AdvisorStudentsPage() {
     if (!Array.isArray(students)) return [];
     
     // Filter students
-    const filtered = students.filter(student => 
-      (student.student_id?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-       student.student_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-       student.Class?.name?.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const filtered = students.filter(student => {
+      const matchesSearch = 
+        student.student_id?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        student.student_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.Class?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesClass = !selectedClassId || student.class_id?.toString() === selectedClassId;
+      
+      return matchesSearch && matchesClass;
+    });
     
     // Sort students
     if (sortField) {
@@ -112,7 +122,7 @@ export default function AdvisorStudentsPage() {
     }
     
     return filtered;
-  }, [students, searchTerm, sortField, sortDirection]);
+  }, [students, searchTerm, selectedClassId, sortField, sortDirection]);
 
   // Pagination logic
   const totalPages = Math.ceil(sortedAndFilteredStudents.length / itemsPerPage);
@@ -127,6 +137,23 @@ export default function AdvisorStudentsPage() {
     }
   };
 
+  // Extract unique classes from students data
+  const availableClasses = useMemo(() => {
+    if (!Array.isArray(students)) return [];
+    
+    const classMap = new Map();
+    students.forEach(student => {
+      if (student.class_id && student.Class?.name) {
+        classMap.set(student.class_id, {
+          id: student.class_id,
+          name: student.Class.name
+        });
+      }
+    });
+    
+    return Array.from(classMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [students]);
+
   if (loading) return <Loading />;
 
   return (
@@ -134,12 +161,27 @@ export default function AdvisorStudentsPage() {
       <h1 className="text-3xl font-bold mb-6">Quản lý sinh viên</h1>
 
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-        <input
-          type="text"
-          placeholder="Tìm theo mã sinh viên hoặc tên..."
-          onChange={handleSearchChange}
-          className="px-4 py-2 border border-gray-300 rounded w-full md:w-1/3"
-        />
+        <div className="flex flex-col md:flex-row gap-4 w-full md:w-2/3">
+          <input
+            type="text"
+            placeholder="Tìm theo mã sinh viên hoặc tên..."
+            onChange={handleSearchChange}
+            className="px-4 py-2 border border-gray-300 rounded w-full md:w-1/2"
+          />
+          
+          <select
+            value={selectedClassId}
+            onChange={(e) => handleClassChange(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded max-w-[200px] md:w-1/2"
+          >
+            <option value="">Tất cả lớp</option>
+            {availableClasses.map((classItem) => (
+              <option key={classItem.id} value={classItem.id.toString()}>
+                {classItem.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
       
       <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
