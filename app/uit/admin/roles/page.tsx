@@ -217,7 +217,7 @@ export default function RoleManagement() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">Quản lý vài trò và quyền</h1>
+      <h1 className="text-3xl font-bold mb-6">Quản lý quyền và vài trò</h1>
 
       <ConfirmDeleteModal
         isOpen={showConfirmModal}
