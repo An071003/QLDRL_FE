@@ -108,7 +108,6 @@ export default function ActivityManagement() {
 
       const pendingData = allActivities.filter((activity: Activity) => activity.approver_id === null);
 
-      // Add campaign information to pending activities
       const pendingWithCampaign = pendingData.map((activity: Activity) => {
         const campaign = contextCampaigns.find((c) => c.id === activity.campaign_id);
         return {
@@ -348,9 +347,9 @@ export default function ActivityManagement() {
     try {
       await api.put(`/api/activities/${id}/approve`);
       toast.success("Phê duyệt hoạt động thành công");
-      await fetchActivities(selectedSemester); // Reload activities
-      await fetchPendingActivities(selectedSemester); // Reload pending activities
-      await refreshCampaigns(); // Refresh campaigns to update activity counts
+      await fetchActivities(selectedSemester); 
+      await fetchPendingActivities(selectedSemester); 
+      await refreshCampaigns(); 
     } catch (error) {
       console.error("Error approving activity:", error);
       toast.error("Lỗi khi phê duyệt hoạt động");
@@ -521,7 +520,6 @@ export default function ActivityManagement() {
                 </div>
               </Tab>
               <Tab value="pending" title={`Chờ phê duyệt (${filteredPendingActivities.length})`}>
-                {/* Filters for Pending Activities */}
                 <div className="flex flex-col md:flex-row gap-4 items-center mb-4 p-4 bg-gray-50 rounded-lg">
                   <select
                     value={selectedCampaign}
