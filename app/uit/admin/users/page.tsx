@@ -169,7 +169,7 @@ export default function UserManagement() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">User Management</h1>
+      <h1 className="text-3xl font-bold mb-6">Quản lý người dùng</h1>
 
       <ConfirmDeleteModal
         isOpen={showConfirmModal}
