@@ -5,7 +5,6 @@ import { Activity } from "@/types/activity";
 import { Campaign } from "@/types/campaign";
 import { CheckCircle, XCircle } from "lucide-react";
 import { Tooltip } from "antd";
-import Loading from "../Loading";
 import ConfirmDeleteModal from "../Modal/ConfirmDeleteModal";
 
 interface PendingActivityTableProps {
@@ -21,20 +20,16 @@ export default function PendingActivityTable({
   onApproveActivity,
   onRejectActivity,
 }: PendingActivityTableProps) {
-  const [loading, setLoading] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [activityToDelete, setActivityToDelete] = useState<number | null>(null);
 
   const handleApprove = async (id: number) => {
     try {
-      setLoading(true);
       await onApproveActivity(id);
       toast.success("Phê duyệt hoạt động thành công");
     } catch (error) {
       console.error(error);
       toast.error("Lỗi khi phê duyệt hoạt động");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -47,14 +42,12 @@ export default function PendingActivityTable({
     if (!activityToDelete) return;
     
     try {
-      setLoading(true);
       await onRejectActivity(activityToDelete);
       toast.success("Từ chối hoạt động thành công");
     } catch (error) {
       console.error(error);
       toast.error("Lỗi khi từ chối hoạt động");
     } finally {
-      setLoading(false);
       setIsDeleteModalOpen(false);
       setActivityToDelete(null);
     }
@@ -64,10 +57,6 @@ export default function PendingActivityTable({
     setIsDeleteModalOpen(false);
     setActivityToDelete(null);
   };
-
-  if (loading) {
-    return <Loading />;
-  }
 
   if (!activities || activities.length === 0) {
     return (
