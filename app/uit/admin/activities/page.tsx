@@ -36,6 +36,9 @@ export default function ActivityManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSemester, setSelectedSemester] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("approved");
+  const [selectedCampaign, setSelectedCampaign] = useState<string>("");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
 
   // Separate state for current semester campaigns (for forms)
   const [currentSemesterCampaigns, setCurrentSemesterCampaigns] = useState<Campaign[]>([]);
@@ -134,10 +137,32 @@ export default function ActivityManagement() {
     }
   }, [selectedSemester, fetchActivities, fetchPendingActivities]);
 
-  // Tính toán filteredActivities từ search term
+  // Tính toán filteredActivities từ search term, campaign, và date range
   const filteredActivities = useMemo(() => {
     return activities
-      .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()))
+      .filter((activity) => {
+        // Search term filter
+        const matchesSearch = activity.name.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        // Campaign filter
+        const matchesCampaign = !selectedCampaign || activity.campaign_id.toString() === selectedCampaign;
+        
+        // Date range filter
+        let matchesDateRange = true;
+        if (startDate || endDate) {
+          const activityStartDate = activity.registration_start ? new Date(activity.registration_start) : null;
+          const activityEndDate = activity.registration_end ? new Date(activity.registration_end) : null;
+          
+          if (startDate && activityStartDate) {
+            matchesDateRange = matchesDateRange && activityStartDate >= new Date(startDate);
+          }
+          if (endDate && activityEndDate) {
+            matchesDateRange = matchesDateRange && activityEndDate <= new Date(endDate);
+          }
+        }
+        
+        return matchesSearch && matchesCampaign && matchesDateRange;
+      })
       .sort((a, b) => {
         if (sortOrder === "asc") {
           return a.point - b.point;
@@ -145,7 +170,35 @@ export default function ActivityManagement() {
           return b.point - a.point;
         }
       });
-  }, [activities, searchTerm, sortOrder]);
+  }, [activities, searchTerm, sortOrder, selectedCampaign, startDate, endDate]);
+
+  // Tính toán filteredPendingActivities tương tự
+  const filteredPendingActivities = useMemo(() => {
+    return pendingActivities
+      .filter((activity) => {
+        // Search term filter
+        const matchesSearch = activity.name.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        // Campaign filter
+        const matchesCampaign = !selectedCampaign || activity.campaign_id.toString() === selectedCampaign;
+        
+        // Date range filter
+        let matchesDateRange = true;
+        if (startDate || endDate) {
+          const activityStartDate = activity.registration_start ? new Date(activity.registration_start) : null;
+          const activityEndDate = activity.registration_end ? new Date(activity.registration_end) : null;
+          
+          if (startDate && activityStartDate) {
+            matchesDateRange = matchesDateRange && activityStartDate >= new Date(startDate);
+          }
+          if (endDate && activityEndDate) {
+            matchesDateRange = matchesDateRange && activityEndDate <= new Date(endDate);
+          }
+        }
+        
+        return matchesSearch && matchesCampaign && matchesDateRange;
+      });
+  }, [pendingActivities, searchTerm, selectedCampaign, startDate, endDate]);
 
   // Tính toán currentActivities và totalPages từ filteredActivities
   const { currentActivities, totalPages } = useMemo(() => {
@@ -389,6 +442,63 @@ export default function ActivityManagement() {
             {/* Tabs for Approved vs Pending Activities */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <Tab value="approved" title="Đã phê duyệt">
+                {/* Filters for Approved Activities */}
+                <div className="flex flex-col md:flex-row gap-4 items-center mb-4 p-4 bg-gray-50 rounded-lg">
+                  <select
+                    value={selectedCampaign}
+                    onChange={(e) => {
+                      setSelectedCampaign(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/4"
+                  >
+                    <option value="">-- Tất cả phong trào --</option>
+                    {contextCampaigns.map((campaign) => (
+                      <option key={campaign.id} value={campaign.id.toString()}>
+                        {campaign.name}
+                      </option>
+                    ))}
+                  </select>
+                  
+                  <div className="flex gap-2 items-center w-full md:w-auto">
+                    <label className="text-sm text-gray-600 whitespace-nowrap">Từ ngày:</label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => {
+                        setStartDate(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                  
+                  <div className="flex gap-2 items-center w-full md:w-auto">
+                    <label className="text-sm text-gray-600 whitespace-nowrap">Đến ngày:</label>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => {
+                        setEndDate(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                  
+                  <button
+                    onClick={() => {
+                      setSelectedCampaign("");
+                      setStartDate("");
+                      setEndDate("");
+                      setCurrentPage(1);
+                    }}
+                    className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 whitespace-nowrap"
+                  >
+                    Xóa bộ lọc
+                  </button>
+                </div>
+
                 <div className="mt-4">
                   {loadingActivities ? (
                     <Loading />
@@ -410,14 +520,71 @@ export default function ActivityManagement() {
                   )}
                 </div>
               </Tab>
-              <Tab value="pending" title={`Chờ phê duyệt (${pendingActivities.length})`}>
+              <Tab value="pending" title={`Chờ phê duyệt (${filteredPendingActivities.length})`}>
+                {/* Filters for Pending Activities */}
+                <div className="flex flex-col md:flex-row gap-4 items-center mb-4 p-4 bg-gray-50 rounded-lg">
+                  <select
+                    value={selectedCampaign}
+                    onChange={(e) => {
+                      setSelectedCampaign(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="px-4 py-2 border border-gray-300 rounded-md w-full md:w-1/4"
+                  >
+                    <option value="">-- Tất cả phong trào --</option>
+                    {contextCampaigns.map((campaign) => (
+                      <option key={campaign.id} value={campaign.id.toString()}>
+                        {campaign.name}
+                      </option>
+                    ))}
+                  </select>
+                  
+                  <div className="flex gap-2 items-center w-full md:w-auto">
+                    <label className="text-sm text-gray-600 whitespace-nowrap">Từ ngày:</label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => {
+                        setStartDate(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                  
+                  <div className="flex gap-2 items-center w-full md:w-auto">
+                    <label className="text-sm text-gray-600 whitespace-nowrap">Đến ngày:</label>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => {
+                        setEndDate(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                  </div>
+                  
+                  <button
+                    onClick={() => {
+                      setSelectedCampaign("");
+                      setStartDate("");
+                      setEndDate("");
+                      setCurrentPage(1);
+                    }}
+                    className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 whitespace-nowrap"
+                  >
+                    Xóa bộ lọc
+                  </button>
+                </div>
+
                 <div className="mt-4">
                   {loadingPendingActivities ? (
                     <Loading />
-                  ) : pendingActivities.length > 0 ? (
+                  ) : filteredPendingActivities.length > 0 ? (
                     <PendingActivityTable
                       currentcampaigns={contextCampaigns}
-                      activities={pendingActivities as Activity[]}
+                      activities={filteredPendingActivities as Activity[]}
                       onApproveActivity={handleApproveActivity}
                       onRejectActivity={handleRejectActivity}
                     />

@@ -96,13 +96,11 @@ export default function ActivityForm({ currentcampaigns, onActivityCreated }: Ac
         <label className="block mb-1">Điểm (số dương: điểm cộng, số âm: điểm trừ):</label>
         <input
           type="number"
-          value={point}
-          onChange={(e) => setPoint(Number(e.target.value))}
+          value={point ?? ""}
+          onChange={(e) => setPoint(Number(e.target.value ? Number(e.target.value) : undefined))}
           className="w-full border px-4 py-2 rounded-md"
-          step="any"
           min={-100}
           max={100}
-          required
         />
         <p className="text-sm text-gray-500 mt-1">
           {point < 0 ? 'Hoạt động trừ điểm' : 'Hoạt động cộng điểm'}

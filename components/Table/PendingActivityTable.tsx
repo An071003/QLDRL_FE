@@ -87,6 +87,8 @@ export default function PendingActivityTable({
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên hoạt động</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên phong trào</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Điểm</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số lượng</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Người tạo</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày tạo</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
@@ -123,10 +125,26 @@ export default function PendingActivityTable({
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={activity.point < 0 ? "text-red-600" : "text-green-600"}>
                     {activity.point}
-                    <span className="ml-2 text-xs">
-                      {activity.point < 0 ? '(Trừ điểm)' : '(Cộng điểm)'}
-                    </span>
                   </span>
+                </td>
+
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span>
+                    {activity.number_students || 0} / {activity.max_participants || 'Không giới hạn'}
+                  </span>
+                </td>
+
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div>
+                    {activity.registration_start && activity.registration_end ? (
+                      <>
+                        <div>{new Date(activity.registration_start).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} - 
+                          {new Date(activity.registration_end).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}</div>
+                      </>
+                    ) : (
+                      <span className="text-gray-400">Chưa có thông tin</span>
+                    )}
+                  </div>
                 </td>
                 
                 <td className="px-6 py-4 whitespace-nowrap">

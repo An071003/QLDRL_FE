@@ -138,26 +138,28 @@ export default function ActivityTable({
 
   return (
     <div className="bg-white rounded-lg shadow overflow-x-auto sticky">
-      <div className="overflow-x-auto" style={{ maxHeight: "calc(100vh - 300px)" }}>
+      <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STT</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[300px]">Tên hoạt động</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[300px]">Tên phong trào</th>
-              <th onClick={onSortPoint} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STT</th>
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[250px]">Tên hoạt động</th>
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[250px]">Tên phong trào</th>
+              <th onClick={onSortPoint} className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
                 Điểm {sortOrder === "asc" ? "▲" : "▼"}
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">Hành động</th>
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số lượng</th>
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thời gian</th>
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
+              <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">Hành động</th>
             </tr>
           </thead>
 
           <tbody className="bg-white divide-y divide-gray-200">
             {activities.map((activity, index) => (
               <tr key={activity.id}>
-                <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 py-4 whitespace-nowrap">{index + 1}</td>
+                <td className="px-2 py-4 whitespace-nowrap">
                   {editingId === activity.id ? (
                     <input
                       className="border px-2 py-1 rounded w-full"
@@ -167,14 +169,14 @@ export default function ActivityTable({
                     />
                   ) : (
                     <Tooltip title={activity.name} placement="topLeft">
-                      <div className="max-w-[320px] overflow-hidden text-ellipsis">
+                      <div className="max-w-[250px] overflow-hidden text-ellipsis">
                         {activity.name}
                       </div>
                     </Tooltip>
                   )}
                 </td>
 
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-2 py-4 whitespace-nowrap">
                   {editingId === activity.id ? (
                     <select
                       value={editCampaignId ?? ""}
@@ -195,7 +197,7 @@ export default function ActivityTable({
                       "Không xác định"} 
                       placement="topLeft"
                     >
-                      <div className="max-w-[320px] overflow-hidden text-ellipsis">
+                      <div className="max-w-[250px] overflow-hidden text-ellipsis">
                         {campaigns.find(campaign => campaign.id === activity.campaign_id)?.name || 
                         activity.campaign_name || 
                         "Không xác định"}
@@ -204,7 +206,7 @@ export default function ActivityTable({
                   )}
                 </td>
 
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-2 py-4 whitespace-nowrap">
                   {editingId === activity.id ? (
                     <input
                       type="number"
@@ -224,14 +226,61 @@ export default function ActivityTable({
                   ) : (
                     <span className={activity.point < 0 ? "text-red-600" : "text-green-600"}>
                       {activity.point}
-                      <span className="ml-2 text-xs">
-                        {activity.point < 0 ? '(Trừ điểm)' : '(Cộng điểm)'}
-                      </span>
                     </span>
                   )}
                 </td>
-                
+
+                <td className="px-2 py-4 whitespace-nowrap">
+                  {editingId === activity.id ? (
+                    <input
+                      type="number"
+                      className="border px-2 py-1 rounded w-full"
+                      value={editMaxParticipants || ''}
+                      placeholder="0 = Không giới hạn"
+                      onChange={(e) => setEditMaxParticipants(Number(e.target.value) || 0)}
+                    />
+                  ) : (
+                    <span>
+                      {activity.number_students || 0} / {activity.max_participants || 'Không giới hạn'}
+                    </span>
+                  )}
+                </td>
+
                 <td className="px-6 py-4 whitespace-nowrap">
+                  {editingId === activity.id ? (
+                    <div className="space-y-1">
+                      <div className="flex gap-2">
+                      <input
+                        type="date"
+                        className="border px-2 py-1 rounded w-full text-xs"
+                        value={editRegistrationStart}
+                        onChange={(e) => setEditRegistrationStart(e.target.value)}
+                      />
+                      </div>
+                      <div className="flex gap-2">
+                      <input
+                        type="date"
+                        className="border px-2 py-1 rounded w-full text-xs"
+                        value={editRegistrationEnd}
+                        onChange={(e) => setEditRegistrationEnd(e.target.value)}
+                      />
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      {activity.registration_start && activity.registration_end ? (
+                        <>
+                          <div>{new Date(activity.registration_start).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} - 
+                            {new Date(activity.registration_end).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}</div>
+                        </>
+                      ) : (
+                        <span className="text-gray-400">Chưa có thông tin</span>
+                      )}
+                    </div>
+                  )}
+                </td>
+                
+                <td className="px-2 py-4 whitespace-nowrap">
                   {editingId === activity.id ? (
                     <select
                       value={editStatus}
@@ -247,7 +296,7 @@ export default function ActivityTable({
                     "Đã kết thúc"
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-md font-medium">
+                <td className="px-2 py-4 whitespace-nowrap text-right text-md font-medium">
                   {editingId === activity.id ? (
                     <div className="flex justify-end gap-2">
                       <button onClick={() => handleSave(activity.id)} className="cursor-pointer text-green-600 hover:text-green-900">

@@ -13,9 +13,10 @@ import debounce from 'lodash.debounce';
 import { useData } from '@/lib/contexts/DataContext';
 
 export default function ClassManagementPage() {
-  const { classes: contextClasses, loading: dataLoading, refreshData } = useData();
+  const { classes: contextClasses, loading: dataLoading, refreshData, faculties } = useData();
   const [classes, setClasses] = useState<Class[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedFacultyId, setSelectedFacultyId] = useState<string>('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [classIdToDelete, setClassIdToDelete] = useState<number | null>(null);
   const [mode, setMode] = useState<'list' | 'create' | 'import'>('list');
@@ -116,13 +117,17 @@ export default function ClassManagementPage() {
   };
 
   const filteredClasses = useMemo(() => {
-    return classes.filter(
-      (c) =>
+    return classes.filter((c) => {
+      const matchesSearch = 
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.cohort.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.Faculty?.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [classes, searchTerm]);
+        c.Faculty?.name.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesFaculty = !selectedFacultyId || c.faculty_id?.toString() === selectedFacultyId;
+      
+      return matchesSearch && matchesFaculty;
+    });
+  }, [classes, searchTerm, selectedFacultyId]);
 
   const renderContent = () => {
     if (mode === 'create') {
@@ -164,12 +169,26 @@ export default function ClassManagementPage() {
 
       {mode === 'list' ? (
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-          <input
-            type="text"
-            placeholder="Tìm kiếm lớp..."
-            onChange={handleSearchChange}
-            className="px-4 py-2 border border-gray-300 rounded w-full md:w-1/3"
-          />
+          <div className="flex flex-col md:flex-row gap-4 w-full md:w-2/3">
+            <input
+              type="text"
+              placeholder="Tìm kiếm lớp..."
+              onChange={handleSearchChange}
+              className="px-4 py-2 border border-gray-300 rounded w-full md:w-1/2"
+            />
+            <select
+              value={selectedFacultyId}
+              onChange={(e) => setSelectedFacultyId(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded max-w-[200px] md:w-1/2"
+            >
+              <option value="">Tất cả khoa</option>
+              {faculties.map((faculty) => (
+                <option key={faculty.id} value={faculty.id.toString()}>
+                  {faculty.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="flex gap-4">
             <button
               onClick={() => setMode('create')}

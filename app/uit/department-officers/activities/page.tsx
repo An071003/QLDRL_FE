@@ -35,6 +35,9 @@ export default function DPOActivityManagement() {
   const [activeTab, setActiveTab] = useState<string>("approved");
   const [activeComponent, setActiveComponent] = useState<"form" | "import" | "table">("table");
   const [currentSemesterCampaigns, setCurrentSemesterCampaigns] = useState<Campaign[]>([]);
+  const [selectedCampaign, setSelectedCampaign] = useState<string>("");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
   
   const tableRef = useRef<HTMLDivElement>(null);
 
@@ -207,9 +210,31 @@ export default function DPOActivityManagement() {
   };
 
   const sortedAndFilteredActivities = useMemo(() => {
-    // Filter by search term only (semester already filtered in API)
+    // Filter by search term, campaign, and date range
     const filtered = activities
-      .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()));
+      .filter((activity) => {
+        // Search term filter
+        const matchesSearch = activity.name.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        // Campaign filter
+        const matchesCampaign = !selectedCampaign || activity.campaign_id.toString() === selectedCampaign;
+        
+        // Date range filter
+        let matchesDateRange = true;
+        if (startDate || endDate) {
+          const activityStartDate = activity.registration_start ? new Date(activity.registration_start) : null;
+          const activityEndDate = activity.registration_end ? new Date(activity.registration_end) : null;
+          
+          if (startDate && activityStartDate) {
+            matchesDateRange = matchesDateRange && activityStartDate >= new Date(startDate);
+          }
+          if (endDate && activityEndDate) {
+            matchesDateRange = matchesDateRange && activityEndDate <= new Date(endDate);
+          }
+        }
+        
+        return matchesSearch && matchesCampaign && matchesDateRange;
+      });
 
     if (sortField) {
       return [...filtered].sort((a, b) => {
@@ -250,12 +275,34 @@ export default function DPOActivityManagement() {
     }
 
     return filtered;
-  }, [activities, contextCampaigns, searchTerm, sortField, sortDirection]);
+  }, [activities, contextCampaigns, searchTerm, sortField, sortDirection, selectedCampaign, startDate, endDate]);
 
   const sortedAndFilteredPendingActivities = useMemo(() => {
-    // Filter by search term only (semester not needed for pending)
+    // Filter by search term, campaign, and date range
     const filtered = pendingActivities
-      .filter((activity) => activity.name.toLowerCase().includes(searchTerm.toLowerCase()));
+      .filter((activity) => {
+        // Search term filter
+        const matchesSearch = activity.name.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        // Campaign filter
+        const matchesCampaign = !selectedCampaign || activity.campaign_id.toString() === selectedCampaign;
+        
+        // Date range filter
+        let matchesDateRange = true;
+        if (startDate || endDate) {
+          const activityStartDate = activity.registration_start ? new Date(activity.registration_start) : null;
+          const activityEndDate = activity.registration_end ? new Date(activity.registration_end) : null;
+          
+          if (startDate && activityStartDate) {
+            matchesDateRange = matchesDateRange && activityStartDate >= new Date(startDate);
+          }
+          if (endDate && activityEndDate) {
+            matchesDateRange = matchesDateRange && activityEndDate <= new Date(endDate);
+          }
+        }
+        
+        return matchesSearch && matchesCampaign && matchesDateRange;
+      });
 
     if (sortField) {
       return [...filtered].sort((a, b) => {
@@ -296,7 +343,7 @@ export default function DPOActivityManagement() {
     }
 
     return filtered;
-  }, [pendingActivities, contextCampaigns, searchTerm, sortField, sortDirection]);
+  }, [pendingActivities, contextCampaigns, searchTerm, sortField, sortDirection, selectedCampaign, startDate, endDate]);
 
   if (dataLoading) {
     return <Loading />;
@@ -371,6 +418,18 @@ export default function DPOActivityManagement() {
                     sortDirection={sortDirection}
                     onSort={handleSort}
                     onViewDetails={(id) => window.open(`/uit/department-officers/activities/${id}`, '_blank')}
+                    showFilters={true}
+                    selectedCampaign={selectedCampaign}
+                    startDate={startDate}
+                    endDate={endDate}
+                    onCampaignChange={(campaign) => setSelectedCampaign(campaign)}
+                    onStartDateChange={(date) => setStartDate(date)}
+                    onEndDateChange={(date) => setEndDate(date)}
+                    onClearFilters={() => {
+                      setSelectedCampaign("");
+                      setStartDate("");
+                      setEndDate("");
+                    }}
                   />
                 )}
               </Tab>
@@ -383,6 +442,18 @@ export default function DPOActivityManagement() {
                   onSort={handleSort}
                   onViewDetails={(id) => window.open(`/uit/department-officers/activities/${id}`, '_blank')}
                   isPending={true}
+                  showFilters={true}
+                  selectedCampaign={selectedCampaign}
+                  startDate={startDate}
+                  endDate={endDate}
+                  onCampaignChange={(campaign) => setSelectedCampaign(campaign)}
+                  onStartDateChange={(date) => setStartDate(date)}
+                  onEndDateChange={(date) => setEndDate(date)}
+                  onClearFilters={() => {
+                    setSelectedCampaign("");
+                    setStartDate("");
+                    setEndDate("");
+                  }}
                 />
               </Tab>
             </Tabs>
