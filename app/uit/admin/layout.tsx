@@ -61,7 +61,7 @@ const Sidebar = () => {
       title: 'Quản lý hoạt động',
       items: [
         { href: '/uit/admin/criterias', label: 'Tiêu chí' },
-        { href: '/uit/admin/campaigns', label: 'Chiến dịch' },
+        { href: '/uit/admin/campaigns', label: 'Phong trào' },
         { href: '/uit/admin/activities', label: 'Hoạt động' },
       ]
     },
