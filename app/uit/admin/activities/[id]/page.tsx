@@ -282,10 +282,6 @@ export default function ActivityStudentManagement() {
 
     // Add worksheet to workbook
     XLSX.utils.book_append_sheet(wb, ws, 'Danh sách sinh viên');
-
-    // Generate filename with activity name and current date
-    const activityName = activity?.name || 'Hoat_dong';
-    const currentDate = new Date().toLocaleDateString('vi-VN').replace(/\//g, '-');
     const filename = `Danh sách sinh viên tham gia hoạt động.xlsx`;
 
     // Save file
