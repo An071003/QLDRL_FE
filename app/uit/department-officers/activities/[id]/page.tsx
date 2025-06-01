@@ -10,6 +10,8 @@ import type { ColumnsType } from 'antd/es/table';
 import debounce from 'lodash.debounce';
 import { Activity } from "@/types/activity";
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
+import { DownloadOutlined } from '@ant-design/icons';
+import * as XLSX from 'xlsx';
 
 interface StudentActivity {
   id: number;
@@ -31,14 +33,14 @@ export default function DPOActivityStudentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [canEdit, setCanEdit] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
-  
+
   // Modal states for registering new students
   const [registerModalVisible, setRegisterModalVisible] = useState(false);
   const [availableStudents, setAvailableStudents] = useState<StudentActivity[]>([]);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [loadingAvailableStudents, setLoadingAvailableStudents] = useState(false);
   const [searchStudent, setSearchStudent] = useState("");
-  
+
   // Confirm modal for removing students
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [studentIdToDelete, setStudentIdToDelete] = useState<string | null>(null);
@@ -49,25 +51,25 @@ export default function DPOActivityStudentsPage() {
     try {
       // Fetch activity details
       const activityRes = await api.get(`/api/activities/${activityId}`);
-      
+
       if (!activityRes.data || !activityRes.data.data || !activityRes.data.data.activity) {
         throw new Error('Invalid activity data response');
       }
-      
+
       const activityData = activityRes.data.data.activity;
       console.log('Activity data:', activityData);
-      
+
       setActivity(activityData);
-      
+
       // Xác định nếu có thể chỉnh sửa
       if (activityData.status === 'ongoing' && activityData.approver_id !== null) {
         const currentDate = new Date();
         const registrationStart = activityData.registration_start ? new Date(activityData.registration_start) : null;
         const registrationEnd = activityData.registration_end ? new Date(activityData.registration_end) : null;
-        
-        if (registrationStart && registrationEnd && 
-            currentDate >= registrationStart && 
-            currentDate <= registrationEnd) {
+
+        if (registrationStart && registrationEnd &&
+          currentDate >= registrationStart &&
+          currentDate <= registrationEnd) {
           setCanEdit(true);
         }
       }
@@ -105,8 +107,8 @@ export default function DPOActivityStudentsPage() {
     debouncedSearch(e.target.value);
   };
 
-  const filtered = students.filter(s => 
-    s.student_id?.toLowerCase().includes(search.toLowerCase()) || 
+  const filtered = students.filter(s =>
+    s.student_id?.toLowerCase().includes(search.toLowerCase()) ||
     s.student_name?.toLowerCase().includes(search.toLowerCase()) ||
     s.class?.toLowerCase().includes(search.toLowerCase())
   );
@@ -155,16 +157,16 @@ export default function DPOActivityStudentsPage() {
       key: 'actions',
       render: (_, record) => (
         <div className="flex space-x-2">
-          <Button 
-            type="primary" 
-            size="small" 
+          <Button
+            type="primary"
+            size="small"
             onClick={() => handleToggleParticipated(record.student_id, !record.participated)}
           >
             {record.participated ? 'Đánh dấu chưa tham gia' : 'Đánh dấu đã tham gia'}
           </Button>
-          <Button 
+          <Button
             danger
-            size="small" 
+            size="small"
             onClick={() => handleRemoveStudent(record.student_id)}
           >
             Xóa
@@ -188,13 +190,13 @@ export default function DPOActivityStudentsPage() {
       setLoadingAvailableStudents(false);
     }
   };
-  
+
   // Open register modal
   const openRegisterModal = () => {
     if (!canEdit) {
       const now = new Date();
       const registrationStart = activity?.registration_start ? new Date(activity.registration_start) : null;
-      
+
       if (registrationStart && now < registrationStart) {
         toast.error("Chưa đến thời gian đăng ký");
       } else {
@@ -206,7 +208,7 @@ export default function DPOActivityStudentsPage() {
     fetchAvailableStudents();
     setRegisterModalVisible(true);
   };
-  
+
   // Handle student selection
   const toggleStudentSelection = (studentId: string) => {
     if (selectedStudents.includes(studentId)) {
@@ -215,7 +217,7 @@ export default function DPOActivityStudentsPage() {
       setSelectedStudents([...selectedStudents, studentId]);
     }
   };
-  
+
   // Register selected students
   const handleRegisterStudents = async () => {
     if (selectedStudents.length === 0) {
@@ -228,12 +230,12 @@ export default function DPOActivityStudentsPage() {
       setRegisterModalVisible(false);
       return;
     }
-    
+
     try {
-      await api.post(`/api/student-activities/${activityId}/students`, { 
-        studentIds: selectedStudents 
+      await api.post(`/api/student-activities/${activityId}/students`, {
+        studentIds: selectedStudents
       });
-      
+
       setRegisterModalVisible(false);
       setSelectedStudents([]);
       toast.success("Đăng ký sinh viên thành công 🎉");
@@ -245,17 +247,17 @@ export default function DPOActivityStudentsPage() {
       toast.error(errorMessage);
     }
   };
-  
+
   // Handle removing a student from activity
   const handleRemoveStudent = (studentId: string) => {
     setStudentIdToDelete(studentId);
     setConfirmDeleteOpen(true);
   };
-  
+
   // Confirm removal of student
   const confirmRemoveStudent = async () => {
     if (!studentIdToDelete) return;
-    
+
     try {
       await api.delete(`/api/student-activities/${activityId}/students/${studentIdToDelete}`);
       toast.success("Xóa sinh viên khỏi hoạt động thành công");
@@ -268,7 +270,7 @@ export default function DPOActivityStudentsPage() {
       setStudentIdToDelete(null);
     }
   };
-  
+
   // Handle toggling participated status
   const handleToggleParticipated = async (studentId: string, participated: boolean) => {
     try {
@@ -282,6 +284,46 @@ export default function DPOActivityStudentsPage() {
       console.error("Error updating participation status:", error);
       toast.error("Cập nhật trạng thái thất bại");
     }
+  };
+
+  const handleExportStudents = () => {
+    if (students.length === 0) {
+      toast.warning("Không có dữ liệu sinh viên để xuất");
+      return;
+    }
+
+    // Prepare data for export
+    const exportData = students.map((student, index) => ({
+      'STT': index + 1,
+      'MSSV': student.student_id,
+      'Tên sinh viên': student.student_name,
+      'Lớp': student.class || 'N/A',
+      'Trạng thái tham gia': student.participated ? 'Đã tham gia' : 'Chưa tham gia'
+    }));
+
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(exportData);
+
+    // Set column widths
+    const colWidths = [
+      { wch: 5 },  // STT
+      { wch: 15 }, // MSSV
+      { wch: 30 }, // Tên sinh viên
+      { wch: 15 }, // Lớp
+      { wch: 20 }  // Trạng thái tham gia
+    ];
+    ws['!cols'] = colWidths;
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Danh sách sinh viên');
+
+    // Generate filename with activity name and current date
+    const filename = `Danh sách sinh viên tham gia hoạt động.xlsx`;
+
+    // Save file
+    XLSX.writeFile(wb, filename);
+    toast.success("Xuất danh sách sinh viên thành công 📊");
   };
 
   if (loading) return <Loading />;
@@ -304,10 +346,35 @@ export default function DPOActivityStudentsPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">
-        {activity?.name || 'Chi tiết hoạt động'}
-      </h1>
-
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold mb-4">
+          {activity?.name || 'Chi tiết hoạt động'}
+        </h1>
+        <div className="flex gap-4">
+          {activity?.approver_id === null ? (
+            <div className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded">
+              Hoạt động đang chờ phê duyệt
+            </div>
+          ) : canEdit ? (
+            <button
+              className="px-4 py-2 cursor-pointer bg-green-600 text-white rounded hover:bg-green-700"
+              onClick={openRegisterModal}>
+              Đăng ký sinh viên
+            </button>
+          ) : (
+            <div className="px-4 py-2 bg-gray-100 text-gray-800 rounded">
+              {new Date() < new Date(activity?.registration_start || '')
+                ? "Chưa đến thời gian đăng ký"
+                : "Thời gian đăng ký đã kết thúc"}
+            </div>
+          )}
+          <button
+            className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
+            onClick={() => router.push('/uit/department-officers/activities')}>
+            Quay về danh sách
+          </button>
+        </div>
+      </div>
       <div className="bg-white rounded-lg shadow-md p-4 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -358,28 +425,15 @@ export default function DPOActivityStudentsPage() {
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Danh sách sinh viên tham gia</h2>
         <div className="flex gap-4">
-          {activity?.approver_id === null ? (
-            <div className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded">
-              Hoạt động đang chờ phê duyệt
-            </div>
-          ) : canEdit ? (
+          {activity?.approver_id !== null && students.length > 0 && (
             <button
-              className="px-4 py-2 cursor-pointer bg-green-600 text-white rounded hover:bg-green-700"
-              onClick={openRegisterModal}>
-              Đăng ký sinh viên
+              onClick={handleExportStudents}
+              className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 flex items-center gap-2"
+            >
+              <DownloadOutlined />
+              Xuất danh sách
             </button>
-          ) : (
-            <div className="px-4 py-2 bg-gray-100 text-gray-800 rounded">
-              {new Date() < new Date(activity?.registration_start || '') 
-                ? "Chưa đến thời gian đăng ký" 
-                : "Thời gian đăng ký đã kết thúc"}
-            </div>
           )}
-          <button
-            className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
-            onClick={() => router.push('/uit/department-officers/activities')}>
-            Quay về danh sách
-          </button>
         </div>
       </div>
 
@@ -390,7 +444,7 @@ export default function DPOActivityStudentsPage() {
           </svg>
           <h3 className="text-lg font-medium text-yellow-800 mb-2">Hoạt động đang chờ phê duyệt</h3>
           <p className="text-yellow-700">
-            Danh sách sinh viên tham gia sẽ hiển thị sau khi hoạt động được phê duyệt. 
+            Danh sách sinh viên tham gia sẽ hiển thị sau khi hoạt động được phê duyệt.
             Sinh viên không thể đăng ký cho hoạt động chưa được phê duyệt.
           </p>
         </div>
@@ -406,8 +460,8 @@ export default function DPOActivityStudentsPage() {
           </div>
 
           <div ref={tableRef} className="bg-white rounded-lg shadow overflow-hidden">
-            <Table 
-              columns={columns} 
+            <Table
+              columns={columns}
               dataSource={filtered}
               rowKey="id"
               pagination={{ pageSize: 10 }}
@@ -424,9 +478,9 @@ export default function DPOActivityStudentsPage() {
               <Button key="cancel" onClick={() => setRegisterModalVisible(false)}>
                 Hủy
               </Button>,
-              <Button 
-                key="register" 
-                type="primary" 
+              <Button
+                key="register"
+                type="primary"
                 onClick={handleRegisterStudents}
                 disabled={selectedStudents.length === 0}
               >
@@ -444,7 +498,7 @@ export default function DPOActivityStudentsPage() {
                   onChange={(e) => setSearchStudent(e.target.value)}
                   className="mb-4"
                 />
-                
+
                 <div className="max-h-96 overflow-y-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
@@ -456,20 +510,20 @@ export default function DPOActivityStudentsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {availableStudents.filter(s => 
-                        s.student_id?.toLowerCase().includes(searchStudent.toLowerCase()) || 
+                      {availableStudents.filter(s =>
+                        s.student_id?.toLowerCase().includes(searchStudent.toLowerCase()) ||
                         s.student_name?.toLowerCase().includes(searchStudent.toLowerCase()) ||
                         s.class?.toLowerCase().includes(searchStudent.toLowerCase())
                       ).length > 0 ? (
-                        availableStudents.filter(s => 
-                          s.student_id?.toLowerCase().includes(searchStudent.toLowerCase()) || 
+                        availableStudents.filter(s =>
+                          s.student_id?.toLowerCase().includes(searchStudent.toLowerCase()) ||
                           s.student_name?.toLowerCase().includes(searchStudent.toLowerCase()) ||
                           s.class?.toLowerCase().includes(searchStudent.toLowerCase())
                         ).map((student) => (
                           <tr key={student.student_id} className="hover:bg-gray-50">
                             <td className="px-3 py-2">
-                              <Checkbox 
-                                checked={selectedStudents.includes(student.student_id)} 
+                              <Checkbox
+                                checked={selectedStudents.includes(student.student_id)}
                                 onChange={() => toggleStudentSelection(student.student_id)}
                               />
                             </td>
@@ -481,8 +535,8 @@ export default function DPOActivityStudentsPage() {
                       ) : (
                         <tr>
                           <td colSpan={4} className="text-center py-4">
-                            {searchStudent 
-                              ? 'Không tìm thấy sinh viên phù hợp' 
+                            {searchStudent
+                              ? 'Không tìm thấy sinh viên phù hợp'
                               : 'Không có sinh viên nào có thể đăng ký'}
                           </td>
                         </tr>
@@ -493,7 +547,7 @@ export default function DPOActivityStudentsPage() {
               </>
             )}
           </Modal>
-          
+
           {/* Confirmation modal for deleting students */}
           <ConfirmDeleteModal
             isOpen={confirmDeleteOpen}

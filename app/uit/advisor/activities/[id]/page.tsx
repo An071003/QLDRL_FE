@@ -9,6 +9,8 @@ import { Table, Tag, Input, Modal, Button, Checkbox } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import debounce from 'lodash.debounce';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
+import { DownloadOutlined } from '@ant-design/icons';
+import * as XLSX from 'xlsx';
 
 interface StudentActivity {
   id: number;
@@ -68,14 +70,14 @@ export default function AdvisorActivityStudentsPage() {
   const [managedClasses, setManagedClasses] = useState<Class[]>([]);
   const [canEdit, setCanEdit] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
-  
+
   // Modal states for registering new students
   const [registerModalVisible, setRegisterModalVisible] = useState(false);
   const [availableStudents, setAvailableStudents] = useState<StudentActivity[]>([]);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [loadingAvailableStudents, setLoadingAvailableStudents] = useState(false);
   const [searchStudent, setSearchStudent] = useState("");
-  
+
   // Confirm modal for removing students
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [studentIdToDelete, setStudentIdToDelete] = useState<string | null>(null);
@@ -86,7 +88,7 @@ export default function AdvisorActivityStudentsPage() {
       // Fetch activity details with campaign information
       const activityRes = await api.get(`/api/activities/${activityId}`);
       const activityData = activityRes.data.data.activity;
-      
+
       // Fetch campaign details if available
       if (activityData && activityData.campaign_id) {
         const campaignRes = await api.get(`/api/campaigns/${activityData.campaign_id}`);
@@ -94,25 +96,25 @@ export default function AdvisorActivityStudentsPage() {
           activityData.Campaign = campaignRes.data.data.campaign;
         }
       }
-      
+
       setActivity(activityData);
-      
+
       // Xác định nếu có thể chỉnh sửa
       if (activityData.status === 'ongoing' && activityData.approver_id !== null) {
         const currentDate = new Date();
         const registrationStart = activityData.registration_start ? new Date(activityData.registration_start) : null;
         const registrationEnd = activityData.registration_end ? new Date(activityData.registration_end) : null;
-        
-        if (registrationStart && registrationEnd && 
-            currentDate >= registrationStart && 
-            currentDate <= registrationEnd) {
+
+        if (registrationStart && registrationEnd &&
+          currentDate >= registrationStart &&
+          currentDate <= registrationEnd) {
           setCanEdit(true);
         }
       }
-      
+
       const studentsRes = await api.get(`/api/student-activities/${activityId}`);
       const fetchedStudents = studentsRes.data.data.students || [];
-      
+
       const enhancedStudents = await Promise.all(
         fetchedStudents.map(async (student: StudentActivity) => {
           try {
@@ -120,10 +122,10 @@ export default function AdvisorActivityStudentsPage() {
               // Get student details including class
               const studentRes = await api.get(`/api/students/${student.student_id}`);
               const studentData = studentRes.data.data.student;
-              
+
               if (studentData) {
                 let className = student.class || '';
-                
+
                 if (studentData.class_id && !className) {
                   try {
                     const classRes = await api.get(`/api/classes/${studentData.class_id}`);
@@ -134,7 +136,7 @@ export default function AdvisorActivityStudentsPage() {
                     console.error(`Error fetching class for student ${student.student_id}:`, classError);
                   }
                 }
-                
+
                 return {
                   ...student,
                   student_name: studentData.student_name || student.student_name || 'N/A',
@@ -149,7 +151,7 @@ export default function AdvisorActivityStudentsPage() {
           }
         })
       );
-      
+
       setStudents(enhancedStudents);
     } catch (error) {
       console.error("Error loading activity data:", error);
@@ -185,7 +187,7 @@ export default function AdvisorActivityStudentsPage() {
       toast.error("Không thể tải danh sách lớp phụ trách");
     }
   };
-  
+
   // Fetch students not registered for this activity
   const fetchAvailableStudents = async () => {
     setLoadingAvailableStudents(true);
@@ -193,17 +195,17 @@ export default function AdvisorActivityStudentsPage() {
       const res = await api.get(`/api/student-activities/${activityId}/not-participated`);
       const allStudents = res.data.data.students || [];
       console.log("All available students:", allStudents);
-      
+
       // Filter students to only include those from managed classes
       const managedClassNames = managedClasses.map(c => c.name);
       console.log("Managed class names:", managedClassNames);
-      
+
       const filteredStudents = allStudents.filter((student: StudentActivity) => {
         const isInManagedClass = student.class && managedClassNames.includes(student.class);
         console.log(`Student ${student.student_id} in managed class:`, isInManagedClass);
         return isInManagedClass;
       });
-      
+
       console.log("Filtered students:", filteredStudents);
       setAvailableStudents(filteredStudents);
     } catch (error) {
@@ -213,7 +215,7 @@ export default function AdvisorActivityStudentsPage() {
       setLoadingAvailableStudents(false);
     }
   };
-  
+
   // Open register modal
   const openRegisterModal = () => {
     if (managedClasses.length === 0) {
@@ -224,7 +226,7 @@ export default function AdvisorActivityStudentsPage() {
     if (!canEdit) {
       const now = new Date();
       const registrationStart = activity?.registration_start ? new Date(activity.registration_start) : null;
-      
+
       if (registrationStart && now < registrationStart) {
         toast.error("Chưa đến thời gian đăng ký");
       } else {
@@ -236,7 +238,7 @@ export default function AdvisorActivityStudentsPage() {
     fetchAvailableStudents();
     setRegisterModalVisible(true);
   };
-  
+
   // Handle student selection
   const toggleStudentSelection = (studentId: string) => {
     if (selectedStudents.includes(studentId)) {
@@ -245,7 +247,7 @@ export default function AdvisorActivityStudentsPage() {
       setSelectedStudents([...selectedStudents, studentId]);
     }
   };
-  
+
   // Register selected students
   const handleRegisterStudents = async () => {
     if (selectedStudents.length === 0) {
@@ -258,12 +260,12 @@ export default function AdvisorActivityStudentsPage() {
       setRegisterModalVisible(false);
       return;
     }
-    
+
     try {
-      await api.post(`/api/student-activities/${activityId}/students`, { 
-        studentIds: selectedStudents 
+      await api.post(`/api/student-activities/${activityId}/students`, {
+        studentIds: selectedStudents
       });
-      
+
       setRegisterModalVisible(false);
       setSelectedStudents([]);
       toast.success("Đăng ký sinh viên thành công 🎉");
@@ -275,17 +277,17 @@ export default function AdvisorActivityStudentsPage() {
       toast.error(errorMessage);
     }
   };
-  
+
   // Handle removing a student from activity
   const handleRemoveStudent = (studentId: string) => {
     setStudentIdToDelete(studentId);
     setConfirmDeleteOpen(true);
   };
-  
+
   // Confirm removal of student
   const confirmRemoveStudent = async () => {
     if (!studentIdToDelete) return;
-    
+
     try {
       await api.delete(`/api/student-activities/${activityId}/students/${studentIdToDelete}`);
       toast.success("Xóa sinh viên khỏi hoạt động thành công");
@@ -298,7 +300,7 @@ export default function AdvisorActivityStudentsPage() {
       setStudentIdToDelete(null);
     }
   };
-  
+
   // Handle toggling participated status
   const handleToggleParticipated = async (studentId: string, participated: boolean) => {
     try {
@@ -314,6 +316,44 @@ export default function AdvisorActivityStudentsPage() {
     }
   };
 
+  const handleExportStudents = () => {
+    if (students.length === 0) {
+      toast.warning("Không có dữ liệu sinh viên để xuất");
+      return;
+    }
+
+    // Prepare data for export
+    const exportData = students.map((student, index) => ({
+      'STT': index + 1,
+      'MSSV': student.student_id,
+      'Tên sinh viên': student.student_name,
+      'Lớp': student.class || 'N/A',
+      'Trạng thái tham gia': student.participated ? 'Đã tham gia' : 'Chưa tham gia'
+    }));
+
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(exportData);
+
+    // Set column widths
+    const colWidths = [
+      { wch: 5 },  // STT
+      { wch: 15 }, // MSSV
+      { wch: 30 }, // Tên sinh viên
+      { wch: 15 }, // Lớp
+      { wch: 20 }  // Trạng thái tham gia
+    ];
+    ws['!cols'] = colWidths;
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Danh sách sinh viên');
+    const filename = `Danh sách sinh viên tham gia hoạt động.xlsx`;
+
+    // Save file
+    XLSX.writeFile(wb, filename);
+    toast.success("Xuất danh sách sinh viên thành công 📊");
+  };
+
   const debouncedSearch = debounce((value: string) => {
     setSearch(value);
   }, 300);
@@ -322,15 +362,15 @@ export default function AdvisorActivityStudentsPage() {
     debouncedSearch(e.target.value);
   };
 
-  const filtered = students.filter(s => 
-    s.student_id?.toLowerCase().includes(search.toLowerCase()) || 
+  const filtered = students.filter(s =>
+    s.student_id?.toLowerCase().includes(search.toLowerCase()) ||
     s.student_name?.toLowerCase().includes(search.toLowerCase()) ||
     s.class?.toLowerCase().includes(search.toLowerCase())
   );
-  
+
   // Filter available students based on search
-  const filteredAvailableStudents = availableStudents.filter(s => 
-    s.student_id?.toLowerCase().includes(searchStudent.toLowerCase()) || 
+  const filteredAvailableStudents = availableStudents.filter(s =>
+    s.student_id?.toLowerCase().includes(searchStudent.toLowerCase()) ||
     s.student_name?.toLowerCase().includes(searchStudent.toLowerCase()) ||
     s.class?.toLowerCase().includes(searchStudent.toLowerCase())
   );
@@ -378,16 +418,16 @@ export default function AdvisorActivityStudentsPage() {
       key: 'actions',
       render: (_, record) => (
         <div className="flex space-x-2">
-          <Button 
-            type="primary" 
-            size="small" 
+          <Button
+            type="primary"
+            size="small"
             onClick={() => handleToggleParticipated(record.student_id, !record.participated)}
           >
             {record.participated ? 'Đánh dấu chưa tham gia' : 'Đánh dấu đã tham gia'}
           </Button>
-          <Button 
+          <Button
             danger
-            size="small" 
+            size="small"
             onClick={() => handleRemoveStudent(record.student_id)}
           >
             Xóa
@@ -401,10 +441,35 @@ export default function AdvisorActivityStudentsPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">
-        {activity?.name || 'Chi tiết hoạt động'}
-      </h1>
-
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold mb-4">
+          {activity?.name || 'Chi tiết hoạt động'}
+        </h1>
+        <div className="flex gap-4">
+          {activity?.approver_id === null ? (
+            <div className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded">
+              Hoạt động đang chờ phê duyệt
+            </div>
+          ) : canEdit ? (
+            <button
+              className="px-4 py-2 cursor-pointer bg-green-600 text-white rounded hover:bg-green-700"
+              onClick={openRegisterModal}>
+              Đăng ký sinh viên
+            </button>
+          ) : (
+            <div className="px-4 py-2 bg-gray-100 text-gray-800 rounded">
+              {new Date() < new Date(activity?.registration_start || '')
+                ? "Chưa đến thời gian đăng ký"
+                : "Thời gian đăng ký đã kết thúc"}
+            </div>
+          )}
+          <button
+            className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
+            onClick={() => router.push('/uit/advisor/activities')}>
+            Quay về danh sách
+          </button>
+        </div>
+      </div>
       <div className="bg-white rounded-lg shadow-md p-4 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -450,8 +515,8 @@ export default function AdvisorActivityStudentsPage() {
           <div>
             <p className="text-gray-500">Học kỳ:</p>
             <p className="font-medium">
-              {activity?.Campaign 
-                ? `Học kỳ ${activity.Campaign.semester_no} - ${activity.Campaign.academic_year}` 
+              {activity?.Campaign
+                ? `Học kỳ ${activity.Campaign.semester_no} - ${activity.Campaign.academic_year}`
                 : 'N/A'}
             </p>
           </div>
@@ -461,28 +526,17 @@ export default function AdvisorActivityStudentsPage() {
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Danh sách sinh viên tham gia</h2>
         <div className="flex gap-4">
-          {activity?.approver_id === null ? (
-            <div className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded">
-              Hoạt động đang chờ phê duyệt
-            </div>
-          ) : canEdit ? (
+
+          {activity?.approver_id !== null && students.length > 0 && (
             <button
-              className="px-4 py-2 cursor-pointer bg-green-600 text-white rounded hover:bg-green-700"
-              onClick={openRegisterModal}>
-              Đăng ký sinh viên
+              onClick={handleExportStudents}
+              className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 flex items-center gap-2"
+            >
+              <DownloadOutlined />
+              Xuất danh sách
             </button>
-          ) : (
-            <div className="px-4 py-2 bg-gray-100 text-gray-800 rounded">
-              {new Date() < new Date(activity?.registration_start || '') 
-                ? "Chưa đến thời gian đăng ký" 
-                : "Thời gian đăng ký đã kết thúc"}
-            </div>
           )}
-          <button
-            className="px-4 py-2 cursor-pointer bg-rose-400 text-white rounded hover:bg-rose-700"
-            onClick={() => router.push('/uit/advisor/activities')}>
-            Quay về danh sách
-          </button>
+
         </div>
       </div>
 
@@ -493,7 +547,7 @@ export default function AdvisorActivityStudentsPage() {
           </svg>
           <h3 className="text-lg font-medium text-yellow-800 mb-2">Hoạt động đang chờ phê duyệt</h3>
           <p className="text-yellow-700">
-            Danh sách sinh viên tham gia sẽ hiển thị sau khi hoạt động được phê duyệt. 
+            Danh sách sinh viên tham gia sẽ hiển thị sau khi hoạt động được phê duyệt.
             Bạn không thể đăng ký sinh viên cho hoạt động chưa được phê duyệt.
           </p>
         </div>
@@ -509,8 +563,8 @@ export default function AdvisorActivityStudentsPage() {
           </div>
 
           <div ref={tableRef} className="bg-white rounded-lg shadow overflow-hidden">
-            <Table 
-              columns={columns} 
+            <Table
+              columns={columns}
               dataSource={filtered}
               rowKey="id"
               pagination={{ pageSize: 10 }}
@@ -519,7 +573,7 @@ export default function AdvisorActivityStudentsPage() {
           </div>
         </>
       )}
-      
+
       {activity?.approver_id !== null && (
         <>
           <Modal
@@ -530,9 +584,9 @@ export default function AdvisorActivityStudentsPage() {
               <Button key="cancel" onClick={() => setRegisterModalVisible(false)}>
                 Hủy
               </Button>,
-              <Button 
-                key="register" 
-                type="primary" 
+              <Button
+                key="register"
+                type="primary"
                 onClick={handleRegisterStudents}
                 disabled={selectedStudents.length === 0}
               >
@@ -550,7 +604,7 @@ export default function AdvisorActivityStudentsPage() {
                   onChange={(e) => setSearchStudent(e.target.value)}
                   className="mb-4"
                 />
-                
+
                 <div className="max-h-96 overflow-y-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
@@ -566,8 +620,8 @@ export default function AdvisorActivityStudentsPage() {
                         filteredAvailableStudents.map((student) => (
                           <tr key={student.student_id} className="hover:bg-gray-50">
                             <td className="px-3 py-2">
-                              <Checkbox 
-                                checked={selectedStudents.includes(student.student_id)} 
+                              <Checkbox
+                                checked={selectedStudents.includes(student.student_id)}
                                 onChange={() => toggleStudentSelection(student.student_id)}
                               />
                             </td>
@@ -579,8 +633,8 @@ export default function AdvisorActivityStudentsPage() {
                       ) : (
                         <tr>
                           <td colSpan={4} className="text-center py-4">
-                            {searchStudent 
-                              ? 'Không tìm thấy sinh viên phù hợp' 
+                            {searchStudent
+                              ? 'Không tìm thấy sinh viên phù hợp'
                               : 'Không có sinh viên nào có thể đăng ký'}
                           </td>
                         </tr>
@@ -591,7 +645,7 @@ export default function AdvisorActivityStudentsPage() {
               </>
             )}
           </Modal>
-          
+
           {/* Confirmation modal for deleting students */}
           <ConfirmDeleteModal
             isOpen={confirmDeleteOpen}
