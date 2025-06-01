@@ -10,7 +10,8 @@ import type { ColumnsType } from 'antd/es/table';
 import debounce from 'lodash.debounce';
 import { Activity } from "@/types/activity";
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
-import { UploadOutlined } from '@ant-design/icons';
+import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
+import * as XLSX from 'xlsx';
 
 interface StudentActivity {
   id: number;
@@ -250,6 +251,48 @@ export default function ActivityStudentManagement() {
     router.push('/uit/admin/activities?tab=approved');
   };
 
+  const handleExportStudents = () => {
+    if (students.length === 0) {
+      toast.warning("Không có dữ liệu sinh viên để xuất");
+      return;
+    }
+
+    // Prepare data for export
+    const exportData = students.map((student, index) => ({
+      'STT': index + 1,
+      'MSSV': student.student_id,
+      'Họ và tên': student.student_name,
+      'Lớp': student.Class?.name || 'N/A',
+      'Trạng thái tham gia': student.participated ? 'Đã tham gia' : 'Chưa tham gia'
+    }));
+
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(exportData);
+
+    // Set column widths
+    const colWidths = [
+      { wch: 5 },  // STT
+      { wch: 15 }, // MSSV
+      { wch: 30 }, // Họ và tên
+      { wch: 15 }, // Lớp
+      { wch: 20 }  // Trạng thái tham gia
+    ];
+    ws['!cols'] = colWidths;
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Danh sách sinh viên');
+
+    // Generate filename with activity name and current date
+    const activityName = activity?.name || 'Hoat_dong';
+    const currentDate = new Date().toLocaleDateString('vi-VN').replace(/\//g, '-');
+    const filename = `Danh sách sinh viên tham gia hoạt động.xlsx`;
+
+    // Save file
+    XLSX.writeFile(wb, filename);
+    toast.success("Xuất danh sách sinh viên thành công 📊");
+  };
+
   const handleApprove = async () => {
     try {
       await api.put(`/api/activities/${activityId}/approve`);
@@ -376,6 +419,7 @@ export default function ActivityStudentManagement() {
               </>
             )
           )}
+
           <button
             onClick={() => router.back()}
             className="px-4 py-2 bg-rose-500 text-white rounded hover:bg-rose-600"
@@ -536,14 +580,24 @@ export default function ActivityStudentManagement() {
       )}
 
       <div className="bg-white p-6 rounded-lg shadow">
+        <div className="flex justify-between mb-4">
         <div className="mb-4">
           <Input.Search
             placeholder="Tìm kiếm theo MSSV, tên sinh viên hoặc lớp..."
             onChange={(e) => debouncedSearch(e.target.value)}
-            className="max-w-md"
+            className="min-w-md"
           />
         </div>
-
+        {activity?.approver_id !== null && students.length > 0 && (
+            <button
+              onClick={handleExportStudents}
+              className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 flex items-center gap-2"
+            >
+              <DownloadOutlined />
+              Xuất danh sách
+            </button>
+          )}  
+        </div>
         <Table
           columns={columns}
           dataSource={sortedAndFilteredActivities}

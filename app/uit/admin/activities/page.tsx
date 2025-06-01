@@ -320,9 +320,9 @@ export default function ActivityManagement() {
   }[]) => {
     try {
       await api.post("/api/activities/import", importedActivities);
-      await fetchActivities(selectedSemester); // Reload activities
-      await fetchPendingActivities(selectedSemester); // Reload pending activities
-      await refreshCampaigns(); // Refresh campaigns to update activity counts
+      await fetchActivities(selectedSemester); 
+      await fetchPendingActivities(selectedSemester);
+      await refreshCampaigns();
       setActiveComponent("table");
       toast.success("Import hoạt động thành công 🚀");
       return { success: true };
