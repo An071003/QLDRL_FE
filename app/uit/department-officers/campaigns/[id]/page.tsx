@@ -43,24 +43,11 @@ export default function DPOCampaignActivitiesPage() {
       const campaignRes = await api.get(`/api/campaigns/${campaignId}`);
       setCampaign(campaignRes.data.data.campaign);
       
-      // Fetch all activities and filter by campaign_id
-      const activitiesRes = await api.get(`/api/activities`);
-      let allActivities;
+      // Fetch activities by campaign ID directly from backend
+      const activitiesRes = await api.get(`/api/activities/campaign/${campaignId}`);
+      const activities = activitiesRes.data.data.activities || [];
       
-      if (activitiesRes.data.data.activities) {
-        allActivities = activitiesRes.data.data.activities;
-      } else if (Array.isArray(activitiesRes.data.data)) {
-        allActivities = activitiesRes.data.data;
-      } else {
-        allActivities = [];
-      }
-      
-      // Filter activities by campaign_id
-      const campaignActivities = allActivities.filter((activity: Activity) => 
-        activity.campaign_id === parseInt(campaignId as string) && activity.approver_id !== null
-      );
-      
-      setActivities(campaignActivities);
+      setActivities(activities);
     } catch (err) {
       console.error('Failed to fetch data:', err);
       toast.error('Không thể tải dữ liệu phong trào và hoạt động');

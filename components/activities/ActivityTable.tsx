@@ -165,8 +165,8 @@ export default function ActivityTable({
                     <div>
                       {activity.registration_start && activity.registration_end ? (
                         <>
-                          <div>{new Date(activity.registration_start).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} - 
-                            {new Date(activity.registration_end).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}</div>
+                          <div>{new Date(activity.registration_start).toLocaleDateString('vi-VN')}</div>
+                          <div>{new Date(activity.registration_end).toLocaleDateString('vi-VN')}</div>
                         </>
                       ) : (
                         <span className="text-gray-400">Chưa có thông tin</span>
