@@ -300,12 +300,12 @@ export default function StudentActivitiesImport({ onImport }: Props) {
       
       // Add some sample data
       worksheet.addRow({
-        mssv: '	21521001',
+        mssv: '21521001',
         note: 'Mẫu - Xóa dòng này và thêm sinh viên thật',
       });
       
       worksheet.addRow({
-        mssv: '	21521002',
+        mssv: '21521002',
         note: 'Mẫu - Mã số sinh viên phải là 8 chữ số',
       });
       

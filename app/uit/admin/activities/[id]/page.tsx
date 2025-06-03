@@ -5,13 +5,14 @@ import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import Loading from '@/components/Loading';
 import { toast } from 'sonner';
-import { Table, Tag, Input, Button, Modal, Checkbox, Upload } from 'antd';
+import { Table, Tag, Input, Button, Modal, Checkbox } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import debounce from 'lodash.debounce';
 import { Activity } from "@/types/activity";
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
-import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
+import { DownloadOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
+import StudentsActivitesImport from '@/components/Import/StudentsActivitesImport';
 
 interface StudentActivity {
   id: number;
@@ -24,15 +25,6 @@ interface StudentActivity {
     id: number;
     name: string;
   };
-}
-
-interface ImportedFile {
-  file: File;
-  data: {
-    student_id: string;
-    student_name: string;
-    class_name?: string;
-  }[];
 }
 
 interface ApiError {
@@ -155,29 +147,24 @@ export default function ActivityStudentManagement() {
     }
   };
 
-  const handleImportStudents = async (file: ImportedFile) => {
+  const handleImportStudents = async (students: { mssv: string }[]): Promise<{ success: boolean }> => {
     if (!canEdit) {
       toast.error("Thời gian đăng ký không hợp lệ");
       setImportModalVisible(false);
-      return;
+      return { success: false };
     }
 
-    const formData = new FormData();
-    formData.append('file', file.file);
-
     try {
-      await api.post(`/api/student-activities/${activityId}/import`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      await api.post(`/api/student-activities/${activityId}/import`, { students });
       setImportModalVisible(false);
       toast.success("Import sinh viên thành công 🎉");
       await fetchStudents();
+      return { success: true };
     } catch (error) {
       const err = error as ApiError;
       console.error("Error importing students:", error);
       toast.error(err?.response?.data?.message || "Import sinh viên thất bại ❌");
+      return { success: false };
     }
   };
 
@@ -689,30 +676,9 @@ export default function ActivityStudentManagement() {
         open={importModalVisible}
         onCancel={() => setImportModalVisible(false)}
         footer={null}
+        width={1000}
       >
-        <div className="p-4">
-          <div className="mb-4">
-            <p className="text-gray-600 mb-2">Tải file mẫu:</p>
-            <Button type="link" onClick={() => window.open('/templates/student-import-template.xlsx', '_blank')}>
-              Tải xuống file mẫu
-            </Button>
-          </div>
-
-          <Upload.Dragger
-            accept=".xlsx,.xls"
-            beforeUpload={(file) => {
-              handleImportStudents({ file, data: [] });
-              return false;
-            }}
-            showUploadList={false}
-          >
-            <p className="ant-upload-drag-icon">
-              <UploadOutlined />
-            </p>
-            <p className="ant-upload-text">Nhấp hoặc kéo file vào đây để tải lên</p>
-            <p className="ant-upload-hint">Chỉ hỗ trợ file Excel (.xlsx, .xls)</p>
-          </Upload.Dragger>
-        </div>
+        <StudentsActivitesImport onImport={handleImportStudents} />
       </Modal>
 
       <ConfirmDeleteModal
