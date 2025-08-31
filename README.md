@@ -13,22 +13,18 @@ Hệ thống hỗ trợ quản lý điểm rèn luyện theo cấu trúc **Tiêu
 * [Tính năng](#-tính-năng)
 * [Kiến trúc tổng quan](#-kiến-trúc-tổng-quan)
 * [Bắt đầu nhanh](#-bắt-đầu-nhanh)
-* [Cấu hình môi trường](#-cấu-hình-môi-trường)
 * [Cấu trúc thư mục](#-cấu-trúc-thư-mục)
-* [Scripts](#-scripts)
 * [Luồng nghiệp vụ](#-luồng-nghiệp-vụ)
-* [Chuẩn code & CI](#-chuẩn-code--ci)
 * [Triển khai](#-triển-khai)
-* [Đóng góp & Quy ước nhánh (2 thành viên)](#-đóng-góp--quy-ước-nhánh-2-thành-viên)
+* [Đóng góp & (2 thành viên)](#-đóng-góp-2-thành-viên)
 * [Tác giả](#-tác-giả)
-* [Giấy phép](#-giấy-phép)
 
 ---
 
 ## ✅ Tính năng
 
 * Quản lý **Tiêu chí / Phong trào / Hoạt động** với giới hạn điểm theo tiêu chí.
-* **Đăng ký hoạt động** (sinh viên), duyệt tham gia.
+* **Đăng ký hoạt động** sinh viên tự đăng ký, hoặc được các vai trò khác đăng ký, sinh viên được duyệt tham gia.
 * **Tính điểm tự động** khi tham gia/hoạt động hết hạn; phân loại xếp hạng.
 * Phân quyền **admin / advisor / department-officers/ student / class-leader**.
 * **Import Excel** danh sách sinh viên.
@@ -44,7 +40,7 @@ Hệ thống hỗ trợ quản lý điểm rèn luyện theo cấu trúc **Tiêu
 
 ```
 [Next.js App Router (Frontend)]  → gọi API →  [Express + JWT + Sequelize (Backend)]  →  [MySQL]
-                                                                  ↳ Bull queue (gửi email)
+
 ```
 
 * Frontend chịu trách nhiệm UI/UX, phân quyền hiển thị, form đăng ký, import, bảng điểm.
@@ -83,74 +79,23 @@ npm run dev
 Tạo file `.env.local` trong thư mục gốc frontend:
 
 ```env
-# URL backend API
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api
-
-# Auth (nếu dùng cookie)
-NEXT_PUBLIC_AUTH_COOKIE_NAME=ql-drl-token
-
-# Tùy chọn khác
+NEXT_PUBLIC_API_URL=http://localhost:8080/api
 NEXT_PUBLIC_APP_NAME=QLDRL
 NEXT_PUBLIC_BUILD_ENV=local
 ```
 
-> Backend cần các biến riêng (MySQL, JWT\_SECRET, SMTP, Bull/Redis...). Xem README của backend.
+> Backend cần các biến riêng (MySQL, JWT\_SECRET). Xem README của backend.
 
 ---
 
-## 🗂 Cấu trúc thư mục
-
-```
-.
-├─ app/                    # App Router pages, layout, route groups
-│  ├─ (public)/            # routes public (login, register,…)
-│  ├─ (protected)/         # routes yêu cầu đăng nhập
-│  ├─ dashboard/           # trang tổng quan theo vai trò
-│  ├─ activities/          # danh sách/chi tiết hoạt động
-│  ├─ criteria/ campaigns/ # quản trị tiêu chí/phong trào
-│  ├─ students/            # quản trị sinh viên, import Excel
-│  ├─ api/                 # route handlers (nếu dùng)
-│  └─ page.tsx / layout.tsx
-├─ components/             # UI components (form, table, modal, charts)
-├─ hooks/                  # hooks (useAuth, useRoleGuard,…)
-├─ lib/                    # axios client, fetcher, helpers
-├─ store/                  # Zustand/Context state
-├─ types/                  # TypeScript types/interfaces
-├─ public/                 # static assets
-├─ styles/                 # globals.css, tailwind.css
-└─ README.md
-```
-
----
-
-## 🧰 Scripts
-
-```json
-{
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "type-check": "tsc --noEmit"
-  }
-}
-```
-
-* `dev`: chạy máy chủ phát triển.
-* `build`: build production.
-* `start`: chạy production local.
-* `lint`: ESLint theo cấu hình Next.js.
-* `type-check`: kiểm tra kiểu TypeScript.
-
----
 
 ## 🔄 Luồng nghiệp vụ
 
-1. **Admin/Lecturer** tạo *Tiêu chí* (max\_score) → *Phong trào* → *Hoạt động* (thời hạn, điểm).
+1. **Admin/advisor/department-officers** tạo *Tiêu chí* (max\_score) → *Phong trào* → *Hoạt động* (thời hạn, điểm).
 2. **Sinh viên** đăng nhập → đăng ký hoạt động → tham gia.
-3. Khi **participated** thay đổi hoặc **hoạt động hết hạn**, hệ thống **tính điểm** (proc/triggers backend), đảm bảo điểm từng campaign **không vượt max của tiêu chí**.
-4. **Xem bảng điểm** và **xếp loại** theo kỳ, **thống kê** theo khoa/khóa/lớp.
+3. **Admin/advisor/department-officers/class-leader** đánh dấu tham gia hoạt động cho sinh viên.
+4. Khi **participated** thay đổi hoặc **hoạt động hết hạn**, hệ thống **tính điểm** (proc/triggers backend), đảm bảo điểm từng campaign **không vượt max của tiêu chí**.
+5. **Xem bảng điểm** và **xếp loại** theo kỳ, **thống kê** theo khoa/khóa/lớp.
 
 ---
 
@@ -159,37 +104,28 @@ NEXT_PUBLIC_BUILD_ENV=local
 * **Coding style**: TypeScript strict, module boundaries rõ ràng, async/await.
 * **UI/UX**: Tailwind, shadcn/ui (khuyến nghị), responsive, accessible.
 * **State**: tránh prop drilling; ưu tiên hooks + Zustand/Context.
-* **API**: axios instance kèm interceptors (token, refresh nếu có).
-* **Testing (tùy chọn)**: Vitest/RTL cho component/hook quan trọng.
+* **API**: axios instance .
 * **CI (tùy chọn)**: lint + type-check trên pull request.
 
 ---
 
 ## 🚢 Triển khai
 
-* **Vercel**: kết nối repo → cấu hình biến môi trường `NEXT_PUBLIC_API_BASE_URL` trỏ về backend public.
-* Kiểm tra `robots.txt`, `sitemap`, headers bảo mật (tùy chọn).
-* Bật `Image Optimization` nếu cần.
+* **Azure**: kết nối repo → cấu hình biến môi trường `NEXT_PUBLIC_API_BASE_URL` trỏ về backend public.
 
 **Production hiện tại**: [https://qldrl-gtohy46g2-asad-cad80cb6.vercel.app/](https://qldrl-gtohy46g2-asad-cad80cb6.vercel.app/)
 
 ---
 
-## 🤝 Đóng góp & Quy ước nhánh (2 thành viên)
+## 🤝 Đóng góp (2 thành viên)
 
 **Thành viên**
 
-| Vai trò | Họ tên                  | Email        | Ghi chú                 |
-| ------- | ----------------------- | ------------ | ----------------------- |
-| Lead/FE | **Hồ Vũ An**            | *(cập nhật)* | Điều phối, kiến trúc FE |
-| BE/FE   | **(Tên thành viên #2)** | *(cập nhật)* | Backend & tích hợp      |
+| Vai trò | Họ tên                  | Email                  | Ghi chú                   |
+| ------- | ----------------------- | ---------------------- | ------------------------- |
+| Lead/FE | **Hồ Vũ An**            | 21521804@gm.uit.edu.vn | Backend, Frontend & deloy |
+| BE/FE   | **Dương Uy Quan**       | 21521323@gm.uit.edu.vn | Backend & Frontend & Test |
 
-**Quy ước Git**
-
-* Nhánh chính: `main` (production), `develop` (tích hợp).
-* Nhánh tính năng: `feat/<module>`; sửa lỗi: `fix/<issue>`; tài liệu/ops: `chore/docs`, `chore/ci`.
-* Commit message (Conventional): `feat: ...`, `fix: ...`, `refactor: ...`, `docs: ...`.
-* Pull Request: mô tả rõ **mục tiêu**, **ảnh chụp UI (nếu có)**, **cách test**.
 
 **Quy trình**
 
@@ -202,22 +138,10 @@ NEXT_PUBLIC_BUILD_ENV=local
 
 ## 👤 Tác giả
 
-* **Hồ Vũ An** – FE Lead (Next.js)
-* **(Tên thành viên #2)** – BE/FE
-
-> *Vui lòng cập nhật thông tin liên hệ (email/phone) trong bảng Thành viên.*
+* **Hồ Vũ An** – FE Lead (Next.js), BE Lead(Nodejs - Express)
+* **Dương Uy Quan** – FE Lead (Next.js), BE Lead(Nodejs - Express)
 
 ---
 
-## 📄 Giấy phép
-
-Phát hành theo **MIT License**. Bạn được phép sử dụng, sao chép, sửa đổi với điều kiện giữ lại thông tin bản quyền và giấy phép trong các bản phân phối.
-
----
-
-## 🆘 Hỗ trợ & Góp ý
-
-* Tạo issue trên repository.
-* Hoặc liên hệ các thành viên dự án.
 
 > Cảm ơn bạn đã sử dụng hệ thống **QLDRL**! 🎓
