@@ -28,13 +28,13 @@ Hệ thống hỗ trợ quản lý điểm rèn luyện theo cấu trúc **Tiêu
 ## ✅ Tính năng
 
 * Quản lý **Tiêu chí / Phong trào / Hoạt động** với giới hạn điểm theo tiêu chí.
-* **Đăng ký hoạt động** (sinh viên), duyệt tham gia, đánh dấu **participated**.
+* **Đăng ký hoạt động** (sinh viên), duyệt tham gia.
 * **Tính điểm tự động** khi tham gia/hoạt động hết hạn; phân loại xếp hạng.
-* Phân quyền **admin / lecturer / student / class representative**.
-* **Import Excel** danh sách sinh viên; tạo user tự động (qua backend).
+* Phân quyền **admin / advisor / department-officers/ student / class-leader**.
+* **Import Excel** danh sách sinh viên.
 * Xem **bảng điểm cá nhân**, **thống kê** theo khoa/khóa/lớp/kỳ.
-* **Đăng nhập** JWT, bảo vệ route theo vai trò, refresh token (qua backend).
-* **Email nền** (Bull queue, trên backend) khi tạo tài khoản.
+* **Đăng nhập** JWT, bảo vệ route theo vai trò.
+* **Đổi mật khẩu** đổi mật khẩu bằng mã gửi qua email.
 
 > Lưu ý: Repository này là **Frontend** (Next.js). Phần **Backend**: Node.js + Express + MySQL + Sequelize, có JWT, phân quyền, trigger/procedure tính điểm.
 
