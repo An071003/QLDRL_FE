@@ -1,6 +1,6 @@
 # QLDRL – Hệ thống Quản Lý Điểm Rèn Luyện (Frontend)
 
-> **Tech stack**: Next.js (App Router) • TypeScript • TailwindCSS • JWT Auth (tích hợp backend Express) • Axios/Fetch • Zustand/Context • Vercel (deploy)
+> **Tech stack**: Next.js (App Router) • TypeScript • TailwindCSS • JWT Auth (tích hợp backend Express) • Axios/Fetch • Zustand/Context • Azure (deploy)
 
 **Production**: [https://qldrl-gtohy46g2-asad-cad80cb6.vercel.app/](https://qldrl-gtohy46g2-asad-cad80cb6.vercel.app/)
 
